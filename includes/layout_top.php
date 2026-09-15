@@ -8,24 +8,14 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
 <title>OneFIS<?php echo $headerTitle !== '' ? ' - ' . h($headerTitle) : ''; ?></title>
 <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
 
-<div class="phone">
-
-    <!-- Status bar palsu -->
-    <div class="statusbar">
-        <span>10:58</span>
-        <div class="island"></div>
-        <div class="icons">
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 22h2V10H2v12zm5 0h2V6H7v16zm5 0h2V2h-2v20zm5 0h2v-8h-2v8zm5 0h2v-4h-2v4z"/></svg>
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M1 9l2 2c4.97-4.97 13.03-4.97 18 0l2-2C16.93 2.93 7.08 2.93 1 9zm8 8l3 3 3-3a4.24 4.24 0 00-6 0zm-4-4l2 2a7.07 7.07 0 0110 0l2-2C15.14 9.14 8.87 9.14 5 13z"/></svg>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="7" width="18" height="10" rx="2"/><line x1="22" y1="10" x2="22" y2="14"/></svg>
-        </div>
-    </div>
+<div class="app-container">
 
     <?php if ($screen === 'dashboard'): ?>
         <!-- Header dashboard -->
