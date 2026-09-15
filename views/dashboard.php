@@ -22,10 +22,16 @@
         <div class="illustration-wrap">
             <img src="assets/order-illustration.png" alt="Ilustrasi Order">
         </div>
-        <a href="index.php?screen=shipments_list" class="btn-ghost" style="margin-top:auto;">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path stroke-linecap="round" stroke-linejoin="round" d="M14 2v6h6M9 13h6M9 17h6M9 9h1"/></svg>
-            Lihat Detail Order
-        </a>
+        <div class="empty-order-text">
+            <h3>Pengiriman Aktif Belum Tersedia</h3>
+            <p>Saat ini belum ada pengiriman BBM menuju SPBU Anda</p>
+        </div>
     </div>
+
+    <!-- Tombol Lihat Detail Order -->
+    <a href="index.php?screen=shipments_list" class="dashboard-cta">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path stroke-linecap="round" stroke-linejoin="round" d="M14 2v6h6M9 13h6M9 17h6M9 9h1"/></svg>
+        Lihat Detail Order
+    </a>
 
 </div>
