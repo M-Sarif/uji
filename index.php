@@ -1,10 +1,5 @@
 <?php
-/**
- * OneFIS - Aplikasi PHP native (tanpa framework/React)
- * Satu pintu masuk (front controller) yang merutekan ke setiap "layar"
- * berdasarkan parameter ?screen=... , persis alur pada App.tsx yang lama,
- * namun logikanya kini benar-benar dijalankan di server oleh PHP.
- */
+
 
 session_start();
 
