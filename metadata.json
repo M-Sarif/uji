@@ -1,0 +1,6 @@
+{
+  "name": "OneFis Mobile Tutorial",
+  "description": "Simulasi interaktif dan tutorial step-by-step untuk aplikasi mobile OneFis.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
