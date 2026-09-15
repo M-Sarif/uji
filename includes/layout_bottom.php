@@ -1,5 +1,5 @@
-    </div><!-- /.content -->
-</div><!-- /.phone -->
+</div><!-- /.content -->
+</div><!-- /.app-container -->
 
 </body>
 </html>
