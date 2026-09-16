@@ -50,9 +50,12 @@
 
     <!-- Tutorial mengambang -->
     <?php if ($tutorialText !== '' && $screen !== 'dashboard'): ?>
-        <div class="tutorial<?php echo $screen !== 'dashboard' ? ' simple-offset' : ''; ?>">
+        <div class="tutorial<?php echo $screen !== 'dashboard' ? ' simple-offset' : ''; ?>" id="tutorialBox" data-screen="<?php echo h($screen); ?>">
             <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
             <p><?php echo h($tutorialText); ?></p>
+            <button type="button" class="tutorial-close" id="tutorialClose" aria-label="Sembunyikan petunjuk">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
         </div>
     <?php endif; ?>
 

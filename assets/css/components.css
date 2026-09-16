@@ -37,6 +37,11 @@
 .btn-primary:disabled {
     background: #e2e8f0; color: #94a3b8; box-shadow: none; cursor: not-allowed;
 }
+.btn-primary svg,
+.btn-outline svg {
+    width: 1.125rem; height: 1.125rem; flex-shrink: 0;
+    fill: none; stroke: currentColor; stroke-width: 2;
+}
 
 .btn-outline {
     padding: 0.875rem 1.25rem;

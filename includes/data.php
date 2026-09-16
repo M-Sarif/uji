@@ -118,7 +118,8 @@ const TUTORIAL_TEXTS = [
     'create_order_review'  => "5. Cek kembali Ringkasan Order Anda, lalu klik 'Submit Order'.",
     'track_order'          => "6. Pantau order di tab Pengiriman. Setelah itu, klik tab 'Aktifitas' untuk melihat detail.",
     'shipment'             => "7. Ikuti aktifitas di SPBU sesuai urutan. Langkah yang aktif (bertanda panah) bisa diklik untuk dikerjakan.",
-    'verification'         => "8. Verifikasi kesesuaian Mobil Tangki, AMT 1, dan AMT 2. Setelah semua dijawab, klik 'Simpan' lalu konfirmasi.",
+    // Layar "Tiba di Lokasi" tanpa kotak petunjuk agar isi kartu tidak tertutup
+    'verification'         => '',
     'lo_list'              => "9. Pilih LO yang akan dibongkar, lalu klik 'Mulai Checklist'.",
     'checklist'            => "10. Ikuti 15 langkah checklist Pra-Pembongkaran sesuai kondisi lapangan (termasuk IJKBOUT/Flow Meter).",
     'qr_code'              => "11. Tunjukkan QR Code / Kode Konfirmasi ini kepada AMT untuk diselesaikan.",

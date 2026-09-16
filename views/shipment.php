@@ -81,23 +81,44 @@ $subtitles = [
             <span class="label">Nomor LO</span>
             <span class="value">8119038717</span>
         </div>
-        <div class="order-row">
-            <span class="label">Produk</span>
-            <span class="value-chip">PERTALITE 6000 L</span>
-        </div>
+        <?php if ($done >= $total): ?>
+            <div class="order-row">
+                <span class="label">Order</span>
+                <span class="value-chip ok">
+                    PERTALITE 6000 L
+                    <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                </span>
+            </div>
+            <div class="order-row">
+                <span class="label">Status Order</span>
+                <span class="value-chip ok">Sudah Diverifikasi</span>
+            </div>
+        <?php else: ?>
+            <div class="order-row">
+                <span class="label">Produk</span>
+                <span class="value-chip">PERTALITE 6000 L</span>
+            </div>
+        <?php endif; ?>
     </div>
 
 </div>
 
 <div class="sticky-footer">
     <?php if ($done >= $total): ?>
-        <a href="index.php?screen=done" class="btn-primary">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+        <a href="index.php?screen=done" class="btn-primary btn-finish">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18" style="width:18px;height:18px;">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M22 2L11 13"/>
+                <path stroke-linecap="round" stroke-linejoin="round" d="M22 2l-7 20-4-9-9-4 20-7z"/>
+            </svg>
             Selesai
         </a>
     <?php else: ?>
         <button type="button" class="btn-primary" disabled>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 21V4a1 1 0 011-1h10.5a.5.5 0 01.4.8l-3 4a.5.5 0 000 .6l3 4a.5.5 0 01-.4.8H6"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18" style="width:18px;height:18px;">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 4H6a2 2 0 00-2 2v13a2 2 0 002 2h9a2 2 0 002-2v-2"/>
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 4a2 2 0 002 2h1a2 2 0 002-2 2 2 0 00-2-2h-1a2 2 0 00-2 2z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h4M9 16h4"/>
+            </svg>
             Selesai
         </button>
     <?php endif; ?>

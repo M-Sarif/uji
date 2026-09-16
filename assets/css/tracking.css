@@ -83,3 +83,15 @@
     background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 0.5rem;
     padding: 0.25rem 0.625rem;
 }
+.value-chip.ok {
+    display: inline-flex; align-items: center; gap: 0.25rem;
+    color: #15803d; background: #f0fdf4; border-color: #bbf7d0;
+}
+.value-chip.ok svg { width: 0.75rem; height: 0.75rem; fill: none; stroke: currentColor; stroke-width: 3; }
+
+/* Tombol "Selesai" saat aktif (semua aktifitas SPBU sudah tuntas) */
+.btn-finish { box-shadow: 0 0 0 3px #bfdbfe, 0 8px 20px -6px rgba(37,99,235,0.5); }
+
+/* Pengaman ukuran ikon pada tombol "Selesai" (disabled maupun aktif),
+   supaya tetap normal walau components.css belum ikut diperbarui. */
+.sticky-footer .btn-primary svg { width: 1.125rem !important; height: 1.125rem !important; flex-shrink: 0; }

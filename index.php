@@ -14,6 +14,15 @@ if (!in_array($screen, $validScreens, true)) {
     $screen = 'dashboard';
 }
 
+/* Setiap kali pengguna kembali ke halaman utama (dashboard) -- baik lewat
+ * tombol back di header/browser, mengetik ulang alamatnya, maupun link
+ * lain -- seluruh progres alur order/checklist/verifikasi dimulai dari
+ * awal lagi. Hanya berlaku untuk kunjungan GET biasa, bukan saat form
+ * di layar dashboard sendiri diproses (dashboard tidak punya form POST). */
+if ($screen === 'dashboard' && $_SERVER['REQUEST_METHOD'] !== 'POST') {
+    reset_flow_state();
+}
+
 /* --------------------------------------------------------------
  * Proses form (POST) - setiap layar yang punya form menangani
  * aksinya sendiri di sini, lalu redirect (pola Post/Redirect/Get)
