@@ -98,3 +98,22 @@ const NEXT_SCREEN = [
     'rating'                => 'done',
     'done'                  => 'dashboard',
 ];
+
+// Pemetaan layar -> file CSS spesifik yang perlu dimuat (di luar
+// base.css & components.css yang selalu dimuat di semua halaman).
+// Ini yang membuat style tidak lagi menumpuk dalam satu file besar.
+const SCREEN_CSS = [
+    'dashboard'             => ['dashboard'],
+    'shipments_list'        => ['shipments'],
+    'create_order_info'     => ['order-form'],
+    'create_order_product'  => ['order-form'],
+    'create_order_review'   => ['order-form'],
+    'track_order'           => ['tracking'],
+    'shipment'              => ['tracking'],
+    'verification'          => ['verification'],
+    'lo_list'               => ['verification'],
+    'checklist'             => ['verification'],
+    'qr_code'               => ['verification'],
+    'rating'                => ['verification'],
+    'done'                  => ['verification'],
+];

@@ -1,0 +1,115 @@
+/* ============================================================
+   OneFIS - verification.css
+   Khusus alur di lokasi SPBU: Tiba di Lokasi, Checklist LO, QR
+   verifikasi, Rating AMT, wizard checklist, dan halaman Selesai.
+   ============================================================ */
+
+/* ---------- Shipment / Verification ---------- */
+.stripe-card { position: relative; overflow: hidden; padding-left: 1.5rem; }
+.stripe-card::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 0.375rem; background: #3b82f6; }
+.avatar-circle { width: 3rem; height: 3rem; border-radius: 50%; background: #eff6ff; color: #3b82f6; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 1px solid #e2e8f0; }
+.avatar-circle svg { width: 1.5rem; height: 1.5rem; fill: none; stroke: currentColor; stroke-width: 2; }
+.avatar-circle img { width: 100%; height: 100%; object-fit: cover; }
+.person-row { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; }
+.person-name { font-size: 0.9375rem; font-weight: 700; color: #1e293b; }
+.person-name.small { font-size: 0.875rem; }
+.person-sub { font-size: 0.75rem; color: #64748b; font-weight: 500; }
+.question { font-size: 0.75rem; font-weight: 600; color: #334155; margin-bottom: 0.75rem; }
+
+/* ---------- LO List ---------- */
+.lo-card { border: 2px solid #e2e8f0; border-radius: 1.25rem; padding: 1rem; cursor: pointer; display: flex; align-items: flex-start; gap: 1rem; }
+.lo-card.selected { border-color: #3b82f6; background: #eff6ff66; }
+.lo-checkbox { width: 1.25rem; height: 1.25rem; border-radius: 0.3125rem; border: 1px solid #cbd5e1; margin-top: 0.125rem; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+.lo-checkbox.checked { background: #2563eb; border-color: #2563eb; }
+.lo-checkbox svg { width: 0.875rem; height: 0.875rem; color: #fff; fill: none; stroke: currentColor; stroke-width: 3; }
+.lo-detail { flex: 1; display: flex; flex-direction: column; gap: 0.625rem; font-size: 0.875rem; }
+.lo-detail .lrow { display: flex; }
+.lo-detail .lrow .label { width: 6.25rem; color: #64748b; font-weight: 500; }
+.lo-detail .lrow .val { font-weight: 600; color: #334155; }
+.lo-detail .lrow .val.done { color: #059669; font-weight: 700; }
+.lo-detail .lrow .val.wait { color: #d97706; font-weight: 700; }
+
+/* ---------- QR ---------- */
+.qr-box { background: #fff; border-radius: 1.25rem; padding: 2rem; border: 1px solid #f1f5f9; text-align: center; box-shadow: 0 2px 12px -4px rgba(0,0,0,0.05); margin-bottom: 1.5rem; }
+.qr-box h2 { font-size: 0.9375rem; font-weight: 700; color: #1e293b; margin-bottom: 0.5rem; }
+.qr-box p.desc { font-size: 0.75rem; color: #64748b; margin-bottom: 2rem; line-height: 1.6; }
+.qr-visual { width: 12rem; height: 12rem; margin: 0 auto; background: #fff; border: 2px solid #f1f5f9; border-radius: 1.25rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 4px rgba(0,0,0,0.05); margin-bottom: 2rem; }
+.qr-visual svg { width: 7.5rem; height: 7.5rem; color: #1e293b; }
+.qr-alt { position: relative; padding-top: 1rem; border-top: 1px dashed #e2e8f0; }
+.qr-alt p.label { font-size: 0.6875rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.15em; margin-bottom: 0.75rem; }
+.qr-code-text { font-size: 2.25rem; font-weight: 900; letter-spacing: 0.3em; color: #2563eb; }
+
+/* ---------- Rating ---------- */
+.stars { display: flex; justify-content: center; gap: 0.5rem; }
+.star-input { display: none; }
+.star-label { cursor: pointer; }
+.star-label svg { width: 1.75rem; height: 1.75rem; fill: #f8fafc; stroke: #e2e8f0; stroke-width: 1.5; transition: fill 0.1s, stroke 0.1s; }
+/* trik CSS murni: urutan radio dibalik (row-reverse) supaya bisa highlight bintang di kiri saat salah satu dipilih, tanpa JS */
+.stars-inner { display: flex; flex-direction: row-reverse; justify-content: center; gap: 0.5rem; }
+.stars-inner .star-input:checked ~ .star-label svg,
+.stars-inner .star-label:hover svg,
+.stars-inner .star-label:hover ~ .star-label svg {
+    fill: #facc15; stroke: #facc15;
+}
+.rating-title { font-size: 0.875rem; font-weight: 700; color: #1e293b; text-align: center; margin-bottom: 0.25rem; }
+.rating-desc { font-size: 0.6875rem; color: #64748b; text-align: center; margin-bottom: 0.75rem; line-height: 1.5; padding: 0 0.5rem; }
+textarea.review-box {
+    width: 100%; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 0.625rem; padding: 0.75rem;
+    font-size: 0.75rem; font-family: inherit; resize: vertical;
+}
+textarea.review-box:focus { outline: none; border-color: #60a5fa; box-shadow: 0 0 0 3px #dbeafe; }
+.error-text { color: #dc2626; font-size: 0.75rem; font-weight: 600; margin-top: 0.5rem; text-align: center; }
+
+/* ---------- Checklist wizard ---------- */
+.progress-row { display: flex; align-items: center; gap: 0.375rem; padding: 1.25rem 1rem 0 1rem; }
+.progress-seg { height: 0.375rem; flex: 1; border-radius: 999px; background: #e2e8f0; }
+.progress-seg.filled { background: #10b981; }
+.progress-count { font-size: 0.6875rem; font-weight: 900; color: #94a3b8; margin-left: 0.5rem; letter-spacing: 0.05em; width: 2.625rem; text-align: right; }
+
+.checklist-card { background: #fff; border-radius: 1.25rem; padding: 1.5rem; border: 1px solid #f1f5f9; box-shadow: 0 2px 10px -4px rgba(0,0,0,0.05); margin: 1rem; }
+.checklist-card h2 { font-size: 1rem; font-weight: 700; color: #1e293b; line-height: 1.4; margin-bottom: 1.25rem; }
+.checklist-card h2 .req { color: #ef4444; margin-left: 0.125rem; }
+
+.subtle-box { background: #f8fafc80; border-radius: 0.75rem; padding: 1rem; border: 1px solid #f1f5f9; }
+.subtle-box .hint { font-size: 0.75rem; color: #94a3b8; margin-bottom: 1rem; font-weight: 500; }
+
+.photo-drop {
+    width: 100%; height: 11.25rem; background: #f1f5f9; border-radius: 0.75rem;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    border: 2px dashed #cbd5e1; color: #94a3b8;
+}
+.photo-drop svg { width: 2.25rem; height: 2.25rem; margin-bottom: 0.625rem; fill: none; stroke: currentColor; stroke-width: 1.6; }
+.photo-drop span { font-size: 0.875rem; font-weight: 600; color: #64748b; }
+
+.spp-item { border: 2px solid #e2e8f0; border-radius: 0.875rem; padding: 1rem; background: #fff; margin-bottom: 0.75rem; }
+.spp-item.filled { border-color: #10b981; background: #ecfdf5; }
+.spp-item .code { font-size: 0.6875rem; color: #64748b; font-weight: 500; margin-bottom: 0.25rem; letter-spacing: 0.03em; }
+.spp-item .name { font-weight: 700; font-size: 0.9375rem; color: #1e293b; margin-bottom: 0.75rem; }
+.spp-item .status { display: inline-block; padding: 0.25rem 0.625rem; font-size: 0.625rem; font-weight: 900; border-radius: 0.375rem; text-transform: uppercase; letter-spacing: 0.05em; }
+.spp-item.filled .status { background: #a7f3d0; color: #065f46; }
+.spp-item .status.pending { background: #fef3c7; color: #b45309; }
+
+.measure-box { background: #eff6ff; border-radius: 0.75rem; padding: 1rem; border: 1px solid #dbeafe; display: flex; gap: 0.75rem; }
+.measure-box svg { width: 1.25rem; height: 1.25rem; color: #3b82f6; flex-shrink: 0; margin-top: 0.125rem; fill: none; stroke: currentColor; stroke-width: 2; }
+.measure-box h3 { font-size: 0.875rem; font-weight: 700; color: #1e3a8a; margin-bottom: 0.375rem; }
+.measure-box p { font-size: 0.75rem; color: #1e40af; opacity: 0.85; margin-bottom: 1rem; line-height: 1.5; }
+
+.wizard-nav {
+    position: sticky; bottom: 0; left: 0; right: 0; padding: 1rem;
+    background: #ffffffee; backdrop-filter: blur(6px);
+    border-top: 1px solid #f1f5f9; display: flex; gap: 0.75rem;
+}
+.wizard-nav .btn-prev {
+    padding: 0.875rem 1.25rem; border-radius: 0.75rem; font-weight: 700; font-size: 0.875rem;
+    border: 1px solid #e2e8f0; color: #475569; background: #fff;
+}
+.wizard-nav .btn-prev:disabled { border-color: #f1f5f9; color: #cbd5e1; background: #f8fafc; }
+.wizard-nav .btn-next { flex: 1; }
+
+/* ---------- Done ---------- */
+.done-wrap { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 6rem 1.5rem 2rem 1.5rem; min-height: 100%; }
+.done-icon { width: 6rem; height: 6rem; border-radius: 50%; background: #d1fae5; color: #10b981; display: flex; align-items: center; justify-content: center; margin-bottom: 1.5rem; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
+.done-icon svg { width: 3rem; height: 3rem; fill: none; stroke: currentColor; stroke-width: 2; }
+.done-wrap h1 { font-size: 1.5rem; font-weight: 700; color: #1e293b; margin-bottom: 0.75rem; }
+.done-wrap p { font-size: 0.875rem; color: #64748b; max-width: 16.25rem; margin: 0 auto 2rem auto; line-height: 1.6; }
+.done-wrap .btn-primary { margin-top: auto; }

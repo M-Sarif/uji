@@ -1,0 +1,59 @@
+/* ============================================================
+   OneFIS - order-form.css
+   Khusus alur Buat Order: Informasi Umum, Pilih Produk, dan
+   Ringkasan/Review.
+   ============================================================ */
+
+/* ---------- Form (order info) ---------- */
+.field { margin-bottom: 1rem; }
+.field label { font-size: 0.75rem; font-weight: 600; color: #475569; display: block; margin-bottom: 0.3125rem; }
+.field .static-grey { width: 100%; background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 0.625rem; padding: 0.75rem; font-size: 0.8125rem; color: #64748b; font-weight: 500; }
+.field .static-white { width: 100%; background: #fff; border: 1px solid #e2e8f0; border-radius: 0.625rem; padding: 0.75rem; font-size: 0.8125rem; color: #1e293b; font-weight: 500; box-shadow: 0 1px 2px rgba(0,0,0,0.03); display: flex; align-items: center; justify-content: space-between; }
+.field .static-white svg { width: 1rem; height: 1rem; color: #94a3b8; fill: none; stroke: currentColor; stroke-width: 2; }
+
+.radio-pill {
+    flex: 1; padding: 0.625rem; border-radius: 0.625rem; border: 2px solid #e2e8f0;
+    display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+    font-size: 0.75rem; font-weight: 700; color: #64748b; background: #fff; cursor: pointer;
+}
+.radio-pill input { display: none; }
+.radio-pill .dot { width: 0.75rem; height: 0.75rem; border-radius: 50%; border: 2px solid #cbd5e1; }
+.radio-pill.checked { border-color: #3b82f6; background: #eff6ff; color: #1d4ed8; }
+.radio-pill.checked .dot { background: #3b82f6; border-color: #fff; box-shadow: 0 0 0 1px #3b82f6; }
+
+.form-footer { margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #f1f5f9; display: flex; gap: 0.75rem; }
+.form-footer .btn-primary { flex: 1; }
+
+/* ---------- Order Product ---------- */
+.empty-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 1.5rem; }
+.empty-icon { width: 4rem; height: 4rem; border-radius: 50%; background: #eff6ff; color: #3b82f6; display: flex; align-items: center; justify-content: center; margin-bottom: 1rem; border: 1px solid #dbeafe; }
+.empty-icon svg { width: 2rem; height: 2rem; fill: none; stroke: currentColor; stroke-width: 2; }
+.empty-state h3 { font-size: 0.875rem; font-weight: 700; color: #334155; margin-bottom: 0.25rem; }
+.empty-state p { font-size: 0.8125rem; color: #64748b; margin-bottom: 1.5rem; }
+
+.kv-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.8125rem; background: #f8fafc; padding: 0.75rem; border-radius: 0.625rem; margin-bottom: 0.5rem; border: 1px solid #f1f5f9; }
+.kv-row.total { background: #eff6ff; border: 1px solid #bfdbfe; box-shadow: 0 1px 2px rgba(0,0,0,0.03); }
+.kv-row .k { color: #64748b; font-weight: 500; }
+.kv-row.total .k { color: #1e40af; font-weight: 700; }
+.kv-row .v { font-weight: 700; color: #1e293b; }
+.kv-row.total .v { color: #1d4ed8; font-size: 0.875rem; }
+
+.qty-input { width: 100%; background: #fff; border: 2px solid #3b82f6; border-radius: 0.625rem; padding: 0.75rem; font-size: 0.9375rem; font-weight: 700; color: #1e293b; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 0 0 4px #dbeafe66; }
+.qty-input input { border: none; outline: none; font: inherit; font-weight: 700; width: 100%; }
+.qty-input span.unit { color: #94a3b8; font-weight: 500; font-size: 0.75rem; }
+
+/* ---------- Order Review ---------- */
+.review-card { border-radius: 1.25rem; border: 1px solid #e2e8f0; overflow: hidden; }
+.review-card .review-head { background: #f8fafc; padding: 0.875rem; border-bottom: 1px solid #e2e8f0; font-size: 0.75rem; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.06em; }
+.review-card .review-body { padding: 1rem; }
+.review-line { display: flex; justify-content: space-between; font-size: 0.8125rem; margin-bottom: 0.75rem; }
+.review-line:last-child { margin-bottom: 0; }
+.review-line .k { color: #64748b; font-weight: 500; }
+.review-line .v { font-weight: 700; color: #1e293b; }
+.review-line .v.blue { color: #2563eb; }
+.review-product { display: flex; align-items: center; justify-content: space-between; }
+.review-product .name { font-weight: 700; font-size: 0.9375rem; color: #1e293b; margin-bottom: 0.25rem; }
+.review-product .qty { font-size: 0.8125rem; color: #64748b; }
+.review-product .qty b { color: #334155; font-weight: 700; }
+.check-circle { width: 2.5rem; height: 2.5rem; border-radius: 50%; background: #ecfdf5; color: #10b981; display: flex; align-items: center; justify-content: center; border: 1px solid #d1fae5; }
+.check-circle svg { width: 1.5rem; height: 1.5rem; fill: none; stroke: currentColor; stroke-width: 2; }

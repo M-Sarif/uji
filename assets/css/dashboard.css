@@ -1,0 +1,51 @@
+/* ============================================================
+   OneFIS - dashboard.css
+   Khusus halaman Dashboard: menu cepat, kartu ilustrasi, dan
+   CTA "Lihat Detail Order".
+   ============================================================ */
+
+/* ---------- Dashboard ---------- */
+.dashboard-wrap {
+    display: flex; flex-direction: column; gap: 1rem;
+    padding: 1rem; padding-bottom: 1.25rem;
+    min-height: 100%;
+    background: #f8fafc;
+}
+.menu-card { display: flex; gap: 1.375rem; border-radius: 1.5rem; padding: 1.125rem; }
+.menu-item {
+    flex: 0 0 auto; width: 3.75rem; display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
+}
+.menu-icon-box {
+    width: 3.5rem; height: 3.5rem; border-radius: 0.875rem;
+    display: flex; align-items: center; justify-content: center;
+    border: 1px solid #dbeafe;
+    background: linear-gradient(to bottom right, #eff6ff, #dbeafe80);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+    overflow: hidden;
+}
+.menu-icon-box.rose {
+    border-color: #ffe4e6;
+    background: linear-gradient(to bottom right, #fff1f2, #fecdd380);
+}
+.menu-icon-box img { width: 2.25rem; height: 2.25rem; object-fit: contain; }
+.menu-item span { font-size: 0.6875rem; font-weight: 600; color: #334155; text-align: center; line-height: 1.3; }
+
+.illustration-card {
+    border-radius: 1.5rem; padding: 1.5rem 1.25rem; flex: 1;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center;
+}
+.illustration-wrap { display: flex; align-items: center; justify-content: center; margin-bottom: 1.25rem; }
+.illustration-wrap img { width: 100%; max-width: 9.375rem; object-fit: contain; }
+.empty-order-text h3 { font-size: 0.9375rem; font-weight: 700; color: #1e293b; margin-bottom: 0.375rem; }
+.empty-order-text p { font-size: 0.75rem; color: #64748b; max-width: 15rem; margin: 0 auto; line-height: 1.5; }
+
+.dashboard-cta {
+    width: 100%; padding: 0.875rem; border-radius: 0.75rem;
+    border: 1px solid #e2e8f0; background: #fff; color: #94a3b8;
+    font-weight: 600; font-size: 0.875rem;
+    display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+    flex-shrink: 0;
+}
+.dashboard-cta:hover { background: #f8fafc; color: #64748b; }
+.dashboard-cta svg { width: 1rem; height: 1rem; }

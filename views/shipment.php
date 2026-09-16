@@ -12,36 +12,44 @@
         <div class="activity-timeline">
             <div class="activity-line"></div>
 
-            <div class="activity-item">
+            <div class="activity-item active">
                 <span class="activity-node"></span>
-                <div class="activity-icon">
-                    <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 21h12M4 21V7l6-4 6 4v14M9 21v-6h4v6M15 10h3a2 2 0 012 2v3.5a1.5 1.5 0 01-3 0V13" /></svg>
+                <div class="activity-row">
+                    <div class="activity-icon">
+                        <img src="assets/step-arrive.png" alt="Tiba di Lokasi">
+                    </div>
+                    <span class="activity-label">Tiba di Lokasi</span>
                 </div>
-                <span class="activity-label">Tiba di Lokasi</span>
             </div>
 
             <div class="activity-item">
                 <span class="activity-node"></span>
-                <div class="activity-icon">
-                    <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                <div class="activity-row">
+                    <div class="activity-icon">
+                        <img src="assets/step-checklist.png" alt="Isi Checklist">
+                    </div>
+                    <span class="activity-label">Isi Checklist</span>
                 </div>
-                <span class="activity-label">Isi Checklist</span>
             </div>
 
             <div class="activity-item">
                 <span class="activity-node"></span>
-                <div class="activity-icon">
-                    <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 3h6a1 1 0 011 1v16a1 1 0 01-1 1H9a1 1 0 01-1-1V4a1 1 0 011-1zM9 18h6" /></svg>
+                <div class="activity-row">
+                    <div class="activity-icon">
+                        <img src="assets/step-surat-jalan.png" alt="Verifikasi Order">
+                    </div>
+                    <span class="activity-label">Verifikasi Order</span>
                 </div>
-                <span class="activity-label">Verifikasi Order</span>
             </div>
 
             <div class="activity-item">
                 <span class="activity-node"></span>
-                <div class="activity-icon">
-                    <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3l2.6 5.3 5.9.9-4.25 4.1 1 5.85L12 16.4l-5.25 2.75 1-5.85L3.5 9.2l5.9-.9L12 3z" /></svg>
+                <div class="activity-row">
+                    <div class="activity-icon">
+                        <img src="assets/step-rate-spbu.png" alt="Rating Petugas AMT">
+                    </div>
+                    <span class="activity-label">Rating Petugas AMT</span>
                 </div>
-                <span class="activity-label">Rating Petugas AMT</span>
             </div>
         </div>
     </div>
@@ -53,10 +61,17 @@
             <span class="label">Nomor LO</span>
             <span class="value">8119038717</span>
         </div>
+        <div class="order-row">
+            <span class="label">Produk</span>
+            <span class="value-chip">PERTALITE 6000 L</span>
+        </div>
     </div>
 
 </div>
 
 <div class="sticky-footer">
-    <button type="button" class="btn-primary" disabled>Selesai</button>
+    <button type="button" class="btn-primary" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 21V4a1 1 0 011-1h10.5a.5.5 0 01.4.8l-3 4a.5.5 0 000 .6l3 4a.5.5 0 01-.4.8H6"/></svg>
+        Selesai
+    </button>
 </div>
