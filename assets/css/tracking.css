@@ -1,0 +1,72 @@
+/* ============================================================
+   OneFIS - tracking.css
+   Khusus halaman Detail Order: tab Pengiriman (timeline) & tab
+   Aktifitas (step foto + Order List).
+   ============================================================ */
+
+/* ---------- Track order (timeline) ---------- */
+.timeline-card { position: relative; padding: 1.5rem; overflow: hidden; }
+.timeline-line { position: absolute; left: 2.8rem; top: 2.75rem; bottom: 3rem; width: 2px; background: #e2e8f0; }
+.timeline-line.progress { background: #10b981; height: 55%; }
+.timeline { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 2rem; }
+.tl-item { display: flex; gap: 1rem; }
+.tl-dot { width: 2rem; height: 2rem; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border: 3px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-top: 0.125rem; }
+.tl-dot.done { background: #10b981; color: #fff; }
+.tl-dot.current { background: #dbeafe; color: #2563eb; }
+.tl-dot.pending { background: #e2e8f0; }
+.tl-dot svg { width: 1rem; height: 1rem; fill: none; stroke: currentColor; stroke-width: 2.2; }
+.tl-item.pending { opacity: 0.4; }
+.tl-title { font-size: 0.875rem; font-weight: 700; color: #1e293b; }
+.tl-title.blue { color: #1d4ed8; margin-bottom: 0.125rem; }
+.tl-sub { font-size: 0.75rem; color: #64748b; font-weight: 500; }
+.tl-track-btn {
+    margin-top: 0.625rem; background: #eff6ff; border: 1px solid #bfdbfe; padding: 0.5rem 0.75rem;
+    border-radius: 0.5rem; display: inline-flex; align-items: center; gap: 0.5rem;
+}
+.tl-track-btn svg { width: 0.875rem; height: 0.875rem; color: #2563eb; fill: none; stroke: currentColor; stroke-width: 2; }
+.tl-track-btn span { font-size: 0.75rem; font-weight: 700; color: #1d4ed8; }
+
+/* ---------- Detail Order / Aktifitas ---------- */
+.section-title { font-size: 0.9375rem; font-weight: 700; color: #1e293b; }
+.section-sub { font-size: 0.8125rem; color: #64748b; margin-top: 0.25rem; margin-bottom: 1.5rem; }
+
+.activity-card { padding: 1.25rem 1.25rem 1.5rem 1.25rem; }
+.activity-timeline { position: relative; display: flex; flex-direction: column; gap: 1rem; padding-left: 0.4375rem; }
+.activity-line {
+    position: absolute; left: 0.4375rem; top: 0.4375rem; bottom: 1.75rem; width: 2px;
+    background: #e2e8f0;
+}
+.activity-item { position: relative; padding-left: 1.5rem; }
+.activity-node {
+    position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+    width: 0.5rem; height: 0.5rem; border-radius: 50%;
+    background: #fff; border: 2px solid #cbd5e1; z-index: 1;
+}
+.activity-item.active .activity-node {
+    background: #2563eb; border-color: #2563eb; box-shadow: 0 0 0 4px #dbeafe;
+}
+.activity-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;
+    border-radius: 1rem; padding: 0.5rem; border: 1.5px solid transparent;
+}
+.activity-item.active .activity-row {
+    border-color: #93c5fd; background: #eff6ff; padding: 0.625rem 0.875rem;
+}
+.activity-icon {
+    width: 3rem; height: 3rem; border-radius: 0.75rem; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; overflow: hidden;
+}
+.activity-icon img { width: 100%; height: 100%; object-fit: contain; }
+.activity-label { font-size: 0.8125rem; font-weight: 500; color: #94a3b8; text-align: right; }
+.activity-item.active .activity-label { color: #2563eb; font-weight: 700; }
+
+.order-list-card { padding: 1rem 1.125rem; }
+.order-row { display: flex; align-items: center; justify-content: space-between; }
+.order-row + .order-row { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #f1f5f9; }
+.order-row .label { font-size: 0.8125rem; color: #64748b; font-weight: 500; }
+.order-row .value { font-size: 0.875rem; color: #1e293b; font-weight: 700; }
+.value-chip {
+    font-size: 0.75rem; font-weight: 700; color: #475569;
+    background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 0.5rem;
+    padding: 0.25rem 0.625rem;
+}
