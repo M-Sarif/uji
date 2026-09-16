@@ -33,6 +33,65 @@ const RATING_CATEGORIES = [
     'layanan'     => ['title' => 'Aspek Layanan',  'desc' => 'Ketepatan volume BBM'],
 ];
 
+/* --------------------------------------------------------------
+ * Data layar "Tiba di Lokasi" (verifikasi saat MT sampai di SPBU)
+ * -------------------------------------------------------------- */
+
+// SPBU keberapa dari total rute pengiriman mobil tangki hari ini
+const ARRIVAL_SPBU_KE    = 1;
+const ARRIVAL_SPBU_TOTAL = 3;
+
+// Objek yang harus diverifikasi (1 mobil tangki + 2 awak mobil tangki).
+// Key array = nama input radio sekaligus key session penyimpan jawaban.
+const ARRIVAL_SUBJECTS = [
+    'mt_ok' => [
+        'photo'    => 'assets/empty-delivery-truck.png',
+        'fit'      => 'contain',
+        'name'     => 'B 9170 SEJ',
+        'sub'      => '16 KL',
+        'question' => 'Apakah mobil tangki sesuai?',
+    ],
+    'amt_ok' => [
+        'photo'    => 'assets/avatar-amt1.svg',
+        'fit'      => 'cover',
+        'name'     => 'MOHAMMAD FARHAN AWAFI',
+        'sub'      => 'AMT 1',
+        'question' => 'Apakah AMT 1 sesuai?',
+    ],
+    'amt2_ok' => [
+        'photo'    => 'assets/avatar-amt2.svg',
+        'fit'      => 'cover',
+        'name'     => 'IMAMAL KHOIR',
+        'sub'      => 'AMT 2',
+        'question' => 'Apakah AMT 2 sesuai?',
+    ],
+];
+
+// Langkah aktifitas di SPBU (timeline pada layar Detail Order / shipment).
+// Urutan array = urutan langkah; 'href' = layar yang dibuka saat diklik.
+const ACTIVITY_STEPS = [
+    'arrive' => [
+        'label' => 'Tiba di Lokasi',
+        'icon'  => 'assets/step-arrive.png',
+        'href'  => 'index.php?screen=verification',
+    ],
+    'checklist' => [
+        'label' => 'Isi Checklist',
+        'icon'  => 'assets/step-checklist.png',
+        'href'  => 'index.php?screen=lo_list',
+    ],
+    'verifikasi' => [
+        'label' => 'Verifikasi Order',
+        'icon'  => 'assets/step-surat-jalan.png',
+        'href'  => 'index.php?screen=qr_code',
+    ],
+    'rating' => [
+        'label' => 'Rating Petugas AMT',
+        'icon'  => 'assets/step-rate-spbu.png',
+        'href'  => 'index.php?screen=rating',
+    ],
+];
+
 // Daftar layar valid + judul header (persis App.tsx -> getHeaderTitle)
 const HEADER_TITLES = [
     'dashboard'             => '',
@@ -58,8 +117,8 @@ const TUTORIAL_TEXTS = [
     'create_order_product' => "4. Tambahkan Produk BBM, cek Stok Aktual, dan isi Qty Order (misal 8000L). Klik 'Terapkan'.",
     'create_order_review'  => "5. Cek kembali Ringkasan Order Anda, lalu klik 'Submit Order'.",
     'track_order'          => "6. Pantau order di tab Pengiriman. Setelah itu, klik tab 'Aktifitas' untuk melihat detail.",
-    'shipment'             => "7. Setelah mobil tangki tiba, klik 'Tiba di Lokasi' untuk verifikasi AMT.",
-    'verification'         => "8. Verifikasi kesesuaian data Mobil Tangki & AMT. Klik 'Kirim Verifikasi'.",
+    'shipment'             => "7. Ikuti aktifitas di SPBU sesuai urutan. Langkah yang aktif (bertanda panah) bisa diklik untuk dikerjakan.",
+    'verification'         => "8. Verifikasi kesesuaian Mobil Tangki, AMT 1, dan AMT 2. Setelah semua dijawab, klik 'Simpan' lalu konfirmasi.",
     'lo_list'              => "9. Pilih LO yang akan dibongkar, lalu klik 'Mulai Checklist'.",
     'checklist'            => "10. Ikuti 15 langkah checklist Pra-Pembongkaran sesuai kondisi lapangan (termasuk IJKBOUT/Flow Meter).",
     'qr_code'              => "11. Tunjukkan QR Code / Kode Konfirmasi ini kepada AMT untuk diselesaikan.",
@@ -76,7 +135,7 @@ const PREV_SCREEN = [
     'track_order'           => 'shipments_list',
     'shipment'              => 'shipments_list',
     'verification'          => 'shipment',
-    'lo_list'               => 'verification',
+    'lo_list'               => 'shipment',
     'checklist'             => 'lo_list',
     'qr_code'               => 'checklist',
     'rating'                => 'qr_code',
@@ -91,7 +150,7 @@ const NEXT_SCREEN = [
     'create_order_review'   => 'track_order',
     'track_order'           => 'shipment',
     'shipment'              => 'verification',
-    'verification'          => 'lo_list',
+    'verification'          => 'shipment',
     'lo_list'               => 'checklist',
     'checklist'             => 'qr_code',
     'qr_code'               => 'rating',
