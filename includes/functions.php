@@ -54,6 +54,23 @@ function init_session_state(): void
     if (!isset($_SESSION['amt_ok'])) {
         $_SESSION['amt_ok'] = null;
     }
+    if (!isset($_SESSION['amt2_ok'])) {
+        $_SESSION['amt2_ok'] = null;
+    }
+    if (!isset($_SESSION['arrival_time'])) {
+        $_SESSION['arrival_time'] = null;
+    }
+    if (!isset($_SESSION['activity_done'])) {
+        // Jumlah langkah aktifitas di SPBU yang sudah selesai (0-4)
+        $_SESSION['activity_done'] = 0;
+    }
+}
+
+/** Tandai langkah aktifitas di SPBU selesai sampai urutan ke-$jumlah (tidak pernah mundur) */
+function set_activity_done(int $jumlah): void
+{
+    $current = (int) ($_SESSION['activity_done'] ?? 0);
+    $_SESSION['activity_done'] = max($current, min($jumlah, count(ACTIVITY_STEPS)));
 }
 
 /** Reset seluruh state alur (dipakai saat kembali ke beranda dari layar "done") */
@@ -65,7 +82,11 @@ function reset_flow_state(): void
         $_SESSION['checklist_step'],
         $_SESSION['ratings'],
         $_SESSION['mt_ok'],
-        $_SESSION['amt_ok']
+        $_SESSION['amt_ok'],
+        $_SESSION['amt2_ok'],
+        $_SESSION['arrival_time'],
+        $_SESSION['arrival_error'],
+        $_SESSION['activity_done']
     );
     init_session_state();
 }

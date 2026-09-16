@@ -40,9 +40,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             break;
 
         case 'kirim_verifikasi':
-            $_SESSION['mt_ok']  = ($_POST['mt_ok'] ?? 'ya') === 'tidak' ? false : true;
-            $_SESSION['amt_ok'] = ($_POST['amt_ok'] ?? 'ya') === 'tidak' ? false : true;
-            go_to('lo_list');
+            // Simpan jawaban verifikasi Mobil Tangki, AMT 1, dan AMT 2
+            $belumDijawab = [];
+            foreach (ARRIVAL_SUBJECTS as $key => $subject) {
+                $jawaban = $_POST[$key] ?? null;
+                if ($jawaban !== 'ya' && $jawaban !== 'tidak') {
+                    $_SESSION[$key] = null;
+                    $belumDijawab[] = $subject['sub'];
+                    continue;
+                }
+                $_SESSION[$key] = ($jawaban === 'ya');
+            }
+
+            if (!empty($belumDijawab)) {
+                $_SESSION['arrival_error'] = 'Mohon jawab pertanyaan untuk: ' . implode(', ', $belumDijawab);
+                go_to('verification');
+            }
+
+            unset($_SESSION['arrival_error']);
+            set_activity_done(1);   // langkah "Tiba di Lokasi" selesai
+            go_to('shipment');      // kembali ke halaman aktifitas SPBU
             break;
 
         case 'submit_rating':
@@ -80,6 +97,20 @@ if ($screen === 'create_order_product' && isset($_GET['added'])) {
 }
 if ($screen === 'lo_list' && isset($_GET['select'])) {
     $_SESSION['lo_selected'] = true;
+}
+// Progres aktifitas di SPBU ikut naik saat pengguna mencapai layar berikutnya
+if ($screen === 'qr_code') {
+    set_activity_done(2);   // checklist pra-pembongkaran selesai
+}
+if ($screen === 'rating') {
+    set_activity_done(3);   // verifikasi order selesai
+}
+if ($screen === 'done') {
+    set_activity_done(4);   // rating AMT selesai
+}
+if ($screen === 'verification' && empty($_SESSION['arrival_time'])) {
+    // Waktu tiba dicatat saat pertama kali layar "Tiba di Lokasi" dibuka
+    $_SESSION['arrival_time'] = date('d/m/Y H:i:s');
 }
 if ($screen === 'checklist') {
     $step = isset($_GET['step']) ? (int) $_GET['step'] : ($_SESSION['checklist_step'] ?? 1);
