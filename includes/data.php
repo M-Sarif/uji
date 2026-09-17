@@ -5,6 +5,13 @@
  * data PHP (array) yang dipakai ulang oleh setiap halaman.
  */
 
+// Daftar LO (Loading Order) yang bisa dipilih untuk diisi checklist-nya.
+// Key array = Nomor LO, dipakai juga sebagai id session (lo_checked / lo_done).
+const LO_LIST = [
+    '8144122089' => ['order' => 'PERTALITE 5.000 L'],
+    '8144122090' => ['order' => 'PERTALITE 5.000 L'],
+];
+
 // 15 langkah checklist pra-pembongkaran
 const CHECKLIST_STEPS = [
     1  => ['text' => 'Pastikan tersedianya volume ruang kosong dalam tangki.', 'type' => 'photo'],

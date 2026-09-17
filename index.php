@@ -104,12 +104,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 if ($screen === 'create_order_product' && isset($_GET['added'])) {
     $_SESSION['order']['produk_added'] = true;
 }
-if ($screen === 'lo_list' && isset($_GET['select'])) {
-    $_SESSION['lo_selected'] = true;
+if ($screen === 'lo_list' && isset($_GET['toggle'])) {
+    // Centang/hilangkan centang SATU LO saja -- ini cuma menandai LO
+    // tersebut ikut dikerjakan di wizard checklist, belum berarti
+    // checklist-nya sudah selesai diisi.
+    $id = (string) $_GET['toggle'];
+    if (array_key_exists($id, LO_LIST)) {
+        $_SESSION['lo_checked'][$id] = empty($_SESSION['lo_checked'][$id]);
+    }
+}
+if ($screen === 'lo_list' && isset($_GET['toggle_all'])) {
+    // "Pilih Semua": kalau semua LO sudah tercentang -> lepas semua,
+    // kalau belum -> centang semua.
+    $checkedCount = count(array_filter($_SESSION['lo_checked']));
+    $allChecked   = $checkedCount === count(LO_LIST);
+    foreach (array_keys(LO_LIST) as $id) {
+        $_SESSION['lo_checked'][$id] = !$allChecked;
+    }
 }
 // Progres aktifitas di SPBU ikut naik saat pengguna mencapai layar berikutnya
 if ($screen === 'qr_code') {
     set_activity_done(2);   // checklist pra-pembongkaran selesai
+
+    // Status "Sudah Diisi" pada Daftar LO baru berubah SEKARANG, yaitu
+    // saat wizard checklist benar-benar dituntaskan sampai "Kirim
+    // Checklist" (layar qr_code). Bukan saat LO sekadar dicentang di
+    // Daftar LO.
+    foreach ($_SESSION['lo_checked'] as $id => $isChecked) {
+        if ($isChecked) {
+            $_SESSION['lo_done'][$id] = true;
+        }
+    }
 }
 if ($screen === 'rating') {
     set_activity_done(3);   // verifikasi order selesai

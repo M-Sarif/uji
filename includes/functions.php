@@ -32,8 +32,16 @@ function init_session_state(): void
             'qty'          => 8000,
         ];
     }
-    if (!isset($_SESSION['lo_selected'])) {
-        $_SESSION['lo_selected'] = false;
+    if (!isset($_SESSION['lo_checked'])) {
+        // Nomor LO yang dicentang pengguna untuk dikerjakan checklist-nya
+        // (id => true). Ini hanya menandai "dipilih", BUKAN "sudah diisi".
+        $_SESSION['lo_checked'] = [];
+    }
+    if (!isset($_SESSION['lo_done'])) {
+        // Nomor LO yang checklist-nya BENAR-BENAR sudah selesai dikerjakan
+        // (id => true). Baru diisi setelah wizard checklist dituntaskan
+        // sampai langkah terakhir ("Kirim Checklist").
+        $_SESSION['lo_done'] = [];
     }
     if (!isset($_SESSION['checklist_step'])) {
         $_SESSION['checklist_step'] = 1;
@@ -78,7 +86,8 @@ function reset_flow_state(): void
 {
     unset(
         $_SESSION['order'],
-        $_SESSION['lo_selected'],
+        $_SESSION['lo_checked'],
+        $_SESSION['lo_done'],
         $_SESSION['checklist_step'],
         $_SESSION['ratings'],
         $_SESSION['mt_ok'],

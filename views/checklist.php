@@ -3,6 +3,14 @@ $step     = $_SESSION['checklist_step'];
 $stepData = CHECKLIST_STEPS[$step];
 $prevStep = $step - 1;
 $nextStep = $step + 1;
+
+// LO yang sedang dikerjakan pada wizard ini = LO yang dicentang pengguna
+// di halaman Daftar LO. Kalau karena suatu hal belum ada yang dicentang,
+// jatuhkan ke seluruh daftar supaya halaman tetap punya data untuk ditampilkan.
+$activeLoIds = array_keys(array_filter($_SESSION['lo_checked']));
+if (empty($activeLoIds)) {
+    $activeLoIds = array_keys(LO_LIST);
+}
 ?>
 <div class="progress-row">
     <?php for ($i = 1; $i <= 15; $i++): ?>
@@ -37,16 +45,16 @@ $nextStep = $step + 1;
         <?php break;
 
         case 'form_spp': ?>
-            <div class="spp-item filled">
-                <p class="code">8143805561</p>
-                <p class="name">PERTALITE 5.000 L</p>
-                <span class="status">Sudah Terisi</span>
+            <?php foreach ($activeLoIds as $i => $loId):
+                $lo     = LO_LIST[$loId];
+                $filled = $i === 0; // LO pertama dianggap sudah dicek AMT lebih dulu
+            ?>
+            <div class="spp-item<?php echo $filled ? ' filled' : ''; ?>">
+                <p class="code"><?php echo h($loId); ?></p>
+                <p class="name"><?php echo h($lo['order']); ?></p>
+                <span class="status<?php echo $filled ? '' : ' pending'; ?>"><?php echo $filled ? 'Sudah Terisi' : 'Belum Terisi'; ?></span>
             </div>
-            <div class="spp-item">
-                <p class="code">8143574365</p>
-                <p class="name">PERTALITE 5.000 L</p>
-                <span class="status pending">Belum Terisi</span>
-            </div>
+            <?php endforeach; ?>
         <?php break;
 
         case 'form_ukur': ?>
@@ -65,14 +73,16 @@ $nextStep = $step + 1;
 
         case 'konfirmasi_lo': ?>
             <p style="font-size:13px;color:#64748b;font-weight:500;margin-bottom:16px;">Tentukan status bongkar untuk LO yang dipilih</p>
+            <?php foreach ($activeLoIds as $loId): $lo = LO_LIST[$loId]; ?>
             <div class="card" style="box-shadow:none;">
-                <div class="lrow" style="display:flex;font-size:13px;margin-bottom:8px;"><span style="width:80px;color:#94a3b8;font-weight:500;">No. LO</span><span style="font-weight:600;color:#334155;">: 8143805561</span></div>
-                <div class="lrow" style="display:flex;font-size:13px;margin-bottom:20px;"><span style="width:80px;color:#94a3b8;font-weight:500;">Order</span><span style="font-weight:600;color:#334155;">: PERTALITE 5.000 L</span></div>
+                <div class="lrow" style="display:flex;font-size:13px;margin-bottom:8px;"><span style="width:80px;color:#94a3b8;font-weight:500;">No. LO</span><span style="font-weight:600;color:#334155;">: <?php echo h($loId); ?></span></div>
+                <div class="lrow" style="display:flex;font-size:13px;margin-bottom:20px;"><span style="width:80px;color:#94a3b8;font-weight:500;">Order</span><span style="font-weight:600;color:#334155;">: <?php echo h($lo['order']); ?></span></div>
                 <div class="row">
                     <button type="button" class="btn-outline" style="flex:1;">Tidak Jadi</button>
                     <button type="button" class="btn-choice blue" style="padding:12px;">Sudah Dibongkar</button>
                 </div>
             </div>
+            <?php endforeach; ?>
         <?php break;
     endswitch; ?>
 </div>
