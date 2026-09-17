@@ -46,6 +46,26 @@ function init_session_state(): void
     if (!isset($_SESSION['checklist_step'])) {
         $_SESSION['checklist_step'] = 1;
     }
+    if (!isset($_SESSION['checklist_answers'])) {
+        // Jawaban tiap langkah checklist: nomor langkah => 'ya' | 'tidak'
+        $_SESSION['checklist_answers'] = [];
+    }
+    if (!isset($_SESSION['spp_produk'])) {
+        // Langkah 6 - kesesuaian produk per Nomor LO (id => true bila sudah terisi)
+        $_SESSION['spp_produk'] = [];
+    }
+    if (!isset($_SESSION['spp_segel'])) {
+        // Langkah 6 - nomor segel yang sudah dibongkar (nomor => true)
+        $_SESSION['spp_segel'] = [];
+    }
+    if (!isset($_SESSION['lo_form'])) {
+        // Langkah 7 - isian form bongkar / claim loss per Nomor LO
+        $_SESSION['lo_form'] = [];
+    }
+    if (!isset($_SESSION['lo_bongkar'])) {
+        // Langkah 15 - status akhir tiap LO (id => 'dibongkar' | 'batal')
+        $_SESSION['lo_bongkar'] = [];
+    }
     if (!isset($_SESSION['ratings'])) {
         $_SESSION['ratings'] = [
             'safety'      => 0,
@@ -89,6 +109,11 @@ function reset_flow_state(): void
         $_SESSION['lo_checked'],
         $_SESSION['lo_done'],
         $_SESSION['checklist_step'],
+        $_SESSION['checklist_answers'],
+        $_SESSION['spp_produk'],
+        $_SESSION['spp_segel'],
+        $_SESSION['lo_form'],
+        $_SESSION['lo_bongkar'],
         $_SESSION['ratings'],
         $_SESSION['mt_ok'],
         $_SESSION['amt_ok'],
@@ -98,4 +123,58 @@ function reset_flow_state(): void
         $_SESSION['activity_done']
     );
     init_session_state();
+}
+/** Jawaban yang tersimpan untuk satu langkah checklist ('ya' | 'tidak' | null) */
+function checklist_answer(int $step): ?string
+{
+    return $_SESSION['checklist_answers'][$step] ?? null;
+}
+
+/**
+ * Apakah langkah checklist ke-$step sudah lengkap diisi?
+ * Dipakai untuk mengaktifkan/menonaktifkan tombol "Selanjutnya",
+ * persis seperti aplikasi aslinya.
+ */
+function checklist_step_done(int $step, array $activeLoIds): bool
+{
+    $type = CHECKLIST_STEPS[$step]['type'] ?? '';
+
+    switch ($type) {
+        case 'self_action_photo':
+        case 'action':
+            return checklist_answer($step) !== null;
+
+        case 'form_spp':
+            foreach ($activeLoIds as $loId) {
+                if (empty($_SESSION['spp_produk'][$loId])) {
+                    return false;
+                }
+            }
+            foreach (SEGEL_LIST as $segel) {
+                if (empty($_SESSION['spp_segel'][$segel])) {
+                    return false;
+                }
+            }
+            return true;
+
+        case 'form_ukur':
+            foreach ($activeLoIds as $loId) {
+                if (empty($_SESSION['lo_form'][$loId])) {
+                    return false;
+                }
+            }
+            return true;
+
+        case 'konfirmasi_lo':
+            foreach ($activeLoIds as $loId) {
+                if (empty($_SESSION['lo_bongkar'][$loId])) {
+                    return false;
+                }
+            }
+            return true;
+
+        // Langkah foto memakai kamera perangkat, tidak ikut mengunci tombol lanjut.
+        default:
+            return true;
+    }
 }

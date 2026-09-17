@@ -8,8 +8,8 @@
 // Daftar LO (Loading Order) yang bisa dipilih untuk diisi checklist-nya.
 // Key array = Nomor LO, dipakai juga sebagai id session (lo_checked / lo_done).
 const LO_LIST = [
-    '8144122089' => ['order' => 'PERTALITE 5.000 L'],
-    '8144122090' => ['order' => 'PERTALITE 5.000 L'],
+    '8144122089' => ['order' => 'PERTALITE 5.000 L', 'produk' => 'PERTALITE', 'qty' => '5.000 L'],
+    '8144122090' => ['order' => 'PERTALITE 5.000 L', 'produk' => 'PERTALITE', 'qty' => '5.000 L'],
 ];
 
 // Daftar nomor segel yang bisa dipilih/dikonfirmasi di langkah 6 (form_spp).
@@ -138,7 +138,7 @@ const HEADER_TITLES = [
     'shipment'              => 'Detail Order',
     'verification'          => 'Tiba di Lokasi',
     'lo_list'               => 'Checklist Pra-Pembongkaran',
-    'checklist'             => 'Lihat Checklist Pra Bongkar',
+    'checklist'             => 'Checklist Pra Bongkar BBM SPBU',
     'qr_code'               => 'Permintaan Verifikasi',
     'rating'                => 'Rating AMT',
     'done'                  => 'Pengiriman Selesai',
@@ -157,7 +157,8 @@ const TUTORIAL_TEXTS = [
     // Layar "Tiba di Lokasi" tanpa kotak petunjuk agar isi kartu tidak tertutup
     'verification'         => '',
     'lo_list'              => "9. Pilih LO yang akan dibongkar, lalu klik 'Mulai Checklist'.",
-    'checklist'            => "10. Ikuti 15 langkah checklist Pra-Pembongkaran sesuai kondisi lapangan (termasuk IJKBOUT/Flow Meter).",
+    // Wizard checklist tanpa kotak petunjuk agar tampilan persis seperti aplikasi
+    'checklist'            => '',
     'qr_code'              => "11. Tunjukkan QR Code / Kode Konfirmasi ini kepada AMT untuk diselesaikan.",
     'rating'               => "12. Berikan penilaian mendetail (Safety, Sarfas, dll) untuk pelayanan AMT. Klik Selesai.",
     'done'                 => "Selesai! Seluruh proses dari Order BBM hingga Pembongkaran berhasil dicatat.",

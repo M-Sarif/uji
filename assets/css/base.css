@@ -103,7 +103,7 @@ button { font: inherit; cursor: pointer; }
     padding: 0 0.5rem;
     padding-top: env(safe-area-inset-top);
     height: calc(3.5rem + env(safe-area-inset-top));
-    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    box-shadow: none;
     flex-shrink: 0;
     z-index: 10;
     border-bottom: 1px solid #f1f5f9;
@@ -119,7 +119,7 @@ button { font: inherit; cursor: pointer; }
 .back-btn:hover { background: #f1f5f9; }
 .back-btn svg { width: 1.5rem; height: 1.5rem; fill: none; stroke: currentColor; stroke-width: 2; }
 .app-header-simple h1 {
-    font-size: 1rem; font-weight: 700; color: #1e293b;
+    font-size: 1.1875rem; font-weight: 600; color: #1e293b; letter-spacing: -0.01em;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .app-header-simple.centered { justify-content: space-between; }
@@ -172,8 +172,23 @@ button { font: inherit; cursor: pointer; }
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
     position: relative;
-    background: #f8fafc80;
+    z-index: 1;
+    background: transparent;
     padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Gradasi latar dipasang di wadah aplikasi supaya tetap diam saat konten
+   di-scroll -- sama seperti tampilan pada aplikasi aslinya. */
+.app-container::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background:
+        radial-gradient(135% 26% at 85% 0%, #d7e5fb 0%, rgba(215,229,251,0) 100%),
+        radial-gradient(125% 14% at 15% 100%, #fbdde8 0%, rgba(251,221,232,0) 100%),
+        #f8fafc;
 }
 .content-pad { padding: 1rem; }
 

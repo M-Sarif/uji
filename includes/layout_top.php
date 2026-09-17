@@ -63,4 +63,5 @@
     <?php endif; ?>
 
     <!-- Konten utama -->
-    <div class="content">
+    <?php $hasWizardNav = in_array($screen, ['checklist', 'claim_loss'], true); ?>
+    <div class="content<?php echo $hasWizardNav ? ' content-with-nav' : ''; ?>">

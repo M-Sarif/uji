@@ -91,6 +91,55 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             go_to('done');
             break;
 
+        case 'save_spp_produk':
+            // Hasil verifikasi kartu Produk pada langkah 6 checklist
+            $loId = (string) ($_POST['lo'] ?? '');
+            if (array_key_exists($loId, LO_LIST)) {
+                $_SESSION['spp_produk'][$loId] = [
+                    'kesesuaian' => ($_POST['kesesuaian'] ?? 'sesuai') === 'tidak' ? 'tidak' : 'sesuai',
+                ];
+            }
+            go_to('checklist', ['step' => 6]);
+            break;
+
+        case 'save_spp_segel':
+            // Hasil verifikasi kartu Segel pada langkah 6 checklist
+            $noSegel = (string) ($_POST['segel'] ?? '');
+            if (in_array($noSegel, SEGEL_LIST, true)) {
+                $_SESSION['spp_segel'][$noSegel] = [
+                    'kesesuaian' => ($_POST['kesesuaian'] ?? 'sesuai') === 'tidak' ? 'tidak' : 'sesuai',
+                    'kondisi'    => ($_POST['kondisi'] ?? 'baik') === 'rusak' ? 'rusak' : 'baik',
+                ];
+            }
+            go_to('checklist', ['step' => 6]);
+            break;
+
+        case 'save_claim_loss':
+            // Simpan isian form bongkar untuk satu Nomor LO, lalu kembali
+            // ke langkah 7 checklist dengan status "Sudah Terisi".
+            $loId   = (string) ($_POST['lo'] ?? '');
+            $metode = array_key_exists($_POST['metode'] ?? '', MEASUREMENT_METHODS)
+                ? (string) $_POST['metode']
+                : 'ijkbout';
+
+            if (array_key_exists($loId, LO_LIST)) {
+                $nilai = [];
+                foreach (MEASUREMENT_METHODS[$metode]['fields'] as $field) {
+                    $raw = str_replace(',', '.', (string) ($_POST[$field['key']] ?? ''));
+                    $nilai[$field['key']] = (float) preg_replace('/[^0-9.\-]/', '', $raw);
+                }
+
+                $_SESSION['lo_form'][$loId] = [
+                    'metode' => $metode,
+                    'nilai'  => $nilai,
+                    // TODO: rumus claim loss resmi (tabel tera mobil tangki /
+                    // koreksi VCF) belum tersedia, jadi sementara 0 L.
+                    'claim_loss' => 0.0,
+                ];
+            }
+            go_to('checklist', ['step' => 7]);
+            break;
+
         case 'reset_flow':
             reset_flow_state();
             go_to('dashboard');
@@ -150,6 +199,19 @@ if ($screen === 'checklist') {
     $step = isset($_GET['step']) ? (int) $_GET['step'] : ($_SESSION['checklist_step'] ?? 1);
     $step = max(1, min(15, $step));
     $_SESSION['checklist_step'] = $step;
+
+    // Jawaban "Tidak Dilakukan" / "Ya, dilakukan" pada langkah checklist
+    if (isset($_GET['jawab']) && in_array($_GET['jawab'], ['ya', 'tidak'], true)) {
+        $_SESSION['checklist_answers'][$step] = $_GET['jawab'];
+    }
+
+    // Langkah 15: status akhir tiap LO
+    if (isset($_GET['lo'], $_GET['status'])
+        && array_key_exists((string) $_GET['lo'], LO_LIST)
+        && in_array($_GET['status'], ['dibongkar', 'batal'], true)
+    ) {
+        $_SESSION['lo_bongkar'][(string) $_GET['lo']] = $_GET['status'];
+    }
 }
 
 $headerTitle  = HEADER_TITLES[$screen];
