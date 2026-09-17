@@ -122,6 +122,8 @@ button { font: inherit; cursor: pointer; }
     font-size: 1rem; font-weight: 700; color: #1e293b;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
+.app-header-simple.centered { justify-content: space-between; }
+.app-header-simple.centered h1 { flex: 1; text-align: center; }
 
 /* ---------- Tutorial overlay ---------- */
 .tutorial {

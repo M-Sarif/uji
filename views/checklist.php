@@ -23,6 +23,23 @@ if (empty($activeLoIds)) {
     <h2><?php echo h($stepData['text']); ?><span class="req">*</span></h2>
 
     <?php switch ($stepData['type']):
+        case 'self_action_photo': ?>
+            <div class="subtle-box">
+                <p class="hint">Verifikasi mandiri tugas Anda.</p>
+                <div class="row">
+                    <button type="button" class="btn-choice red">Tidak Dilakukan</button>
+                    <button type="button" class="btn-choice blue">Ya, Dilakukan</button>
+                </div>
+                <div class="subtle-divider"></div>
+                <p class="hint">Foto sebagai bukti (opsional)</p>
+                <label class="photo-drop photo-drop-simple" style="cursor:pointer;">
+                    <input type="file" accept="image/*" capture="environment" style="display:none;">
+                    <span class="photo-drop-title">Ambil Foto</span>
+                    <span class="photo-drop-sub">Tap untuk membuka kamera</span>
+                </label>
+            </div>
+        <?php break;
+
         case 'action': ?>
             <div class="subtle-box">
                 <p class="hint">Tugas AMT dan diverifikasi oleh SPBU</p>
@@ -45,30 +62,47 @@ if (empty($activeLoIds)) {
         <?php break;
 
         case 'form_spp': ?>
-            <?php foreach ($activeLoIds as $i => $loId):
-                $lo     = LO_LIST[$loId];
-                $filled = $i === 0; // LO pertama dianggap sudah dicek AMT lebih dulu
-            ?>
-            <div class="spp-item<?php echo $filled ? ' filled' : ''; ?>">
-                <p class="code"><?php echo h($loId); ?></p>
-                <p class="name"><?php echo h($lo['order']); ?></p>
-                <span class="status<?php echo $filled ? '' : ' pending'; ?>"><?php echo $filled ? 'Sudah Terisi' : 'Belum Terisi'; ?></span>
-            </div>
+            <p class="section-heading">Produk</p>
+            <p class="section-sub">Isi kesesuaian produk yang telah diterima pihak SPBU.</p>
+            <?php foreach ($activeLoIds as $loId): $lo = LO_LIST[$loId]; ?>
+            <a href="#" class="nav-item-card">
+                <div class="nav-item-main">
+                    <p class="nav-item-code"><?php echo h($loId); ?></p>
+                    <p class="nav-item-title"><?php echo h($lo['order']); ?></p>
+                    <span class="chip chip-pending">Belum Terisi</span>
+                </div>
+                <svg class="chevron-icon" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 18l6-6-6-6"/></svg>
+            </a>
+            <?php endforeach; ?>
+
+            <p class="section-heading" style="margin-top:1.25rem;">Segel</p>
+            <p class="section-sub">Pilih nomor segel yang dibongkar di SPBU saat ini.</p>
+            <?php foreach (SEGEL_LIST as $segel): ?>
+            <a href="#" class="nav-item-card">
+                <div class="nav-item-main">
+                    <p class="nav-item-label">Nomor Segel</p>
+                    <p class="nav-item-title"><?php echo h($segel); ?></p>
+                    <span class="chip chip-pending">Belum Dibongkar</span>
+                </div>
+                <svg class="chevron-icon" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 18l6-6-6-6"/></svg>
+            </a>
             <?php endforeach; ?>
         <?php break;
 
         case 'form_ukur': ?>
-            <div class="measure-box">
-                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-                <div>
-                    <h3>Pilih Metode Pengukuran</h3>
-                    <p>Pilih antara IJKBOUT atau Flow Meter untuk mengisi form data LO.</p>
-                    <div class="row">
-                        <button type="button" class="btn-choice blue" style="border-color:#bfdbfe;">IJKBOUT</button>
-                        <button type="button" class="btn-choice blue" style="border-color:#bfdbfe;">Flow Meter</button>
-                    </div>
+            <p class="section-heading">Daftar LO</p>
+            <p class="section-sub">Isi satu persatu data LO terlebih dahulu untuk keperluan verifikasi order.</p>
+            <?php foreach ($activeLoIds as $loId): $lo = LO_LIST[$loId]; ?>
+            <a href="index.php?screen=claim_loss&lo=<?php echo urlencode($loId); ?>" class="measure-lo-card">
+                <div class="lo-detail">
+                    <div class="lrow"><span class="label">Nomor LO</span><span class="val">: <?php echo h($loId); ?></span></div>
+                    <div class="lrow"><span class="label">Order</span><span class="val"><span class="colon">:</span><span class="order-input"><?php echo h($lo['order']); ?></span></span></div>
+                    <div class="lrow"><span class="label">Claim Loss</span><span class="val claim-loss-val">: 0 L</span></div>
+                    <div class="lrow"><span class="label">Form Bongkar</span><span class="val wait">: Belum Terisi</span></div>
                 </div>
-            </div>
+                <svg class="chevron-icon" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 18l6-6-6-6"/></svg>
+            </a>
+            <?php endforeach; ?>
         <?php break;
 
         case 'konfirmasi_lo': ?>

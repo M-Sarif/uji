@@ -12,15 +12,43 @@ const LO_LIST = [
     '8144122090' => ['order' => 'PERTALITE 5.000 L'],
 ];
 
+// Daftar nomor segel yang bisa dipilih/dikonfirmasi di langkah 6 (form_spp).
+const SEGEL_LIST = ['N-0452553', 'N-0452554', 'N-0452555', 'N-0452563'];
+
+// Metode pengukuran pembongkaran BBM untuk langkah 7 (form_ukur / Ajukan
+// Claim Loss), masing-masing dengan field form yang berbeda.
+const MEASUREMENT_METHODS = [
+    'ijkbout' => [
+        'title' => 'IJKBOUT',
+        'desc'  => 'Serah terima custody transfer pada mobil tangki, diukur dengan dipstick.',
+        'fields' => [
+            ['key' => 'kompartemen',           'label' => 'Kompartemen',            'unit' => null],
+            ['key' => 'level_spp',              'label' => 'Level BBM di SPP',        'unit' => 'mm', 'hint' => 'Jika depot tidak menginformasikan level minyak sebelum pengiriman, maka level minyak akan diisi sesuai dengan level saat penerimaan.'],
+            ['key' => 'level_sebelum_bongkar',  'label' => 'Level BBM Sebelum Bongkar', 'unit' => 'mm'],
+            ['key' => 'temperatur_obs',         'label' => 'Temperatur Obs',          'unit' => '°C'],
+            ['key' => 'density_obs',            'label' => 'Density Obs',             'unit' => 'kg/m³', 'placeholder' => '0.000'],
+        ],
+    ],
+    'flowmeter' => [
+        'title' => 'Flow Meter',
+        'desc'  => 'Serah terima meter arus pada mobil tangki (PTO/portabel).',
+        'fields' => [
+            ['key' => 'volume_meter',  'label' => 'Volume Meter',  'unit' => 'L'],
+            ['key' => 'temperatur_obs', 'label' => 'Temperatur Obs', 'unit' => '°C'],
+            ['key' => 'density_obs',   'label' => 'Density Obs',   'unit' => 'kg/m³', 'placeholder' => '0.000'],
+        ],
+    ],
+];
+
 // 15 langkah checklist pra-pembongkaran
 const CHECKLIST_STEPS = [
-    1  => ['text' => 'Pastikan tersedianya volume ruang kosong dalam tangki.', 'type' => 'photo'],
+    1  => ['text' => 'Pastikan tersedianya volume ruang kosong dalam tangki.', 'type' => 'self_action_photo'],
     2  => ['text' => 'Tempatkan mobil tangki pada posisi pembongkaran yang benar.', 'type' => 'action'],
     3  => ['text' => 'Tarik rem tangan, matikan mesin & aktifkan safety switch. Biarkan kunci kendaraan tetap terpasang di tempatnya. Pasang ganjal ban mobil tangki.', 'type' => 'action'],
     4  => ['text' => 'Turunkan alat pemadam api dan tempatkan pada posisi yang aman dan mudah terjangkau.', 'type' => 'action'],
     5  => ['text' => 'Pasang kabel arde dan yakinkan terpasang dengan benar.', 'type' => 'action'],
     6  => ['text' => 'Periksa kesesuaian SPP yaitu produk, nomor segel (periksa keutuhan segel bawah dan atas) nopol Mobil Tangki, dan nama AMT.', 'type' => 'form_spp'],
-    7  => ['text' => 'Isi form data LO berdasarkan Metode Pengukuran (IJKBOUT/Flow Meter).', 'type' => 'form_ukur'],
+    7  => ['text' => 'Persiapkan alat ukur, buka tutup manhole atas mobil tangki BBM, periksa jenis dan volume BBM dari IJK bout-nya, dan pastikan sertifikat tera sesuai dengan ijk bout aktual di mobil tangki dan ditutup kembali.', 'type' => 'form_ukur'],
     8  => ['text' => 'Pemeriksaan Sampel BBM & view Test Report.', 'type' => 'action'],
     9  => ['text' => 'Pasang selang bongkar pada inlet pipa tangki (filling point), pastikan kesesuaian tangki penerima dengan produk yang akan dibongkar, kemudian pada outlet mobil tangki (gunakan quick coupling).', 'type' => 'action'],
     10 => ['text' => 'Lakukan pembongkaran dengan membuka kerangan sedikit demi sedikit. Pastikan tidak ada kebocoran pada selang maupun sambungan/coupling.', 'type' => 'action'],
@@ -114,6 +142,7 @@ const HEADER_TITLES = [
     'qr_code'               => 'Permintaan Verifikasi',
     'rating'                => 'Rating AMT',
     'done'                  => 'Pengiriman Selesai',
+    'claim_loss'            => 'Ajukan Claim Loss',
 ];
 
 // Teks tutorial (persis App.tsx -> getTutorialText)
@@ -132,6 +161,8 @@ const TUTORIAL_TEXTS = [
     'qr_code'              => "11. Tunjukkan QR Code / Kode Konfirmasi ini kepada AMT untuk diselesaikan.",
     'rating'               => "12. Berikan penilaian mendetail (Safety, Sarfas, dll) untuk pelayanan AMT. Klik Selesai.",
     'done'                 => "Selesai! Seluruh proses dari Order BBM hingga Pembongkaran berhasil dicatat.",
+    // Halaman detail "Ajukan Claim Loss" tanpa kotak petunjuk (form fokus penuh)
+    'claim_loss'           => '',
 ];
 
 // Layar sebelumnya, dipakai untuk tombol "back" di header
@@ -147,6 +178,7 @@ const PREV_SCREEN = [
     'checklist'             => 'lo_list',
     'qr_code'               => 'checklist',
     'rating'                => 'qr_code',
+    'claim_loss'            => 'checklist',
 ];
 
 // Urutan alur maju, dipakai sebagai fallback "next" default
@@ -183,4 +215,5 @@ const SCREEN_CSS = [
     'qr_code'               => ['verification'],
     'rating'                => ['verification'],
     'done'                  => ['verification'],
+    'claim_loss'            => ['verification'],
 ];

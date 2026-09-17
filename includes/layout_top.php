@@ -36,7 +36,7 @@
         </div>
     <?php else: ?>
         <!-- Header layar lain: tombol back + judul -->
-        <div class="app-header-simple">
+        <div class="app-header-simple<?php echo $screen === 'claim_loss' ? ' centered' : ''; ?>">
             <?php if ($prevScreen): ?>
                 <a class="back-btn" href="index.php?screen=<?php echo h($prevScreen); ?>">
                     <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
@@ -45,6 +45,9 @@
                 <span class="back-btn" style="visibility:hidden;"></span>
             <?php endif; ?>
             <h1><?php echo h($headerTitle); ?></h1>
+            <?php if ($screen === 'claim_loss'): ?>
+                <span class="back-btn" style="visibility:hidden;"></span>
+            <?php endif; ?>
         </div>
     <?php endif; ?>
 
