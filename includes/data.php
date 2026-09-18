@@ -40,6 +40,20 @@ const MEASUREMENT_METHODS = [
     ],
 ];
 
+// Rasio konversi tera (Liter per mm ketinggian BBM) tiap kompartemen mobil
+// tangki, dipakai untuk mengonversi selisih level dipstick (mm) menjadi
+// volume (liter) pada metode pengukuran IJKBOUT.
+// TODO: ganti dengan tabel tera resmi per kompartemen (dari sertifikat tera
+// mobil tangki yang dicek di langkah 7 checklist) begitu datanya tersedia -
+// nilai di bawah ini adalah pendekatan rata-rata sementara (linear),
+// sedangkan tabel tera asli biasanya non-linear per rentang mm.
+const COMPARTMENT_TERA_RATE = [
+    'default' => 5.5, // L / mm, dipakai kalau nomor kompartemen tidak dikenali
+    1 => 5.5,
+    2 => 5.5,
+    3 => 5.5,
+];
+
 // 15 langkah checklist pra-pembongkaran
 const CHECKLIST_STEPS = [
     1  => ['text' => 'Pastikan tersedianya volume ruang kosong dalam tangki.', 'type' => 'self_action_photo'],

@@ -114,9 +114,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             go_to('checklist', ['step' => 6]);
             break;
 
-        case 'save_claim_loss':
-            // Simpan isian form bongkar untuk satu Nomor LO, lalu kembali
-            // ke langkah 7 checklist dengan status "Sudah Terisi".
+        case 'generate_claim_loss':
+            // Tombol "Generate": hitung selisih kurang claim loss dari
+            // isian form, simpan sebagai DRAFT (belum final), lalu balik
+            // ke layar claim_loss dengan flag "hasil=1" supaya pop up
+            // "Hasil Generate Claim Losses" langsung tampil.
             $loId   = (string) ($_POST['lo'] ?? '');
             $metode = array_key_exists($_POST['metode'] ?? '', MEASUREMENT_METHODS)
                 ? (string) $_POST['metode']
@@ -129,13 +131,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $nilai[$field['key']] = (float) preg_replace('/[^0-9.\-]/', '', $raw);
                 }
 
-                $_SESSION['lo_form'][$loId] = [
-                    'metode' => $metode,
-                    'nilai'  => $nilai,
-                    // TODO: rumus claim loss resmi (tabel tera mobil tangki /
-                    // koreksi VCF) belum tersedia, jadi sementara 0 L.
-                    'claim_loss' => 0.0,
+                $_SESSION['lo_form_draft'][$loId] = [
+                    'metode'     => $metode,
+                    'nilai'      => $nilai,
+                    'claim_loss' => hitung_claim_loss($metode, $nilai, $loId),
                 ];
+            }
+            go_to('claim_loss', ['lo' => $loId, 'metode' => $metode, 'hasil' => 1]);
+            break;
+
+        case 'save_claim_loss':
+            // Tombol pada pop up "Hasil Generate Claim Losses" (Simpan /
+            // Ajukan Claim Losses / Simpan Tanpa Klaim): jadikan draft
+            // hasil "Generate" final, lalu kembali ke langkah 7 checklist
+            // dengan status "Sudah Terisi".
+            $loId   = (string) ($_POST['lo'] ?? '');
+            $metode = array_key_exists($_POST['metode'] ?? '', MEASUREMENT_METHODS)
+                ? (string) $_POST['metode']
+                : 'ijkbout';
+            // 'ajukan'  = tombol "Ajukan Claim Losses"
+            // 'tanpa'   = tombol "Simpan Tanpa Klaim"
+            // ''        = tombol "Simpan" (dipakai saat tidak ada selisih)
+            $klaim = (string) ($_POST['klaim'] ?? '');
+
+            $draft = $_SESSION['lo_form_draft'][$loId] ?? null;
+
+            if (array_key_exists($loId, LO_LIST) && $draft !== null && $draft['metode'] === $metode) {
+                $_SESSION['lo_form'][$loId] = [
+                    'metode'     => $draft['metode'],
+                    'nilai'      => $draft['nilai'],
+                    'claim_loss' => $draft['claim_loss'],
+                    'diajukan'   => $klaim === 'ajukan',
+                ];
+                unset($_SESSION['lo_form_draft'][$loId]);
             }
             go_to('checklist', ['step' => 7]);
             break;

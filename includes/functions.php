@@ -59,8 +59,17 @@ function init_session_state(): void
         $_SESSION['spp_segel'] = [];
     }
     if (!isset($_SESSION['lo_form'])) {
-        // Langkah 7 - isian form bongkar / claim loss per Nomor LO
+        // Langkah 7 - isian form bongkar / claim loss per Nomor LO YANG
+        // SUDAH FINAL (Simpan / Ajukan Claim Losses / Simpan Tanpa Klaim).
         $_SESSION['lo_form'] = [];
+    }
+    if (!isset($_SESSION['lo_form_draft'])) {
+        // Hasil "Generate" yang belum dikonfirmasi user lewat pop up Hasil
+        // Generate Claim Losses (tombol Simpan / Ajukan / Simpan Tanpa
+        // Klaim). Dipisah dari lo_form supaya status "Sudah Terisi" di
+        // langkah 7 checklist tidak berubah sebelum user benar-benar
+        // menyimpan hasilnya.
+        $_SESSION['lo_form_draft'] = [];
     }
     if (!isset($_SESSION['lo_bongkar'])) {
         // Langkah 15 - status akhir tiap LO (id => 'dibongkar' | 'batal')
@@ -113,6 +122,7 @@ function reset_flow_state(): void
         $_SESSION['spp_produk'],
         $_SESSION['spp_segel'],
         $_SESSION['lo_form'],
+        $_SESSION['lo_form_draft'],
         $_SESSION['lo_bongkar'],
         $_SESSION['ratings'],
         $_SESSION['mt_ok'],
@@ -177,4 +187,65 @@ function checklist_step_done(int $step, array $activeLoIds): bool
         default:
             return true;
     }
+}
+
+/**
+ * Faktor koreksi volume (VCF - Volume Correction Factor) dari suhu &
+ * density observasi ke kondisi standar 15°C, memakai rumus generalized
+ * products ASTM/API/IP MPMS Chapter 11.1 - Table 54B (K0=341.0957,
+ * K1=K2=0). Berlaku untuk BBM jenis bensin/kerosene dengan density
+ * observasi sekitar 653-778 kg/m3 (mencakup Pertalite/Pertamax/Premium).
+ *
+ * NOTE: ini pendekatan generalized table, bukan tabel ASTM 54B asli yang
+ * dipecah per rentang density persis - cukup akurat untuk taksiran claim
+ * loss, tapi sebaiknya diganti dengan tabel resmi untuk kebutuhan legal/audit.
+ */
+function hitung_vcf(float $densityObs, float $suhuObs): float
+{
+    if ($densityObs <= 0.0) {
+        // Data density tidak valid (belum diisi) -> tidak ada koreksi.
+        return 1.0;
+    }
+
+    $alpha15 = 341.0957 / ($densityObs ** 2);
+    $deltaT  = $suhuObs - 15.0;
+
+    return exp(-$alpha15 * $deltaT * (1 + 0.8 * $alpha15 * $deltaT));
+}
+
+/**
+ * Hitung selisih kurang (claim loss) dalam liter untuk satu Nomor LO,
+ * berdasarkan metode pengukuran & isian form-nya.
+ *
+ * - Flow Meter: volume yang benar-benar terukur (volume_meter) dibandingkan
+ *   dengan Qty Order pada LO. Selisih kurang = Qty Order - volume_meter
+ *   (tidak pernah negatif; kalau volume terukur >= order, tidak ada claim loss).
+ * - IJKBOUT: selisih level dipstick (mm) antara "Level BBM di SPP" (saat
+ *   muat) dan "Level BBM Sebelum Bongkar" (saat sampai tujuan) dikonversi
+ *   ke liter memakai rasio tera kompartemen (COMPARTMENT_TERA_RATE), lalu
+ *   dikoreksi ke suhu standar 15°C memakai VCF dari suhu & density obs.
+ *   Kalau level tidak turun (selisih <= 0 mm), tidak ada claim loss.
+ */
+function hitung_claim_loss(string $metode, array $nilai, string $loId): float
+{
+    if ($metode === 'flowmeter') {
+        $qtyOrder    = (float) preg_replace('/[^0-9]/', '', LO_LIST[$loId]['qty'] ?? '0');
+        $volumeMeter = (float) ($nilai['volume_meter'] ?? 0);
+
+        return max(0.0, $qtyOrder - $volumeMeter);
+    }
+
+    // IJKBOUT
+    $kompartemen = (int) ($nilai['kompartemen'] ?? 0);
+    $literPerMm  = COMPARTMENT_TERA_RATE[$kompartemen] ?? COMPARTMENT_TERA_RATE['default'];
+
+    // Level SPP (saat muat) seharusnya >= level sebelum bongkar (saat
+    // tujuan) kalau ada kekurangan BBM di jalan. Kalau levelnya malah naik
+    // atau sama, anggap tidak ada selisih (0), bukan angka negatif.
+    $selisihMm = max(0.0, ($nilai['level_spp'] ?? 0) - ($nilai['level_sebelum_bongkar'] ?? 0));
+    $volumeObs = $selisihMm * $literPerMm;
+
+    $vcf = hitung_vcf((float) ($nilai['density_obs'] ?? 0), (float) ($nilai['temperatur_obs'] ?? 15));
+
+    return round($volumeObs * $vcf, 2);
 }
