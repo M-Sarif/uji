@@ -37,10 +37,17 @@ function init_session_state(): void
         // (id => true). Ini hanya menandai "dipilih", BUKAN "sudah diisi".
         $_SESSION['lo_checked'] = [];
     }
+    if (!isset($_SESSION['lo_draft'])) {
+        // Nomor LO yang isian wizard checklist-nya sudah dituntaskan sampai
+        // langkah terakhir (id => true), tapi BELUM ditekan tombol "Kirim"
+        // di halaman Daftar LO. Statusnya masih "Draft" dan datanya masih
+        // bisa diubah lagi lewat "Mulai Checklist".
+        $_SESSION['lo_draft'] = [];
+    }
     if (!isset($_SESSION['lo_done'])) {
-        // Nomor LO yang checklist-nya BENAR-BENAR sudah selesai dikerjakan
-        // (id => true). Baru diisi setelah wizard checklist dituntaskan
-        // sampai langkah terakhir ("Kirim Checklist").
+        // Nomor LO yang checklist-nya BENAR-BENAR sudah dikirim & terkunci
+        // (id => true). Baru diisi setelah pengguna menekan tombol "Kirim"
+        // di halaman Daftar LO dan mengonfirmasi lewat pop up "Ya, Kirim".
         $_SESSION['lo_done'] = [];
     }
     if (!isset($_SESSION['checklist_step'])) {
@@ -116,6 +123,7 @@ function reset_flow_state(): void
     unset(
         $_SESSION['order'],
         $_SESSION['lo_checked'],
+        $_SESSION['lo_draft'],
         $_SESSION['lo_done'],
         $_SESSION['checklist_step'],
         $_SESSION['checklist_answers'],

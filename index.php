@@ -168,6 +168,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             go_to('checklist', ['step' => 7]);
             break;
 
+        case 'kirim_checklist':
+            // Tombol "Kirim" di Daftar LO, dikonfirmasi lewat pop up
+            // "Ya, Kirim". Hanya LO yang dicentang DAN wizard-nya sudah
+            // dituntaskan ("Draft") yang benar-benar dikunci jadi "Sudah
+            // Diisi" -- LO yang belum sempat diisi sama sekali diabaikan.
+            foreach ($_SESSION['lo_checked'] as $id => $isChecked) {
+                if ($isChecked && !empty($_SESSION['lo_draft'][$id])) {
+                    $_SESSION['lo_done'][$id] = true;
+                    unset($_SESSION['lo_draft'][$id]);
+                }
+            }
+            set_activity_done(2);   // checklist pra-pembongkaran selesai
+            go_to('shipment');      // kembali ke halaman Detail Order
+            break;
+
         case 'reset_flow':
             reset_flow_state();
             go_to('dashboard');
@@ -199,20 +214,18 @@ if ($screen === 'lo_list' && isset($_GET['toggle_all'])) {
         $_SESSION['lo_checked'][$id] = !$allChecked;
     }
 }
-// Progres aktifitas di SPBU ikut naik saat pengguna mencapai layar berikutnya
-if ($screen === 'qr_code') {
-    set_activity_done(2);   // checklist pra-pembongkaran selesai
-
-    // Status "Sudah Diisi" pada Daftar LO baru berubah SEKARANG, yaitu
-    // saat wizard checklist benar-benar dituntaskan sampai "Kirim
-    // Checklist" (layar qr_code). Bukan saat LO sekadar dicentang di
-    // Daftar LO.
+if ($screen === 'lo_list' && isset($_GET['selesai'])) {
+    // Wizard checklist dituntaskan sampai langkah terakhir ("Kirim
+    // Checklist" di step 15) -- LO yang sedang dikerjakan ditandai
+    // "Draft" di Daftar LO. Belum "Sudah Diisi": itu baru terjadi
+    // setelah pengguna menekan tombol "Kirim" & konfirmasi "Ya, Kirim".
     foreach ($_SESSION['lo_checked'] as $id => $isChecked) {
         if ($isChecked) {
-            $_SESSION['lo_done'][$id] = true;
+            $_SESSION['lo_draft'][$id] = true;
         }
     }
 }
+// Progres aktifitas di SPBU ikut naik saat pengguna mencapai layar berikutnya
 if ($screen === 'rating') {
     set_activity_done(3);   // verifikasi order selesai
 }

@@ -1,13 +1,26 @@
 <?php
 $checked      = $_SESSION['lo_checked'];
+$draft        = $_SESSION['lo_draft'];
 $done         = $_SESSION['lo_done'];
 $loIds        = array_keys(LO_LIST);
 $checkedCount = count(array_filter($checked));
 $allChecked   = $checkedCount > 0 && $checkedCount === count($loIds);
 $anyChecked   = $checkedCount > 0;
 
+// Tombol "Kirim" baru boleh ditekan kalau ADA LO yang dicentang dan
+// wizard checklist-nya sudah dituntaskan ("Draft"), tapi belum dikirim.
+$readyToSubmit = false;
+foreach ($checked as $id => $isChecked) {
+    if ($isChecked && !empty($draft[$id]) && empty($done[$id])) {
+        $readyToSubmit = true;
+        break;
+    }
+}
+
 $checkIcon = '<svg viewBox="0 0 24 24" width="14" height="14" style="display:block;fill:none;stroke:#fff;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;"><path d="M5 13l4 4L19 7"/></svg>';
 ?>
+<form method="post" action="index.php" id="loListForm" style="display:flex;flex-direction:column;min-height:100%;">
+<input type="hidden" name="action" value="kirim_checklist">
 <div class="content-pad" style="display:flex;flex-direction:column;min-height:100%;">
     <p style="font-size:15px;font-weight:600;color:#1e293b;margin-bottom:2px;">Daftar LO</p>
     <p style="font-size:12px;color:#64748b;margin-bottom:20px;">Pilih LO untuk mengisi checklist</p>
@@ -21,7 +34,19 @@ $checkIcon = '<svg viewBox="0 0 24 24" width="14" height="14" style="display:blo
 
     <?php foreach (LO_LIST as $id => $lo):
         $isChecked = !empty($checked[$id]);
+        $isDraft   = !empty($draft[$id]);
         $isDone    = !empty($done[$id]);
+
+        if ($isDone) {
+            $statusClass = 'done';
+            $statusText  = 'Sudah Diisi';
+        } elseif ($isDraft) {
+            $statusClass = 'wait';
+            $statusText  = 'Draft';
+        } else {
+            $statusClass = 'wait';
+            $statusText  = 'Belum Diisi';
+        }
     ?>
     <a href="index.php?screen=lo_list&toggle=<?php echo urlencode($id); ?>" class="lo-card<?php echo $isChecked ? ' selected' : ''; ?>" style="margin-bottom:1rem;">
         <div class="lo-checkbox<?php echo $isChecked ? ' checked' : ''; ?>">
@@ -30,20 +55,66 @@ $checkIcon = '<svg viewBox="0 0 24 24" width="14" height="14" style="display:blo
         <div class="lo-detail">
             <div class="lrow"><span class="label">Nomor LO</span><span class="val">: <?php echo h($id); ?></span></div>
             <div class="lrow"><span class="label">Order</span><span class="val"><span class="colon">:</span><span class="order-input"><?php echo h($lo['order']); ?></span></span></div>
-            <div class="lrow"><span class="label">Status Checklist</span><span class="val <?php echo $isDone ? 'done' : 'wait'; ?>">: <?php echo $isDone ? 'Sudah Diisi' : 'Belum Diisi'; ?></span></div>
+            <div class="lrow"><span class="label">Status Checklist</span><span class="val <?php echo $statusClass; ?>">: <?php echo h($statusText); ?></span></div>
         </div>
     </a>
     <?php endforeach; ?>
 
     <div class="row" style="margin-top:auto;padding-top:24px;">
-        <span class="btn-ghost" style="opacity:.6;cursor:default;">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path stroke-linecap="round" stroke-linejoin="round" d="M14 2v6h6M9 13h6M9 17h6M9 9h1"/></svg>
-            Lihat Checklist
-        </span>
         <?php if ($anyChecked): ?>
-            <a href="index.php?screen=checklist&step=1" class="btn-primary" style="flex:1;">Mulai Checklist</a>
+            <a href="index.php?screen=checklist&step=1" class="btn-outline" style="flex:1;">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path stroke-linecap="round" stroke-linejoin="round" d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                Mulai Checklist
+            </a>
         <?php else: ?>
-            <button class="btn-primary" style="flex:1;" disabled>Mulai Checklist</button>
+            <button type="button" class="btn-outline" style="flex:1;" disabled>Mulai Checklist</button>
         <?php endif; ?>
+
+        <button type="button" id="btnKirimChecklist" class="btn-primary" style="flex:1;" <?php echo $readyToSubmit ? '' : 'disabled'; ?>>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+            Kirim
+        </button>
     </div>
 </div>
+
+<!-- Pop up konfirmasi sebelum checklist dikirim -->
+<div class="modal-backdrop" id="kirimModal" hidden>
+    <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="kirimJudul">
+        <h2 id="kirimJudul">Kirim Checklist</h2>
+        <p>Pastikan data yang diisi sudah benar. Apakah Anda yakin ingin mengirim checklist ini?</p>
+        <p style="color:#94a3b8;">Note : Data yang tersimpan tidak dapat diubah kembali setelah dikirim.</p>
+        <button type="submit" class="btn-primary" id="btnYaKirim">Ya, Kirim</button>
+        <button type="button" class="btn-outline modal-close" id="btnBatalKirim">Batal</button>
+    </div>
+</div>
+</form>
+
+<script>
+(function () {
+    var btnOpen  = document.getElementById('btnKirimChecklist');
+    var btnBatal = document.getElementById('btnBatalKirim');
+    var modal    = document.getElementById('kirimModal');
+    if (!btnOpen || !modal) { return; }
+
+    function bukaModal() {
+        modal.hidden = false;
+        document.getElementById('btnYaKirim').focus();
+    }
+    function tutupModal() {
+        modal.hidden = true;
+        btnOpen.focus();
+    }
+
+    btnOpen.addEventListener('click', function () {
+        if (!btnOpen.disabled) { bukaModal(); }
+    });
+    btnBatal.addEventListener('click', tutupModal);
+
+    modal.addEventListener('click', function (e) {
+        if (e.target === modal) { tutupModal(); }
+    });
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && !modal.hidden) { tutupModal(); }
+    });
+})();
+</script>

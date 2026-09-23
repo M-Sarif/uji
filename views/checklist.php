@@ -177,9 +177,12 @@ $chevronRight = '<svg class="chevron-icon" viewBox="0 0 24 24"><path stroke-line
     <?php endif; ?>
 
     <?php
+    // Langkah terakhir (15) tidak langsung mengirim checklist - pengguna
+    // dikembalikan ke Daftar LO dengan status "Draft", lalu benar-benar
+    // mengirimkannya lewat tombol "Kirim" + pop up konfirmasi di sana.
     $nextHref  = $step < 15
         ? 'index.php?screen=checklist&step=' . $nextStep
-        : 'index.php?screen=qr_code';
+        : 'index.php?screen=lo_list&selesai=1';
     $nextLabel = $step < 15 ? 'Selanjutnya' : 'Kirim Checklist';
     ?>
     <?php if ($stepDone): ?>
