@@ -19,6 +19,40 @@
 </head>
 <body>
 
+<?php
+// Notifikasi sukses sekali-tampil (flash message) hasil aksi di layar
+// sebelumnya (mis. "Konfirmasi LO" di step 15 checklist, atau "Ya, Kirim"
+// di Daftar LO). Diambil lalu langsung dihapus dari session supaya tidak
+// muncul lagi saat halaman dibuka ulang.
+//
+// Bentuknya bisa string (toast satu baris) atau array ['title' =>, 'body' =>]
+// (toast dua baris, judul tebal + keterangan).
+$flashSuccess = $_SESSION['flash_success'] ?? null;
+unset($_SESSION['flash_success']);
+
+$flashTitle = null;
+$flashBody  = null;
+if (is_array($flashSuccess)) {
+    $flashTitle = $flashSuccess['title'] ?? null;
+    $flashBody  = $flashSuccess['body'] ?? null;
+} elseif (is_string($flashSuccess) && $flashSuccess !== '') {
+    $flashBody = $flashSuccess;
+}
+?>
+<?php if ($flashBody !== null): ?>
+<div class="toast-success<?php echo $flashTitle !== null ? ' has-title' : ''; ?>" id="toastSuccess" role="status" aria-live="polite">
+    <span class="toast-success-icon">
+        <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+    </span>
+    <span class="toast-success-text">
+        <?php if ($flashTitle !== null): ?>
+            <strong class="toast-success-title"><?php echo h($flashTitle); ?></strong>
+        <?php endif; ?>
+        <span class="toast-success-body"><?php echo h($flashBody); ?></span>
+    </span>
+</div>
+<?php endif; ?>
+
 <div class="app-container">
 
     <?php if ($screen === 'dashboard'): ?>

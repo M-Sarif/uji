@@ -180,6 +180,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
             set_activity_done(2);   // checklist pra-pembongkaran selesai
+            // Notifikasi sukses ditampilkan sekali di halaman tujuan
+            // (Detail Order) via flash message, lalu otomatis hilang sendiri.
+            $_SESSION['flash_success'] = 'Checklist berhasil dikirim.';
             go_to('shipment');      // kembali ke halaman Detail Order
             break;
 
@@ -215,15 +218,20 @@ if ($screen === 'lo_list' && isset($_GET['toggle_all'])) {
     }
 }
 if ($screen === 'lo_list' && isset($_GET['selesai'])) {
-    // Wizard checklist dituntaskan sampai langkah terakhir ("Kirim
-    // Checklist" di step 15) -- LO yang sedang dikerjakan ditandai
-    // "Draft" di Daftar LO. Belum "Sudah Diisi": itu baru terjadi
-    // setelah pengguna menekan tombol "Kirim" & konfirmasi "Ya, Kirim".
+    // Wizard checklist dituntaskan sampai langkah terakhir ("Konfirmasi
+    // LO" di step 15) -- LO yang sedang dikerjakan ditandai "Draft" di
+    // Daftar LO. Belum "Sudah Diisi": itu baru terjadi setelah pengguna
+    // menekan tombol "Kirim" & konfirmasi "Ya, Kirim".
     foreach ($_SESSION['lo_checked'] as $id => $isChecked) {
         if ($isChecked) {
             $_SESSION['lo_draft'][$id] = true;
         }
     }
+    // Notifikasi sekali-tampil setelah tombol "Konfirmasi LO" ditekan.
+    $_SESSION['flash_success'] = [
+        'title' => 'LO Dikonfirmasi',
+        'body'  => 'Status bongkar berhasil disimpan.',
+    ];
 }
 // Progres aktifitas di SPBU ikut naik saat pengguna mencapai layar berikutnya
 if ($screen === 'rating') {

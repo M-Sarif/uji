@@ -2,6 +2,22 @@
 </div><!-- /.app-container -->
 
 <script>
+/* Toast notifikasi sukses (flash message): tampil sebentar lalu hilang sendiri. */
+(function () {
+    var toast = document.getElementById('toastSuccess');
+    if (!toast) { return; }
+
+    requestAnimationFrame(function () { toast.classList.add('is-visible'); });
+
+    setTimeout(function () {
+        toast.classList.remove('is-visible');
+        toast.classList.add('is-leaving');
+        toast.addEventListener('transitionend', function () { toast.remove(); }, { once: true });
+    }, 2500);
+})();
+</script>
+
+<script>
 /* Petunjuk bisa disembunyikan; pilihan pengguna diingat selama sesi browser. */
 (function () {
     var box = document.getElementById('tutorialBox');

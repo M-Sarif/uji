@@ -177,13 +177,17 @@ $chevronRight = '<svg class="chevron-icon" viewBox="0 0 24 24"><path stroke-line
     <?php endif; ?>
 
     <?php
-    // Langkah terakhir (15) tidak langsung mengirim checklist - pengguna
-    // dikembalikan ke Daftar LO dengan status "Draft", lalu benar-benar
-    // mengirimkannya lewat tombol "Kirim" + pop up konfirmasi di sana.
+    // Langkah terakhir (15 - Konfirmasi Status LO) tidak langsung mengirim
+    // checklist. Tombolnya berlabel "Konfirmasi LO" dan baru aktif kalau
+    // SEMUA LO yang dikerjakan sudah dipilih statusnya (Tidak Jadi Bongkar
+    // / Sudah Dibongkar) -- lihat checklist_step_done(). Setelah diklik,
+    // pengguna dikembalikan ke Daftar LO dengan status "Draft" pada tiap
+    // LO, lalu benar-benar mengirimkan checklist-nya lewat tombol "Kirim"
+    // + pop up konfirmasi di halaman itu.
     $nextHref  = $step < 15
         ? 'index.php?screen=checklist&step=' . $nextStep
         : 'index.php?screen=lo_list&selesai=1';
-    $nextLabel = $step < 15 ? 'Selanjutnya' : 'Kirim Checklist';
+    $nextLabel = $step < 15 ? 'Selanjutnya' : 'Konfirmasi LO';
     ?>
     <?php if ($stepDone): ?>
         <a href="<?php echo $nextHref; ?>" class="btn-wiz">
