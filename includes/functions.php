@@ -84,6 +84,7 @@ function init_session_state(): void
     }
     if (!isset($_SESSION['ratings'])) {
         $_SESSION['ratings'] = [
+            'overall'     => 0,
             'safety'      => 0,
             'sarfas'      => 0,
             'komunikasi'  => 0,
@@ -196,6 +197,62 @@ function checklist_step_done(int $step, array $activeLoIds): bool
         default:
             return true;
     }
+}
+
+/**
+ * Simulasi pola kotak QR Code (bukan encoding QR standar yang sebenarnya,
+ * hanya representasi visual) dari sebuah kode konfirmasi. Dibuat
+ * deterministik dari karakter kodenya supaya kode yang sama selalu
+ * menghasilkan tampilan QR yang sama persis, lengkap dengan 3 "finder
+ * pattern" di pojok seperti QR Code sungguhan.
+ *
+ * Return: matriks 2 dimensi ($size x $size) berisi true (kotak terisi/hitam)
+ * atau false (kotak kosong/putih).
+ */
+function generate_qr_matrix(string $code, int $size = 21): array
+{
+    $seed = 0;
+    foreach (str_split($code) as $ch) {
+        $seed += ord($ch);
+    }
+
+    $grid = [];
+    for ($y = 0; $y < $size; $y++) {
+        $row = [];
+        for ($x = 0; $x < $size; $x++) {
+            $row[] = ((($x * 31 + $y * 17 + $seed * 7 + $x * $y) % 5) < 2);
+        }
+        $grid[] = $row;
+    }
+
+    // Tempatkan finder pattern 7x7 (kotak konsentris) di 3 pojok, persis QR Code asli.
+    $drawFinder = function (array &$grid, int $ox, int $oy): void {
+        for ($y = 0; $y < 7; $y++) {
+            for ($x = 0; $x < 7; $x++) {
+                $border = ($x === 0 || $x === 6 || $y === 0 || $y === 6);
+                $inner  = ($x >= 2 && $x <= 4 && $y >= 2 && $y <= 4);
+                $grid[$oy + $y][$ox + $x] = $border || $inner;
+            }
+        }
+        // Zona kosong (quiet zone) satu kotak di sekeliling finder, kalau masih dalam batas grid.
+        $size = count($grid);
+        for ($y = -1; $y <= 7; $y++) {
+            for ($x = -1; $x <= 7; $x++) {
+                $isBorderRing = ($y === -1 || $y === 7 || $x === -1 || $x === 7);
+                $gy = $oy + $y;
+                $gx = $ox + $x;
+                if ($isBorderRing && $gy >= 0 && $gy < $size && $gx >= 0 && $gx < $size) {
+                    $grid[$gy][$gx] = false;
+                }
+            }
+        }
+    };
+
+    $drawFinder($grid, 0, 0);
+    $drawFinder($grid, $size - 7, 0);
+    $drawFinder($grid, 0, $size - 7);
+
+    return $grid;
 }
 
 /**

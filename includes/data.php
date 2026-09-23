@@ -132,7 +132,7 @@ const ACTIVITY_STEPS = [
     'verifikasi' => [
         'label' => 'Verifikasi Order',
         'icon'  => 'assets/step-surat-jalan.png',
-        'href'  => 'index.php?screen=qr_code',
+        'href'  => 'index.php?screen=notifikasi',
     ],
     'rating' => [
         'label' => 'Rating Petugas AMT',
@@ -153,8 +153,9 @@ const HEADER_TITLES = [
     'verification'          => 'Tiba di Lokasi',
     'lo_list'               => 'Checklist Pra-Pembongkaran',
     'checklist'             => 'Checklist Pra Bongkar BBM SPBU',
+    'notifikasi'            => 'Notifikasi',
     'qr_code'               => 'Permintaan Verifikasi',
-    'rating'                => 'Rating AMT',
+    'rating'                => 'Beri Penilaian',
     'done'                  => 'Pengiriman Selesai',
     'claim_loss'            => 'Ajukan Claim Loss',
 ];
@@ -173,6 +174,8 @@ const TUTORIAL_TEXTS = [
     'lo_list'              => "9. Pilih LO yang akan dibongkar, lalu klik 'Mulai Checklist'.",
     // Wizard checklist tanpa kotak petunjuk agar tampilan persis seperti aplikasi
     'checklist'            => '',
+    // Halaman notifikasi tanpa kotak petunjuk supaya pop up tidak tertutup
+    'notifikasi'           => '',
     'qr_code'              => "11. Tunjukkan QR Code / Kode Konfirmasi ini kepada AMT untuk diselesaikan.",
     'rating'               => "12. Berikan penilaian mendetail (Safety, Sarfas, dll) untuk pelayanan AMT. Klik Selesai.",
     'done'                 => "Selesai! Seluruh proses dari Order BBM hingga Pembongkaran berhasil dicatat.",
@@ -191,7 +194,11 @@ const PREV_SCREEN = [
     'verification'          => 'shipment',
     'lo_list'               => 'shipment',
     'checklist'             => 'lo_list',
-    'qr_code'               => 'checklist',
+    'notifikasi'            => 'shipment',
+    // Halaman "Permintaan Verifikasi" (qr_code) dibuka dari notifikasi
+    // verifikasi order, tapi tombol kembali di pojok kiri atas harus
+    // langsung menuju Detail Order, bukan ke halaman Checklist.
+    'qr_code'               => 'shipment',
     'rating'                => 'qr_code',
     'claim_loss'            => 'checklist',
 ];
@@ -207,7 +214,8 @@ const NEXT_SCREEN = [
     'shipment'              => 'verification',
     'verification'          => 'shipment',
     'lo_list'               => 'checklist',
-    'checklist'             => 'qr_code',
+    'checklist'             => 'notifikasi',
+    'notifikasi'            => 'qr_code',
     'qr_code'               => 'rating',
     'rating'                => 'done',
     'done'                  => 'dashboard',
@@ -227,6 +235,7 @@ const SCREEN_CSS = [
     'verification'          => ['verification'],
     'lo_list'               => ['verification'],
     'checklist'             => ['verification'],
+    'notifikasi'            => ['verification'],
     'qr_code'               => ['verification'],
     'rating'                => ['verification'],
     'done'                  => ['verification'],

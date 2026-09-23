@@ -97,6 +97,6 @@ if (is_array($flashSuccess)) {
     <?php endif; ?>
 
     <!-- Konten utama -->
-    <?php $hasWizardNav = in_array($screen, ['checklist', 'claim_loss'], true); ?>
+    <?php $hasWizardNav = in_array($screen, ['checklist', 'claim_loss', 'rating'], true); ?>
     <?php $isFlexCol    = $screen === 'lo_list'; ?>
     <div class="content<?php echo $hasWizardNav ? ' content-with-nav' : ''; ?><?php echo $isFlexCol ? ' content-flex-col' : ''; ?>">

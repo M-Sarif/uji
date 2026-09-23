@@ -73,6 +73,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         case 'submit_rating':
             $errors = [];
+
+            // Penilaian keseluruhan AMT (kartu teratas, di luar RATING_CATEGORIES)
+            $overall = (int) ($_POST['rating']['overall'] ?? 0);
+            $_SESSION['ratings']['overall'] = $overall;
+            if ($overall < 1) {
+                $errors[] = 'Penilaian Keseluruhan AMT';
+            }
+
             foreach (RATING_CATEGORIES as $key => $cat) {
                 $val = (int) ($_POST['rating'][$key] ?? 0);
                 $_SESSION['ratings'][$key] = $val;
