@@ -11,10 +11,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <title>OneFIS<?php echo $headerTitle !== '' ? ' - ' . h($headerTitle) : ''; ?></title>
-<link rel="stylesheet" href="assets/css/base.css">
-<link rel="stylesheet" href="assets/css/components.css">
+<link rel="stylesheet" href="assets/css/base.css?v=<?php echo (int) @filemtime(__DIR__ . '/../assets/css/base.css'); ?>">
+<link rel="stylesheet" href="assets/css/components.css?v=<?php echo (int) @filemtime(__DIR__ . '/../assets/css/components.css'); ?>">
 <?php foreach (SCREEN_CSS[$screen] ?? [] as $cssFile): ?>
-<link rel="stylesheet" href="assets/css/<?php echo h($cssFile); ?>.css">
+<link rel="stylesheet" href="assets/css/<?php echo h($cssFile); ?>.css?v=<?php echo (int) @filemtime(__DIR__ . '/../assets/css/' . $cssFile . '.css'); ?>">
 <?php endforeach; ?>
 </head>
 <body>
@@ -40,9 +40,9 @@ if (is_array($flashSuccess)) {
 }
 ?>
 <?php if ($flashBody !== null): ?>
-<div class="toast-success<?php echo $flashTitle !== null ? ' has-title' : ''; ?>" id="toastSuccess" role="status" aria-live="polite">
+<div class="toast-success<?php echo $flashTitle !== null ? ' has-title' : ''; ?>" id="toastSuccess" role="status" aria-live="polite" style="position:fixed;z-index:999;top:1.25rem;right:1.25rem;left:1.25rem;background:#16a34a;color:#fff;">
     <span class="toast-success-icon">
-        <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#fff" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
     </span>
     <span class="toast-success-text">
         <?php if ($flashTitle !== null): ?>
@@ -98,4 +98,5 @@ if (is_array($flashSuccess)) {
 
     <!-- Konten utama -->
     <?php $hasWizardNav = in_array($screen, ['checklist', 'claim_loss'], true); ?>
-    <div class="content<?php echo $hasWizardNav ? ' content-with-nav' : ''; ?>">
+    <?php $isFlexCol    = $screen === 'lo_list'; ?>
+    <div class="content<?php echo $hasWizardNav ? ' content-with-nav' : ''; ?><?php echo $isFlexCol ? ' content-flex-col' : ''; ?>">

@@ -19,9 +19,9 @@ foreach ($checked as $id => $isChecked) {
 
 $checkIcon = '<svg viewBox="0 0 24 24" width="14" height="14" style="display:block;fill:none;stroke:#fff;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;"><path d="M5 13l4 4L19 7"/></svg>';
 ?>
-<form method="post" action="index.php" id="loListForm" style="display:flex;flex-direction:column;min-height:100%;">
+<form method="post" action="index.php" id="loListForm" style="display:flex;flex-direction:column;flex:1 1 auto;">
 <input type="hidden" name="action" value="kirim_checklist">
-<div class="content-pad" style="display:flex;flex-direction:column;min-height:100%;">
+<div class="content-pad" style="display:flex;flex-direction:column;flex:1 1 auto;">
     <p style="font-size:15px;font-weight:600;color:#1e293b;margin-bottom:2px;">Daftar LO</p>
     <p style="font-size:12px;color:#64748b;margin-bottom:20px;">Pilih LO untuk mengisi checklist</p>
 

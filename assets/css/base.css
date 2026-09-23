@@ -190,6 +190,13 @@ button { font: inherit; cursor: pointer; }
         radial-gradient(125% 14% at 15% 100%, #fbdde8 0%, rgba(251,221,232,0) 100%),
         #f8fafc;
 }
+/* Khusus halaman Daftar LO ("lo_list"): jadikan .content flex column
+   supaya baris tombol "Mulai Checklist" / "Kirim" bisa didorong ke
+   bawah dengan margin-top:auto secara andal, tanpa mengandalkan
+   resolusi tinggi persentase (min-height:100%) bersarang yang tidak
+   selalu konsisten di semua browser saat konten sedikit / pendek. */
+.content.content-flex-col { display: flex; flex-direction: column; }
+
 .content-pad { padding: 1rem; }
 
 /* ---------- Sticky footer & spacer (global) ---------- */
