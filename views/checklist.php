@@ -80,7 +80,13 @@ $chevronRight = '<svg class="chevron-icon" viewBox="0 0 24 24"><path stroke-line
 
         case 'photo': ?>
             <div class="subtle-box">
-                <p class="hint">Foto pelaksanaan tugas Anda sebagai bukti.</p>
+                <p class="hint">Verifikasi pelaksanaan tugas Anda.</p>
+                <div class="row choice-group">
+                    <a href="<?php echo $baseUrl; ?>&jawab=tidak" class="btn-choice red<?php echo $answer === 'tidak' ? ' is-selected' : ''; ?>">Tidak Dilakukan</a>
+                    <a href="<?php echo $baseUrl; ?>&jawab=ya" class="btn-choice blue<?php echo $answer === 'ya' ? ' is-selected' : ''; ?>">Ya, Dilakukan</a>
+                </div>
+                <div class="subtle-divider"></div>
+                <p class="hint">Foto pelaksanaan tugas Anda sebagai bukti (opsional)</p>
                 <label class="photo-drop">
                     <input type="file" accept="image/*" capture="environment" hidden>
                     <span class="photo-drop-title">Ambil Foto</span>

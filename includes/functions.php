@@ -152,6 +152,7 @@ function checklist_step_done(int $step, array $activeLoIds): bool
     switch ($type) {
         case 'self_action_photo':
         case 'action':
+        case 'photo':
             return checklist_answer($step) !== null;
 
         case 'form_spp':
@@ -183,7 +184,7 @@ function checklist_step_done(int $step, array $activeLoIds): bool
             }
             return true;
 
-        // Langkah foto memakai kamera perangkat, tidak ikut mengunci tombol lanjut.
+        // Tipe langkah lain yang tidak dikenali tidak mengunci tombol lanjut.
         default:
             return true;
     }
