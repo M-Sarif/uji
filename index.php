@@ -1,14 +1,20 @@
 <?php
-
-
 session_start();
 
 require __DIR__ . '/includes/data.php';
 require __DIR__ . '/includes/functions.php';
+require __DIR__ . '/includes/work.php';
 
 init_session_state();
 
-$validScreens = array_keys(HEADER_TITLES);
+// Layar tambahan yang tidak ada di HEADER_TITLES bawaan
+const EXTRA_SCREENS = ['start_end'];
+
+$validScreens = array_merge(array_keys(HEADER_TITLES), EXTRA_SCREENS);
+
+// Layar beranda milik peran AMT (di layar inilah menu Start/End, Check-In, dst tampil)
+$amtHome = ROLES['amt']['home'] ?? 'dashboard';
+
 // Layar awal = pilihan peran (SPBU / AMT), bukan langsung tampilan aplikasi.
 $screen = $_GET['screen'] ?? 'role_select';
 if (!in_array($screen, $validScreens, true)) {
@@ -16,29 +22,36 @@ if (!in_array($screen, $validScreens, true)) {
 }
 
 /* Penjagaan akses berdasarkan peran:
- *  - belum memilih peran        -> paksa ke layar pilihan peran
- *  - layar bukan milik perannya -> arahkan ke beranda perannya sendiri
- * Aksi POST selain "select_role" hanya dipakai alur SPBU. */
-$role   = current_role();
+ * - belum memilih peran -> paksa ke layar pilihan peran
+ * - layar bukan milik perannya -> arahkan ke beranda perannya sendiri
+ * Aksi POST selain "select_role" hanya dipakai alur SPBU,
+ * kecuali start_work / end_work yang dipakai peran AMT. */
+$role = current_role();
 $isPost = $_SERVER['REQUEST_METHOD'] === 'POST';
+
 if ($isPost) {
-    if (($_POST['action'] ?? '') !== 'select_role' && $role !== 'spbu') {
+    $allowedPost = ['select_role', 'start_work', 'end_work'];
+    if (!in_array($_POST['action'] ?? '', $allowedPost, true) && $role !== 'spbu') {
         go_to(role_home($role));
     }
 } else {
-    $needRole = screen_role($screen);
+    $needRole = in_array($screen, EXTRA_SCREENS, true) ? 'amt' : screen_role($screen);
     if ($needRole !== null && $role !== $needRole) {
         go_to(role_home($role));
     }
 }
 
+/* Menu Check-In / PTI / Check-Out hanya boleh dibuka saat timer kerja berjalan. */
+if (!$isPost && in_array($screen, WORK_GATED_SCREENS, true) && !work_is_running()) {
+    go_to($amtHome);
+}
+
 /* Setiap kali pengguna kembali ke halaman utama (dashboard) -- baik lewat
  * tombol back di header/browser, mengetik ulang alamatnya, maupun link
  * lain -- seluruh progres alur order/checklist/verifikasi dimulai dari
- * awal lagi. Hanya berlaku untuk kunjungan GET biasa, bukan saat form
- * di layar dashboard sendiri diproses (dashboard tidak punya form POST). */
-if ($screen === 'dashboard' && $_SERVER['REQUEST_METHOD'] !== 'POST') {
-    reset_flow_state();
+ * awal lagi. Status jam kerja (Start/End Work) tetap dipertahankan. */
+if (in_array($screen, ['dashboard', $amtHome], true) && $_SERVER['REQUEST_METHOD'] !== 'POST') {
+    reset_flow_keep_work();
 }
 
 /* --------------------------------------------------------------
@@ -49,7 +62,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
 
     switch ($action) {
-
         case 'select_role':
             // Layar awal: pengguna memilih SPBU atau AMT
             $picked = (string) ($_POST['role'] ?? '');
@@ -59,13 +71,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($picked !== current_role()) {
                 // Ganti peran -> mulai alur dari awal supaya state tidak bocor antar peran
                 reset_flow_state();
+                unset($_SESSION['work']);
             }
             $_SESSION['role'] = $picked;
             go_to(ROLES[$picked]['home']);
             break;
 
+        case 'start_work':
+            // Mulai jam kerja -> timer di dashboard berjalan, menu terkunci terbuka
+            if (!work_is_running()) {
+                $_SESSION['work'] = ['started_at' => time()];
+            }
+            go_to($amtHome);
+            break;
+
+        case 'end_work':
+            // Akhiri jam kerja -> timer berhenti, menu kembali terkunci
+            unset($_SESSION['work']);
+            go_to($amtHome);
+            break;
+
         case 'save_order_info':
-            $_SESSION['order']['jenis']   = ($_POST['jenis'] ?? 'Reguler') === 'Emergency' ? 'Emergency' : 'Reguler';
+            $_SESSION['order']['jenis'] = ($_POST['jenis'] ?? 'Reguler') === 'Emergency' ? 'Emergency' : 'Reguler';
             $_SESSION['order']['tanggal'] = trim($_POST['tanggal'] ?? $_SESSION['order']['tanggal']);
             go_to('create_order_product');
             break;
@@ -92,23 +119,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 $_SESSION[$key] = ($jawaban === 'ya');
             }
-
             if (!empty($belumDijawab)) {
                 $_SESSION['arrival_error'] = 'Mohon jawab pertanyaan untuk: ' . implode(', ', $belumDijawab);
                 go_to('verification');
             }
-
             unset($_SESSION['arrival_error']);
-            set_activity_done(1);   // langkah "Tiba di Lokasi" selesai
-            go_to('shipment');      // kembali ke halaman aktifitas SPBU
+            set_activity_done(1); // langkah "Tiba di Lokasi" selesai
+            go_to('shipment');    // kembali ke halaman aktifitas SPBU
             break;
 
         case 'save_rating_step':
             // Langkah 1: penilaian AMT 1. Tombol "Selanjutnya" -> disimpan
             // ke session lalu lanjut ke langkah 2 (AMT 2).
             $subjectKey = 'amt_ok';
-            $subject    = ARRIVAL_SUBJECTS[$subjectKey];
-            $errors     = [];
+            $subject = ARRIVAL_SUBJECTS[$subjectKey];
+            $errors = [];
 
             $overall = (int) ($_POST['rating'][$subjectKey]['overall'] ?? 0);
             $_SESSION['ratings'][$subjectKey]['overall'] = $overall;
@@ -136,8 +161,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // sudah lengkap lewat langkah 1, tapi tetap divalidasi ulang
             // untuk jaga-jaga (mis. sesi lama / navigasi langsung ke step 2).
             $subjectKey2 = 'amt2_ok';
-            $subject2    = ARRIVAL_SUBJECTS[$subjectKey2];
-            $errors2     = [];
+            $subject2 = ARRIVAL_SUBJECTS[$subjectKey2];
+            $errors2 = [];
 
             $overall2 = (int) ($_POST['rating'][$subjectKey2]['overall'] ?? 0);
             $_SESSION['ratings'][$subjectKey2]['overall'] = $overall2;
@@ -207,7 +232,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // isian form, simpan sebagai DRAFT (belum final), lalu balik
             // ke layar claim_loss dengan flag "hasil=1" supaya pop up
             // "Hasil Generate Claim Losses" langsung tampil.
-            $loId   = (string) ($_POST['lo'] ?? '');
+            $loId = (string) ($_POST['lo'] ?? '');
             $metode = array_key_exists($_POST['metode'] ?? '', MEASUREMENT_METHODS)
                 ? (string) $_POST['metode']
                 : 'ijkbout';
@@ -218,7 +243,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $raw = str_replace(',', '.', (string) ($_POST[$field['key']] ?? ''));
                     $nilai[$field['key']] = (float) preg_replace('/[^0-9.\-]/', '', $raw);
                 }
-
                 $_SESSION['lo_form_draft'][$loId] = [
                     'metode'     => $metode,
                     'nilai'      => $nilai,
@@ -233,17 +257,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Ajukan Claim Losses / Simpan Tanpa Klaim): jadikan draft
             // hasil "Generate" final, lalu kembali ke langkah 7 checklist
             // dengan status "Sudah Terisi".
-            $loId   = (string) ($_POST['lo'] ?? '');
+            $loId = (string) ($_POST['lo'] ?? '');
             $metode = array_key_exists($_POST['metode'] ?? '', MEASUREMENT_METHODS)
                 ? (string) $_POST['metode']
                 : 'ijkbout';
-            // 'ajukan'  = tombol "Ajukan Claim Losses"
-            // 'tanpa'   = tombol "Simpan Tanpa Klaim"
-            // ''        = tombol "Simpan" (dipakai saat tidak ada selisih)
+            // 'ajukan' = tombol "Ajukan Claim Losses"
+            // 'tanpa'  = tombol "Simpan Tanpa Klaim"
+            // ''       = tombol "Simpan" (dipakai saat tidak ada selisih)
             $klaim = (string) ($_POST['klaim'] ?? '');
 
             $draft = $_SESSION['lo_form_draft'][$loId] ?? null;
-
             if (array_key_exists($loId, LO_LIST) && $draft !== null && $draft['metode'] === $metode) {
                 $_SESSION['lo_form'][$loId] = [
                     'metode'     => $draft['metode'],
@@ -267,15 +290,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     unset($_SESSION['lo_draft'][$id]);
                 }
             }
-            set_activity_done(2);   // checklist pra-pembongkaran selesai
+            set_activity_done(2); // checklist pra-pembongkaran selesai
             // Notifikasi sukses ditampilkan sekali di halaman tujuan
             // (Detail Order) via flash message, lalu otomatis hilang sendiri.
             $_SESSION['flash_success'] = 'Checklist berhasil dikirim.';
-            go_to('shipment');      // kembali ke halaman Detail Order
+            go_to('shipment'); // kembali ke halaman Detail Order
             break;
 
         case 'reset_flow':
-            reset_flow_state();
+            reset_flow_keep_work();
             go_to('dashboard');
             break;
     }
@@ -287,6 +310,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 if ($screen === 'create_order_product' && isset($_GET['added'])) {
     $_SESSION['order']['produk_added'] = true;
 }
+
 if ($screen === 'lo_list' && isset($_GET['toggle'])) {
     // Centang/hilangkan centang SATU LO saja -- ini cuma menandai LO
     // tersebut ikut dikerjakan di wizard checklist, belum berarti
@@ -296,15 +320,17 @@ if ($screen === 'lo_list' && isset($_GET['toggle'])) {
         $_SESSION['lo_checked'][$id] = empty($_SESSION['lo_checked'][$id]);
     }
 }
+
 if ($screen === 'lo_list' && isset($_GET['toggle_all'])) {
     // "Pilih Semua": kalau semua LO sudah tercentang -> lepas semua,
     // kalau belum -> centang semua.
     $checkedCount = count(array_filter($_SESSION['lo_checked']));
-    $allChecked   = $checkedCount === count(LO_LIST);
+    $allChecked = $checkedCount === count(LO_LIST);
     foreach (array_keys(LO_LIST) as $id) {
         $_SESSION['lo_checked'][$id] = !$allChecked;
     }
 }
+
 if ($screen === 'lo_list' && isset($_GET['selesai'])) {
     // Wizard checklist dituntaskan sampai langkah terakhir ("Konfirmasi
     // LO" di step 15) -- LO yang sedang dikerjakan ditandai "Draft" di
@@ -321,22 +347,25 @@ if ($screen === 'lo_list' && isset($_GET['selesai'])) {
         'body'  => 'Status bongkar berhasil disimpan.',
     ];
 }
+
 // Progres aktifitas di SPBU ikut naik saat pengguna mencapai layar berikutnya
 if ($screen === 'rating') {
-    set_activity_done(3);   // verifikasi order selesai
-
+    set_activity_done(3); // verifikasi order selesai
     // Penilaian dibagi 2 langkah: 1 = AMT 1, 2 = AMT 2 + kirim.
     $step = isset($_GET['step']) ? (int) $_GET['step'] : ($_SESSION['rating_step'] ?? 1);
     $step = max(1, min(2, $step));
     $_SESSION['rating_step'] = $step;
 }
+
 if ($screen === 'done') {
-    set_activity_done(4);   // rating AMT selesai
+    set_activity_done(4); // rating AMT selesai
 }
+
 if ($screen === 'verification' && empty($_SESSION['arrival_time'])) {
     // Waktu tiba dicatat saat pertama kali layar "Tiba di Lokasi" dibuka
     $_SESSION['arrival_time'] = date('d/m/Y H:i:s');
 }
+
 if ($screen === 'checklist') {
     $step = isset($_GET['step']) ? (int) $_GET['step'] : ($_SESSION['checklist_step'] ?? 1);
     $step = max(1, min(15, $step));
@@ -356,11 +385,15 @@ if ($screen === 'checklist') {
     }
 }
 
-$headerTitle  = HEADER_TITLES[$screen];
-$tutorialText = TUTORIAL_TEXTS[$screen];
-$prevScreen   = PREV_SCREEN[$screen] ?? null;
-$nextScreen   = NEXT_SCREEN[$screen] ?? 'dashboard';
+// Layar start_end tidak ada di data.php, jadi diberi nilai bawaan di sini
+$headerTitle  = HEADER_TITLES[$screen]  ?? 'Start / End Work';
+$tutorialText = TUTORIAL_TEXTS[$screen] ?? '';
+$prevScreen   = PREV_SCREEN[$screen]    ?? ($screen === 'start_end' ? 'dashboard' : null);
+$nextScreen   = NEXT_SCREEN[$screen]    ?? 'dashboard';
 
 require __DIR__ . '/includes/layout_top.php';
 require __DIR__ . '/views/' . $screen . '.php';
+if ($role === 'amt' && $screen === $amtHome) {
+    require __DIR__ . '/includes/work_ui.php'; // Start/End bisa diklik, menu terkunci, timer
+}
 require __DIR__ . '/includes/layout_bottom.php';
