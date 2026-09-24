@@ -71,30 +71,75 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             go_to('shipment');      // kembali ke halaman aktifitas SPBU
             break;
 
-        case 'submit_rating':
-            $errors = [];
+        case 'save_rating_step':
+            // Langkah 1: penilaian AMT 1. Tombol "Selanjutnya" -> disimpan
+            // ke session lalu lanjut ke langkah 2 (AMT 2).
+            $subjectKey = 'amt_ok';
+            $subject    = ARRIVAL_SUBJECTS[$subjectKey];
+            $errors     = [];
 
-            // Penilaian keseluruhan AMT (kartu teratas, di luar RATING_CATEGORIES)
-            $overall = (int) ($_POST['rating']['overall'] ?? 0);
-            $_SESSION['ratings']['overall'] = $overall;
+            $overall = (int) ($_POST['rating'][$subjectKey]['overall'] ?? 0);
+            $_SESSION['ratings'][$subjectKey]['overall'] = $overall;
             if ($overall < 1) {
-                $errors[] = 'Penilaian Keseluruhan AMT';
+                $errors[] = 'Penilaian Keseluruhan ' . $subject['sub'];
             }
-
             foreach (RATING_CATEGORIES as $key => $cat) {
-                $val = (int) ($_POST['rating'][$key] ?? 0);
-                $_SESSION['ratings'][$key] = $val;
+                $val = (int) ($_POST['rating'][$subjectKey][$key] ?? 0);
+                $_SESSION['ratings'][$subjectKey][$key] = $val;
                 if ($val < 1) {
                     $errors[] = $cat['title'];
                 }
             }
-            $_SESSION['ratings']['review'] = trim($_POST['review'] ?? '');
 
             if (!empty($errors)) {
-                // Simpan pesan error sementara lalu tampilkan ulang form rating
                 $_SESSION['rating_error'] = 'Mohon beri bintang untuk: ' . implode(', ', $errors);
-                go_to('rating');
+                go_to('rating', ['step' => 1]);
             }
+            unset($_SESSION['rating_error']);
+            go_to('rating', ['step' => 2]);
+            break;
+
+        case 'submit_rating':
+            // Langkah 2: penilaian AMT 2 + tombol "Kirim". AMT 1 seharusnya
+            // sudah lengkap lewat langkah 1, tapi tetap divalidasi ulang
+            // untuk jaga-jaga (mis. sesi lama / navigasi langsung ke step 2).
+            $subjectKey2 = 'amt2_ok';
+            $subject2    = ARRIVAL_SUBJECTS[$subjectKey2];
+            $errors2     = [];
+
+            $overall2 = (int) ($_POST['rating'][$subjectKey2]['overall'] ?? 0);
+            $_SESSION['ratings'][$subjectKey2]['overall'] = $overall2;
+            if ($overall2 < 1) {
+                $errors2[] = 'Penilaian Keseluruhan ' . $subject2['sub'];
+            }
+            foreach (RATING_CATEGORIES as $key => $cat) {
+                $val = (int) ($_POST['rating'][$subjectKey2][$key] ?? 0);
+                $_SESSION['ratings'][$subjectKey2][$key] = $val;
+                if ($val < 1) {
+                    $errors2[] = $cat['title'];
+                }
+            }
+            $_SESSION['ratings']['review'] = trim($_POST['review'] ?? '');
+
+            if (!empty($errors2)) {
+                $_SESSION['rating_error'] = 'Mohon beri bintang untuk: ' . implode(', ', $errors2);
+                go_to('rating', ['step' => 2]);
+            }
+
+            $errors1 = [];
+            if ((int) ($_SESSION['ratings']['amt_ok']['overall'] ?? 0) < 1) {
+                $errors1[] = 'Penilaian Keseluruhan AMT 1';
+            }
+            foreach (RATING_CATEGORIES as $key => $cat) {
+                if ((int) ($_SESSION['ratings']['amt_ok'][$key] ?? 0) < 1) {
+                    $errors1[] = $cat['title'] . ' (AMT 1)';
+                }
+            }
+            if (!empty($errors1)) {
+                $_SESSION['rating_error'] = 'Mohon lengkapi penilaian AMT 1 terlebih dahulu: ' . implode(', ', $errors1);
+                go_to('rating', ['step' => 1]);
+            }
+
             unset($_SESSION['rating_error']);
             go_to('done');
             break;
@@ -244,6 +289,11 @@ if ($screen === 'lo_list' && isset($_GET['selesai'])) {
 // Progres aktifitas di SPBU ikut naik saat pengguna mencapai layar berikutnya
 if ($screen === 'rating') {
     set_activity_done(3);   // verifikasi order selesai
+
+    // Penilaian dibagi 2 langkah: 1 = AMT 1, 2 = AMT 2 + kirim.
+    $step = isset($_GET['step']) ? (int) $_GET['step'] : ($_SESSION['rating_step'] ?? 1);
+    $step = max(1, min(2, $step));
+    $_SESSION['rating_step'] = $step;
 }
 if ($screen === 'done') {
     set_activity_done(4);   // rating AMT selesai

@@ -199,7 +199,7 @@ const PREV_SCREEN = [
     // verifikasi order, tapi tombol kembali di pojok kiri atas harus
     // langsung menuju Detail Order, bukan ke halaman Checklist.
     'qr_code'               => 'shipment',
-    'rating'                => 'qr_code',
+    'rating'                => 'shipment',
     'claim_loss'            => 'checklist',
 ];
 

@@ -83,15 +83,26 @@ function init_session_state(): void
         $_SESSION['lo_bongkar'] = [];
     }
     if (!isset($_SESSION['ratings'])) {
-        $_SESSION['ratings'] = [
+        // Penilaian dipisah per AMT (ARRIVAL_SUBJECTS: amt_ok = AMT 1,
+        // amt2_ok = AMT 2) -- keduanya WAJIB dinilai. 'review' dipakai
+        // bersama untuk kedua AMT (satu kolom "Keterangan Lainnya").
+        $blank = [
             'overall'     => 0,
             'safety'      => 0,
             'sarfas'      => 0,
             'komunikasi'  => 0,
             'operasional' => 0,
             'layanan'     => 0,
-            'review'      => '',
         ];
+        $_SESSION['ratings'] = [
+            'amt_ok'  => $blank,
+            'amt2_ok' => $blank,
+            'review'  => '',
+        ];
+    }
+    if (!isset($_SESSION['rating_step'])) {
+        // Penilaian dibagi 2 langkah: 1 = AMT 1, 2 = AMT 2 + kirim.
+        $_SESSION['rating_step'] = 1;
     }
     if (!isset($_SESSION['mt_ok'])) {
         $_SESSION['mt_ok'] = null; // null = belum dipilih, true/false setelah verifikasi
@@ -134,6 +145,7 @@ function reset_flow_state(): void
         $_SESSION['lo_form_draft'],
         $_SESSION['lo_bongkar'],
         $_SESSION['ratings'],
+        $_SESSION['rating_step'],
         $_SESSION['mt_ok'],
         $_SESSION['amt_ok'],
         $_SESSION['amt2_ok'],

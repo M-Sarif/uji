@@ -12,11 +12,22 @@
 $checked = array_filter($_SESSION['lo_checked'] ?? []);
 $loIds   = !empty($checked) ? array_keys($checked) : array_keys(LO_LIST);
 
-// Kode konfirmasi untuk AMT + simulasi pola kotak QR Code-nya
-$kodeKonfirmasi = $_SESSION['kode_konfirmasi'] ?? '131200';
-$qrSize         = 21;
-$qrMatrix       = generate_qr_matrix($kodeKonfirmasi, $qrSize);
-?>
+// Verifikasi order dianggap sudah dilakukan begitu progres aktifitas SPBU
+// sampai ke langkah "Rating AMT" (activity_done >= 3, ditandai saat
+// pengguna mencapai layar rating lewat "Beri Penilaian"). Kalau begitu,
+// membuka layar ini lagi TIDAK menampilkan barcode/kode konfirmasi lagi.
+$sudahVerifikasi = (int) ($_SESSION['activity_done'] ?? 0) >= 3;
+
+if ($sudahVerifikasi): ?>
+<div class="done-wrap">
+    <div class="done-icon">
+        <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    </div>
+    <h1>Verifikasi Telah Dilakukan</h1>
+    <p>Order ini sudah diverifikasi oleh AMT. Kode konfirmasi tidak perlu ditampilkan lagi.</p>
+    <a href="index.php?screen=shipment" class="btn-primary" style="margin-top:auto;">Kembali ke Detail Order</a>
+</div>
+<?php return; endif; ?>
 <div class="content-pad verif-body">
 
     <h2 class="section-title" style="text-align:center;margin-bottom:1rem;">LO yang di Serahkan</h2>
