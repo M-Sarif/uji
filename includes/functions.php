@@ -17,9 +17,35 @@ function go_to(string $screen, array $extraParams = []): void
     exit;
 }
 
+/** Peran yang sedang aktif ('spbu' | 'amt' | null bila belum memilih) */
+function current_role(): ?string
+{
+    $role = $_SESSION['role'] ?? null;
+    return is_string($role) && isset(ROLES[$role]) ? $role : null;
+}
+
+/** Layar beranda untuk sebuah peran (role_select bila belum memilih peran) */
+function role_home(?string $role): string
+{
+    return $role !== null && isset(ROLES[$role]) ? ROLES[$role]['home'] : 'role_select';
+}
+
+/** Peran yang berhak membuka sebuah layar (null = terbuka untuk semua) */
+function screen_role(string $screen): ?string
+{
+    if ($screen === 'role_select') {
+        return null;
+    }
+    return in_array($screen, AMT_SCREENS, true) ? 'amt' : 'spbu';
+}
+
 /** Set default nilai session bila belum ada (state awal aplikasi) */
 function init_session_state(): void
 {
+    if (!isset($_SESSION['role'])) {
+        // Peran belum dipilih -> layar awal menampilkan pilihan SPBU / AMT
+        $_SESSION['role'] = null;
+    }
     if (!isset($_SESSION['order'])) {
         $_SESSION['order'] = [
             'no_spbu'      => '3210829 - PT Lorem Ipsum',

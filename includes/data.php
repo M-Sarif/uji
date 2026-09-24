@@ -143,6 +143,9 @@ const ACTIVITY_STEPS = [
 
 // Daftar layar valid + judul header (persis App.tsx -> getHeaderTitle)
 const HEADER_TITLES = [
+    // Layar awal: pilih peran (SPBU / AMT), tanpa header
+    'role_select'           => '',
+    'amt_home'              => 'Halaman AMT',
     'dashboard'             => '',
     'shipments_list'        => 'Shipments',
     'create_order_info'     => 'Buat Order',
@@ -162,6 +165,8 @@ const HEADER_TITLES = [
 
 // Teks tutorial (persis App.tsx -> getTutorialText)
 const TUTORIAL_TEXTS = [
+    'role_select'          => '',
+    'amt_home'             => '',
     'dashboard'            => "1. Ini adalah halaman utama OneFIS. Klik menu 'Shipments' atau 'Lihat Detail Order' untuk melanjutkan.",
     'shipments_list'       => "2. Pada halaman Shipments pilih menu Buat Order untuk memesan BBM.",
     'create_order_info'    => "3. Isi Informasi Umum seperti Jenis Order, Tanggal, dan Shift. Klik 'Selanjutnya'.",
@@ -185,6 +190,7 @@ const TUTORIAL_TEXTS = [
 
 // Layar sebelumnya, dipakai untuk tombol "back" di header
 const PREV_SCREEN = [
+    'amt_home'              => 'role_select',
     'shipments_list'        => 'dashboard',
     'create_order_info'     => 'shipments_list',
     'create_order_product'  => 'create_order_info',
@@ -225,6 +231,8 @@ const NEXT_SCREEN = [
 // base.css & components.css yang selalu dimuat di semua halaman).
 // Ini yang membuat style tidak lagi menumpuk dalam satu file besar.
 const SCREEN_CSS = [
+    'role_select'           => ['role'],
+    'amt_home'              => ['role'],
     'dashboard'             => ['dashboard'],
     'shipments_list'        => ['shipments'],
     'create_order_info'     => ['order-form'],
@@ -241,3 +249,17 @@ const SCREEN_CSS = [
     'done'                  => ['verification'],
     'claim_loss'            => ['verification'],
 ];
+
+// ---------------------------------------------------------------
+// Peran pengguna (dipilih di layar awal "role_select")
+//   - 'spbu' : alur aplikasi yang sekarang berjalan (dashboard -> ... -> done)
+//   - 'amt'  : halaman khusus AMT
+// ---------------------------------------------------------------
+const ROLES = [
+    'spbu' => ['label' => 'SPBU', 'desc' => 'Kelola order BBM, pantau pengiriman, dan verifikasi pembongkaran.', 'home' => 'dashboard'],
+    'amt'  => ['label' => 'AMT',  'desc' => 'Awak Mobil Tangki: antar BBM dan layani serah terima di SPBU.',      'home' => 'amt_home'],
+];
+
+// Layar yang hanya boleh dibuka oleh peran AMT. Semua layar lain (kecuali
+// role_select yang terbuka untuk semua) hanya untuk peran SPBU.
+const AMT_SCREENS = ['amt_home'];

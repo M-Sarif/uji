@@ -9,9 +9,27 @@ require __DIR__ . '/includes/functions.php';
 init_session_state();
 
 $validScreens = array_keys(HEADER_TITLES);
-$screen = $_GET['screen'] ?? 'dashboard';
+// Layar awal = pilihan peran (SPBU / AMT), bukan langsung tampilan aplikasi.
+$screen = $_GET['screen'] ?? 'role_select';
 if (!in_array($screen, $validScreens, true)) {
-    $screen = 'dashboard';
+    $screen = 'role_select';
+}
+
+/* Penjagaan akses berdasarkan peran:
+ *  - belum memilih peran        -> paksa ke layar pilihan peran
+ *  - layar bukan milik perannya -> arahkan ke beranda perannya sendiri
+ * Aksi POST selain "select_role" hanya dipakai alur SPBU. */
+$role   = current_role();
+$isPost = $_SERVER['REQUEST_METHOD'] === 'POST';
+if ($isPost) {
+    if (($_POST['action'] ?? '') !== 'select_role' && $role !== 'spbu') {
+        go_to(role_home($role));
+    }
+} else {
+    $needRole = screen_role($screen);
+    if ($needRole !== null && $role !== $needRole) {
+        go_to(role_home($role));
+    }
 }
 
 /* Setiap kali pengguna kembali ke halaman utama (dashboard) -- baik lewat
@@ -31,6 +49,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
 
     switch ($action) {
+
+        case 'select_role':
+            // Layar awal: pengguna memilih SPBU atau AMT
+            $picked = (string) ($_POST['role'] ?? '');
+            if (!isset(ROLES[$picked])) {
+                go_to('role_select');
+            }
+            if ($picked !== current_role()) {
+                // Ganti peran -> mulai alur dari awal supaya state tidak bocor antar peran
+                reset_flow_state();
+            }
+            $_SESSION['role'] = $picked;
+            go_to(ROLES[$picked]['home']);
+            break;
 
         case 'save_order_info':
             $_SESSION['order']['jenis']   = ($_POST['jenis'] ?? 'Reguler') === 'Emergency' ? 'Emergency' : 'Reguler';

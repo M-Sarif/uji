@@ -1,0 +1,58 @@
+/* ============================================================
+   OneFIS - role.css
+   Layar awal "Masuk Sebagai" (pilih SPBU / AMT) dan halaman AMT.
+   ============================================================ */
+
+.role-wrap {
+    display: flex; flex-direction: column; gap: 1.5rem;
+    min-height: 100%; padding: 2.5rem 1.25rem 1.5rem 1.25rem;
+    background: #f8fafc;
+}
+
+.role-brand { display: flex; justify-content: center; padding-top: 1rem; }
+.role-brand img { width: 7.5rem; height: auto; }
+
+.role-head { text-align: center; }
+.role-head h1 { font-size: 1.375rem; font-weight: 700; color: #1e293b; margin-bottom: 0.375rem; }
+.role-head p  { font-size: 0.8125rem; color: #64748b; }
+
+.role-list { display: flex; flex-direction: column; gap: 0.875rem; }
+
+.role-card {
+    width: 100%; display: flex; align-items: center; gap: 0.875rem;
+    padding: 1rem; text-align: left;
+    background: #fff; border: 1.5px solid #e2e8f0; border-radius: 1.25rem;
+    box-shadow: 0 2px 12px -4px rgba(0,0,0,0.05);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
+}
+.role-card:hover { border-color: #93c5fd; box-shadow: 0 6px 18px -8px rgba(37,99,235,0.35); }
+.role-card:active { transform: scale(0.985); }
+.role-card.is-active { border-color: #2563eb; }
+
+.role-icon {
+    flex: 0 0 auto; width: 3.75rem; height: 3.75rem; border-radius: 0.875rem;
+    display: flex; align-items: center; justify-content: center; overflow: hidden;
+    border: 1px solid #dbeafe;
+    background: linear-gradient(to bottom right, #eff6ff, #dbeafe80);
+}
+.role-icon.amber { border-color: #fef3c7; background: linear-gradient(to bottom right, #fffbeb, #fde68a80); }
+.role-icon img { width: 2.875rem; height: 2.875rem; object-fit: contain; }
+
+.role-text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 0.25rem; }
+.role-text strong { font-size: 1rem; font-weight: 700; color: #1e293b; }
+.role-text span   { font-size: 0.75rem; color: #64748b; line-height: 1.45; }
+
+.role-chevron { flex: 0 0 auto; width: 1.125rem; height: 1.125rem; color: #94a3b8; }
+.role-card:hover .role-chevron { color: #2563eb; }
+
+/* ---------- Halaman AMT ---------- */
+.amt-wrap { padding-top: 1.25rem; }
+.amt-card { text-align: center; padding: 2rem 1.25rem; border-radius: 1.5rem; }
+.amt-avatar {
+    width: 4.5rem; height: 4.5rem; margin: 0 auto 1rem auto;
+    border-radius: 50%; overflow: hidden; background: #dbeafe;
+}
+.amt-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.amt-card h2 { font-size: 1.125rem; font-weight: 700; color: #1e293b; margin-bottom: 0.5rem; }
+.amt-card p  { font-size: 0.8125rem; color: #64748b; line-height: 1.6; }
+.role-back { margin-top: auto; }

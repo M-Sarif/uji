@@ -49,3 +49,13 @@
 }
 .dashboard-cta:hover { background: #f8fafc; color: #64748b; }
 .dashboard-cta svg { width: 1.0625rem; height: 1.0625rem; }
+
+/* Tombol ganti peran di header dashboard */
+.role-switch {
+    display: inline-flex; align-items: center; gap: 0.3125rem;
+    padding: 0.3125rem 0.625rem; border-radius: 999px;
+    border: 1px solid #dbeafe; background: #eff6ff; color: #2563eb;
+    font-size: 0.6875rem; font-weight: 700; letter-spacing: 0.04em;
+}
+.role-switch svg { width: 0.875rem; height: 0.875rem; fill: none; stroke: currentColor; stroke-width: 2; }
+.role-switch:active { transform: scale(0.97); }
