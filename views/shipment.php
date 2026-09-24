@@ -9,6 +9,18 @@
  */
 
 $done  = (int) ($_SESSION['activity_done'] ?? 0);
+
+// "Tiba di Lokasi" dikunci 5 detik sejak Detail Order pertama kali dibuka
+// (tampil redup & tidak bisa diklik), lalu otomatis aktif. Waktu mulai
+// disimpan di session supaya reload halaman tidak mengulang hitungan.
+$arriveLockSeconds = 5;
+if ($done === 0 && empty($_SESSION['arrive_unlock_at'])) {
+    $_SESSION['arrive_unlock_at'] = microtime(true) + $arriveLockSeconds;
+}
+$lockRemaining = 0.0;
+if ($done === 0) {
+    $lockRemaining = max(0.0, (float) $_SESSION['arrive_unlock_at'] - microtime(true));
+}
 $steps = ACTIVITY_STEPS;
 $total = count($steps);
 
@@ -48,11 +60,15 @@ $subtitles = [
                     } else {
                         $state = 'pending';
                     }
-                    $clickable = ($state !== 'pending');
+                    $locked = ($i === 0 && $state === 'active' && $lockRemaining > 0);
+                    if ($locked) {
+                        $state = 'pending locked';
+                    }
+                    $clickable = (strpos($state, 'pending') === false);
                     $tag       = $clickable ? 'a' : 'div';
                     $hrefAttr  = $clickable ? ' href="' . h($step['href']) . '"' : '';
                 ?>
-                <<?php echo $tag; ?><?php echo $hrefAttr; ?> class="activity-item <?php echo $state; ?><?php echo $clickable ? ' clickable' : ''; ?>">
+                <<?php echo $tag; ?><?php echo $hrefAttr; ?><?php echo $locked ? ' id="arriveItem" data-href="' . h($step['href']) . '" aria-disabled="true"' : ''; ?> class="activity-item <?php echo $state; ?><?php echo $clickable ? ' clickable' : ''; ?>">
                     <span class="activity-node">
                         <?php if ($state === 'done'): ?>
                             <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
@@ -63,7 +79,7 @@ $subtitles = [
                             <img src="<?php echo h($step['icon']); ?>" alt="<?php echo h($step['label']); ?>">
                         </div>
                         <span class="activity-label"><?php echo h($step['label']); ?></span>
-                        <?php if ($state === 'active'): ?>
+                        <?php if ($state === 'active' || $locked): ?>
                             <svg class="activity-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
                             </svg>
@@ -103,23 +119,34 @@ $subtitles = [
 
 </div>
 
+<?php if ($done < $total): ?>
+<!-- Tombol "Selesai" hanya tampil (nonaktif) selama aktifitas belum tuntas.
+     Setelah Rating AMT selesai tidak ada aktifitas lagi, jadi tombol dihilangkan. -->
 <div class="sticky-footer">
-    <?php if ($done >= $total): ?>
-        <a href="index.php?screen=done" class="btn-primary btn-finish">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18" style="width:18px;height:18px;">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M22 2L11 13"/>
-                <path stroke-linecap="round" stroke-linejoin="round" d="M22 2l-7 20-4-9-9-4 20-7z"/>
-            </svg>
-            Selesai
-        </a>
-    <?php else: ?>
-        <button type="button" class="btn-primary" disabled>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18" style="width:18px;height:18px;">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 4H6a2 2 0 00-2 2v13a2 2 0 002 2h9a2 2 0 002-2v-2"/>
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 4a2 2 0 002 2h1a2 2 0 002-2 2 2 0 00-2-2h-1a2 2 0 00-2 2z"/>
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h4M9 16h4"/>
-            </svg>
-            Selesai
-        </button>
-    <?php endif; ?>
+    <button type="button" class="btn-primary" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18" style="width:18px;height:18px;">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 4H6a2 2 0 00-2 2v13a2 2 0 002 2h9a2 2 0 002-2v-2"/>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 4a2 2 0 002 2h1a2 2 0 002-2 2 2 0 00-2-2h-1a2 2 0 00-2 2z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h4M9 16h4"/>
+        </svg>
+        Selesai
+    </button>
 </div>
+<?php endif; ?>
+
+<?php if ($lockRemaining > 0): ?>
+<script>
+// Setelah 5 detik, ubah "Tiba di Lokasi" dari redup/terkunci jadi aktif & bisa diklik
+(function () {
+    var el = document.getElementById('arriveItem');
+    if (!el) { return; }
+    setTimeout(function () {
+        var a = document.createElement('a');
+        a.href = el.getAttribute('data-href');
+        a.className = 'activity-item active clickable';
+        a.innerHTML = el.innerHTML;
+        el.parentNode.replaceChild(a, el);
+    }, <?php echo (int) ceil($lockRemaining * 1000); ?>);
+})();
+</script>
+<?php endif; ?>

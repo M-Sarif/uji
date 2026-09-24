@@ -6,8 +6,8 @@
  *
  * Ada 2 AMT yang bertugas (ARRIVAL_SUBJECTS: amt_ok = AMT 1, amt2_ok =
  * AMT 2) dan KEDUANYA wajib dinilai secara terpisah, SATU PER SATU:
- *  - Langkah 1 (?step=1): nilai AMT 1 -> tombol "Selanjutnya" menyimpan
- *    lalu pindah ke langkah 2.
+ *  - Langkah 1 (?step=1): nilai AMT 1 -> tombol "Selanjutnya" (tunggal,
+ *    nonaktif sampai lengkap) menyimpan lalu pindah ke langkah 2.
  *  - Langkah 2 (?step=2): nilai AMT 2 + kolom "Keterangan Lainnya"
  *    (opsional) -> tombol "Telah Kirim" menyimpan & memvalidasi kedua
  *    AMT, lalu lanjut ke halaman "done".
@@ -70,10 +70,6 @@ function render_stars(string $amtKey, string $catKey, int $selected): void
 
 <div class="content-pad" style="padding-bottom:1rem;">
 
-    <p class="rating-desc" style="text-align:left;margin-bottom:0.75rem;color:#94a3b8;">Langkah <?php echo (int) $step; ?> dari <?php echo (int) $totalStep; ?></p>
-
-    <h2 class="section-title" style="margin-bottom:0.5rem;"><?php echo h($currentAmt['sub']); ?></h2>
-
     <!-- Kartu penilaian keseluruhan -->
     <div class="card rating-card" data-rating-card="<?php echo h($currentAmtKey); ?>_overall">
         <div class="person-row" style="justify-content:center;flex-direction:column;align-items:center;margin-bottom:0.75rem;">
@@ -122,19 +118,27 @@ function render_stars(string $amtKey, string $catKey, int $selected): void
 
 </div>
 
-<!-- Navigasi bawah: satu tombol "Selanjutnya"/"Telah Kirim" (nonaktif)
-     selama kategori AMT yang sedang tampil belum semua dinilai, berganti
-     jadi "Sebelumnya" + tombol utama setelah lengkap. -->
+<!-- Navigasi bawah:
+     - AMT 1 (langkah 1): hanya SATU tombol "Selanjutnya" (nonaktif sampai
+       semua kategori dinilai, lalu aktif).
+     - AMT 2 (langkah 2): satu tombol "Kirim" nonaktif sampai lengkap, lalu
+       berganti menjadi "Sebelumnya" + "Kirim". -->
+<?php if ($isLastStep): ?>
 <div class="wizard-nav" id="ratingNavSingle">
-    <span class="btn-wiz is-disabled" style="flex:1 1 0;"><?php echo $isLastStep ? 'Kirim' : 'Selanjutnya'; ?></span>
+    <span class="btn-wiz is-disabled" style="flex:1 1 0;">Kirim</span>
 </div>
 <div class="wizard-nav" id="ratingNavPair" hidden>
-    <a href="index.php?screen=rating<?php echo $step > 1 ? '&step=' . ($step - 1) : ''; ?>" class="btn-wiz">
+    <a href="index.php?screen=rating&amp;step=<?php echo (int) ($step - 1); ?>" class="btn-wiz">
         <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20 12H5M11 6l-6 6 6 6"/></svg>
         Sebelumnya
     </a>
-    <button type="submit" class="btn-primary" id="btnRatingLanjut"><?php echo $isLastStep ? 'Kirim' : 'Selanjutnya'; ?></button>
+    <button type="submit" class="btn-primary" id="btnRatingLanjut">Kirim</button>
 </div>
+<?php else: ?>
+<div class="wizard-nav" id="ratingNavStep1">
+    <button type="submit" class="btn-primary" id="btnRatingLanjut" disabled>Selanjutnya</button>
+</div>
+<?php endif; ?>
 </form>
 
 <script>
@@ -145,16 +149,22 @@ function render_stars(string $amtKey, string $catKey, int $selected): void
     var groups     = catKeys.map(function (catKey) { return amtKey + '_' + catKey; });
     var titles     = <?php echo json_encode($starTitles); ?>;
     var body       = <?php echo json_encode($starBody); ?>;
-    var navSingle  = document.getElementById('ratingNavSingle');
-    var navPair    = document.getElementById('ratingNavPair');
+    var navSingle  = document.getElementById('ratingNavSingle'); // hanya ada di langkah terakhir
+    var navPair    = document.getElementById('ratingNavPair');   // hanya ada di langkah terakhir
     var btnLanjut  = document.getElementById('btnRatingLanjut');
 
     function checkComplete() {
         var complete = groups.every(function (group) {
             return form.querySelector('[data-group="' + group + '"]:checked') !== null;
         });
-        navSingle.hidden = complete;
-        navPair.hidden   = !complete;
+        if (navSingle && navPair) {
+            // AMT 2: tombol tunggal -> berganti jadi Sebelumnya + Kirim
+            navSingle.hidden = complete;
+            navPair.hidden   = !complete;
+        } else if (btnLanjut) {
+            // AMT 1: tombol "Selanjutnya" tunggal, aktif jika sudah lengkap
+            btnLanjut.disabled = !complete;
+        }
     }
 
     form.addEventListener('change', function (e) {

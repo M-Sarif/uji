@@ -28,6 +28,12 @@ if ($sudahVerifikasi): ?>
     <a href="index.php?screen=shipment" class="btn-primary" style="margin-top:auto;">Kembali ke Detail Order</a>
 </div>
 <?php return; endif; ?>
+<?php
+// Kode konfirmasi + matriks pola QR (dipakai oleh SVG di bawah)
+$kodeKonfirmasi = $_SESSION['kode_konfirmasi'] ?? '131200';
+$qrSize         = 21;
+$qrMatrix       = generate_qr_matrix($kodeKonfirmasi, $qrSize);
+?>
 <div class="content-pad verif-body">
 
     <h2 class="section-title" style="text-align:center;margin-bottom:1rem;">LO yang di Serahkan</h2>

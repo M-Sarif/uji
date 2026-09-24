@@ -57,6 +57,8 @@
 .activity-item.done .activity-node svg { width: 0.625rem; height: 0.625rem; color: #fff; fill: none; stroke: currentColor; stroke-width: 3.5; }
 .activity-item.done .activity-label { color: #1d4ed8; font-weight: 700; }
 .activity-item.pending { opacity: 0.55; cursor: not-allowed; }
+.activity-item.locked { pointer-events: none; user-select: none; }
+.activity-item.locked .activity-chevron { display: none; }
 .activity-row {
     display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;
     border-radius: 1rem; padding: 0.5rem; border: 1.5px solid transparent;

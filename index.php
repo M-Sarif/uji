@@ -141,7 +141,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             unset($_SESSION['rating_error']);
-            go_to('done');
+            // Penilaian selesai -> semua aktifitas di SPBU tuntas, lalu kembali
+            // ke Detail Order (tombol "Selesai" di sana yang menuju layar done).
+            set_activity_done(4);
+            go_to('shipment');
             break;
 
         case 'save_spp_produk':

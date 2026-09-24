@@ -151,7 +151,8 @@ function reset_flow_state(): void
         $_SESSION['amt2_ok'],
         $_SESSION['arrival_time'],
         $_SESSION['arrival_error'],
-        $_SESSION['activity_done']
+        $_SESSION['activity_done'],
+        $_SESSION['arrive_unlock_at']
     );
     init_session_state();
 }
