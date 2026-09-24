@@ -3,8 +3,8 @@
  * Bekerja dengan mencari menu berdasarkan teks labelnya, jadi tidak
  * bergantung pada markup/class dashboard asli:
  *  - "Start / End"  -> selalu bisa diklik, membuka halaman Start/End Work
- *  - "Check-In", "PTI", "Check-Out" -> nonaktif (abu-abu, tidak bisa diklik)
- *    selama timer belum berjalan
+ *  - "Check-In", "PTI", "Check-Out" -> dipudarkan (tetap berwarna) dan tidak
+ *    bisa diklik selama timer belum berjalan
  *  - timer "00:00:00" berjalan dari waktu Start Work di server */
 ?>
 <script>
@@ -47,7 +47,6 @@
   if (!RUNNING) {
     gated.forEach(function (t) {
       t.style.opacity = '.45';
-      t.style.filter = 'grayscale(1)';
       t.style.cursor = 'not-allowed';
       t.setAttribute('aria-disabled', 'true');
       t.querySelectorAll('a[href]').forEach(function (a) { a.removeAttribute('href'); });

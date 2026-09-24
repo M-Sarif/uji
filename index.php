@@ -8,7 +8,7 @@ require __DIR__ . '/includes/work.php';
 init_session_state();
 
 // Layar tambahan yang tidak ada di HEADER_TITLES bawaan
-const EXTRA_SCREENS = ['start_end'];
+const EXTRA_SCREENS = ['start_end', 'start_work', 'end_work'];
 
 $validScreens = array_merge(array_keys(HEADER_TITLES), EXTRA_SCREENS);
 
@@ -30,7 +30,7 @@ $role = current_role();
 $isPost = $_SERVER['REQUEST_METHOD'] === 'POST';
 
 if ($isPost) {
-    $allowedPost = ['select_role', 'start_work', 'end_work'];
+    $allowedPost = ['select_role', 'submit_start_work', 'submit_end_work'];
     if (!in_array($_POST['action'] ?? '', $allowedPost, true) && $role !== 'spbu') {
         go_to(role_home($role));
     }
@@ -44,6 +44,14 @@ if ($isPost) {
 /* Menu Check-In / PTI / Check-Out hanya boleh dibuka saat timer kerja berjalan. */
 if (!$isPost && in_array($screen, WORK_GATED_SCREENS, true) && !work_is_running()) {
     go_to($amtHome);
+}
+
+/* Start Work hanya saat timer belum jalan; End Work hanya saat timer jalan. */
+if (!$isPost && $screen === 'start_work' && work_is_running()) {
+    go_to('start_end');
+}
+if (!$isPost && $screen === 'end_work' && !work_is_running()) {
+    go_to('start_end');
 }
 
 /* Setiap kali pengguna kembali ke halaman utama (dashboard) -- baik lewat
@@ -77,17 +85,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             go_to(ROLES[$picked]['home']);
             break;
 
-        case 'start_work':
-            // Mulai jam kerja -> timer di dashboard berjalan, menu terkunci terbuka
-            if (!work_is_running()) {
-                $_SESSION['work'] = ['started_at' => time()];
+        case 'submit_start_work':
+            // Kirim form Start Work: aktivitas + foto wajib, lalu timer berjalan
+            $akt = (string) ($_POST['aktivitas'] ?? '');
+            if (work_is_running()
+                || !in_array($akt, WORK_ACTIVITIES, true)
+                || ($_POST['photo'] ?? '') !== '1'
+            ) {
+                go_to('start_work');
             }
+            $_SESSION['work'] = [
+                'started_at'  => time(),
+                'ended_at'    => null,
+                'activity'    => $akt,
+                'start_photo' => true,
+                'end_photo'   => false,
+            ];
             go_to($amtHome);
             break;
 
-        case 'end_work':
-            // Akhiri jam kerja -> timer berhenti, menu kembali terkunci
-            unset($_SESSION['work']);
+        case 'submit_end_work':
+            // Kirim form End Work: aktivitas mengikuti Start Work (tidak bisa diubah)
+            if (!work_is_running() || ($_POST['photo'] ?? '') !== '1') {
+                go_to('end_work');
+            }
+            $_SESSION['work']['ended_at'] = time();
+            $_SESSION['work']['end_photo'] = true;
             go_to($amtHome);
             break;
 
@@ -385,10 +408,14 @@ if ($screen === 'checklist') {
     }
 }
 
-// Layar start_end tidak ada di data.php, jadi diberi nilai bawaan di sini
-$headerTitle  = HEADER_TITLES[$screen]  ?? 'Start / End Work';
+// Layar Start/End Work tidak ada di data.php, jadi diberi nilai bawaan di sini
+$headerTitle  = HEADER_TITLES[$screen]  ?? (WORK_SCREENS[$screen] ?? '');
 $tutorialText = TUTORIAL_TEXTS[$screen] ?? '';
-$prevScreen   = PREV_SCREEN[$screen]    ?? ($screen === 'start_end' ? 'dashboard' : null);
+$prevScreen   = PREV_SCREEN[$screen]    ?? [
+    'start_end'  => $amtHome,
+    'start_work' => 'start_end',
+    'end_work'   => 'start_end',
+][$screen] ?? null;
 $nextScreen   = NEXT_SCREEN[$screen]    ?? 'dashboard';
 
 require __DIR__ . '/includes/layout_top.php';
