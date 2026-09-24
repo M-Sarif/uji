@@ -1,19 +1,43 @@
 <?php
 /**
- * Halaman untuk peran AMT (Awak Mobil Tangki).
- * Saat ini masih berupa halaman awal; fitur AMT ditambahkan di sini.
+ * Beranda peran AMT (Awak Mobil Tangki).
+ * Isi: kartu Waktu Kerja, menu cepat (7 menu), dan panel "Pengiriman Aktif".
  */
+$amtMenus = [
+    ['label' => 'Start / End',  'icon' => 'assets/start-end.png',              'tone' => 'slate',  'href' => '#'],
+    ['label' => 'Check-In',     'icon' => 'assets/Check-In.png',               'tone' => 'green',  'href' => '#'],
+    ['label' => 'PTI',          'icon' => 'assets/PTI.png',                    'tone' => 'peach',  'href' => '#'],
+    ['label' => 'Shipments',    'icon' => 'assets/empty-delivery-truck.png',   'tone' => 'blue',   'href' => '#'],
+    ['label' => 'Check-Out',    'icon' => 'assets/Check-Out.png',              'tone' => 'rose',   'href' => '#'],
+    ['label' => 'Performance',  'icon' => 'assets/performance.png',            'tone' => 'violet', 'href' => '#'],
+    ['label' => 'SAFIRE',       'icon' => 'assets/safire_icon.png',            'tone' => 'sky',    'href' => '#'],
+];
 ?>
-<div class="role-wrap amt-wrap">
+<div class="amt-home">
 
-    <div class="card amt-card">
-        <div class="amt-avatar">
-            <img src="assets/avatar-amt1.svg" alt="AMT">
-        </div>
-        <h2>Halaman AMT</h2>
-        <p>Anda masuk sebagai <strong>AMT</strong>. Fitur untuk peran ini sedang disiapkan.</p>
+    <!-- Waktu kerja -->
+    <div class="amt-worktime">
+        <span class="amt-worktime-label">Waktu Kerja</span>
+        <span class="amt-worktime-value" id="amtWorktime">00:00:00</span>
     </div>
 
-    <a href="index.php?screen=role_select" class="btn-primary role-back">Kembali ke Pilihan Peran</a>
+    <!-- Menu cepat -->
+    <nav class="amt-menu" aria-label="Menu AMT">
+        <?php foreach ($amtMenus as $m): ?>
+            <a href="<?php echo h($m['href']); ?>" class="amt-menu-item">
+                <span class="amt-menu-tile tone-<?php echo h($m['tone']); ?>">
+                    <img src="<?php echo h($m['icon']); ?>" alt="">
+                </span>
+                <span class="amt-menu-label"><?php echo h($m['label']); ?></span>
+            </a>
+        <?php endforeach; ?>
+    </nav>
+
+    <!-- Pengiriman aktif (kosong) -->
+    <section class="amt-active">
+        <img src="assets/empty-delivery-truck.png" alt="Ilustrasi pengiriman">
+        <h3>Pengiriman Aktif Belum Tersedia</h3>
+        <p>Silahkan check-in untuk memulai pengiriman</p>
+    </section>
 
 </div>

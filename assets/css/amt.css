@@ -1,0 +1,87 @@
+/* ============================================================
+   OneFIS - amt.css
+   Beranda AMT: kartu Waktu Kerja, grid menu cepat, dan panel
+   "Pengiriman Aktif". Scrollbar disembunyikan (scroll tetap jalan).
+   ============================================================ */
+
+/* Sembunyikan garis abu-abu scrollbar di sisi kanan */
+.content.content-amt {
+    scrollbar-width: none;          /* Firefox */
+    -ms-overflow-style: none;       /* Edge lama */
+}
+.content.content-amt::-webkit-scrollbar { display: none; width: 0; height: 0; }  /* Chrome/Safari */
+
+/* Header AMT: titik merah notifikasi & avatar */
+.bell { position: relative; }
+.bell-dot {
+    position: absolute; top: -0.125rem; right: -0.0625rem;
+    width: 0.5rem; height: 0.5rem; border-radius: 50%;
+    background: #ef4444; border: 1.5px solid #fff;
+}
+a.badge { text-decoration: none; }
+
+.amt-home {
+    display: flex; flex-direction: column; gap: 1.125rem;
+    min-height: 100%; padding: 1rem 0 0 0;
+}
+
+/* ---------- Waktu kerja ---------- */
+.amt-worktime {
+    margin: 0 1rem; padding: 1rem 1.25rem;
+    display: flex; flex-direction: column; gap: 0.25rem;
+    border-radius: 1.25rem;
+    background: linear-gradient(135deg, rgba(219,234,254,0.75), rgba(255,255,255,0.65) 55%, rgba(251,232,240,0.6));
+    border: 1px solid rgba(255,255,255,0.9);
+    box-shadow: 0 6px 20px -10px rgba(37,99,235,0.25);
+    -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+}
+.amt-worktime-label { font-size: 0.8125rem; font-weight: 600; color: #334155; }
+.amt-worktime-value {
+    font-size: 1.625rem; font-weight: 700; letter-spacing: 0.02em;
+    color: #64748b; font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Menu cepat ---------- */
+.amt-menu {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 0.875rem 0.625rem; padding: 0 1rem;
+}
+.amt-menu-item { display: flex; flex-direction: column; align-items: center; gap: 0.375rem; min-width: 0; }
+.amt-menu-item:active .amt-menu-tile { transform: scale(0.95); }
+
+.amt-menu-tile {
+    width: 100%; aspect-ratio: 1 / 1; border-radius: 0.875rem;
+    display: flex; align-items: center; justify-content: center;
+    border: 1px solid rgba(255,255,255,0.8);
+    box-shadow: 0 2px 8px -3px rgba(15,23,42,0.18);
+    transition: transform 0.1s ease;
+}
+.amt-menu-tile img { width: 72%; height: 72%; object-fit: contain; }
+
+.tone-slate  { background: linear-gradient(135deg, #eef1f6, #dde3ee); }
+.tone-green  { background: linear-gradient(135deg, #eefaf1, #d9f2e0); }
+.tone-peach  { background: linear-gradient(135deg, #fdf3ea, #f8e2d1); }
+.tone-blue   { background: linear-gradient(135deg, #e6efff, #cfdffa); }
+.tone-rose   { background: linear-gradient(135deg, #fdefef, #f9d9d9); }
+.tone-violet { background: linear-gradient(135deg, #f3ecff, #e3d6fb); }
+.tone-sky    { background: linear-gradient(135deg, #dff1ff, #bfe3fb); }
+
+.amt-menu-label {
+    font-size: 0.6875rem; font-weight: 500; color: #475569;
+    text-align: center; line-height: 1.25; white-space: nowrap;
+}
+
+/* ---------- Pengiriman aktif ---------- */
+.amt-active {
+    flex: 1 1 auto; margin-top: 0.5rem; padding: 2rem 1.5rem 2.5rem;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; background: #fff;
+    border-radius: 2rem 2rem 0 0;
+    box-shadow: 0 -8px 24px -12px rgba(15,23,42,0.12);
+}
+.amt-active img { width: 100%; max-width: 10rem; height: auto; object-fit: contain; margin-bottom: 1.5rem; }
+.amt-active h3 { font-size: 0.8125rem; font-weight: 700; color: #0f172a; margin-bottom: 0.5rem; }
+.amt-active p  { font-size: 0.6875rem; color: #5f739f; line-height: 1.5; }
+
+/* Ikon Shipments punya ruang kosong lebar di dalam gambarnya -> perbesar agar sama besar dengan ikon lain */
+.tone-blue img { transform: scale(1.4); }

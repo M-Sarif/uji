@@ -232,7 +232,7 @@ const NEXT_SCREEN = [
 // Ini yang membuat style tidak lagi menumpuk dalam satu file besar.
 const SCREEN_CSS = [
     'role_select'           => ['role'],
-    'amt_home'              => ['role'],
+    'amt_home'              => ['role', 'amt'],
     'dashboard'             => ['dashboard'],
     'shipments_list'        => ['shipments'],
     'create_order_info'     => ['order-form'],
