@@ -94,4 +94,4 @@
 
 /* Pengaman ukuran ikon pada tombol "Selesai" (disabled maupun aktif),
    supaya tetap normal walau components.css belum ikut diperbarui. */
-.sticky-footer .btn-primary svg { width: 1.125rem !important; height: 1.125rem !important; flex-shrink: 0; }
+.sticky-footer .btn-primary svg { width: 1.0625rem !important; height: 1.0625rem !important; flex-shrink: 0; }

@@ -43,9 +43,9 @@
 .dashboard-cta {
     width: 100%; padding: 0.875rem; border-radius: 0.75rem;
     border: 1px solid #e2e8f0; background: #fff; color: #94a3b8;
-    font-weight: 600; font-size: 0.875rem;
+    font-weight: 600; font-size: 0.9375rem;
     display: flex; align-items: center; justify-content: center; gap: 0.5rem;
     flex-shrink: 0;
 }
 .dashboard-cta:hover { background: #f8fafc; color: #64748b; }
-.dashboard-cta svg { width: 1rem; height: 1rem; }
+.dashboard-cta svg { width: 1.0625rem; height: 1.0625rem; }

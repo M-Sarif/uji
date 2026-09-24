@@ -7,14 +7,18 @@
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
-/* ---------- Skala tampilan otomatis per ukuran layar ----------
-   Semua ukuran teks, ikon, dan jarak di bawah memakai satuan rem.
-   Dengan root font-size yang "fluid" (mengikuti lebar layar lewat
-   clamp+vw), seluruh tampilan otomatis mengecil di HP kecil (mis.
-   iPhone SE/320px) dan sedikit membesar di HP besar (mis. 480px+)
-   tanpa perlu media query terpisah untuk setiap ukuran layar. */
+/* ---------- Skala tampilan ----------
+   Root font-size DIKUNCI (bukan ikut lebar layar lewat vw) supaya
+   semua ukuran rem (teks & ikon) konsisten di HP mana pun -- baik
+   HP kecil (~360px) maupun HP besar (~430px+). Sebelumnya memakai
+   clamp(14px, 3.9vw, 17px): di HP asli nilai vw-nya kecil (viewport
+   sempit) sehingga root font-size jatuh ke 14-16px dan semua teks +
+   ikon jadi kecil, padahal di browser desktop (viewport lebar) vw-nya
+   selalu kena batas atas 17px sehingga tampak normal. Dikunci 17px
+   supaya tampilan di HP sungguhan sama besar seperti yang terlihat
+   saat pratinjau di desktop. */
 html {
-    font-size: clamp(14px, 3.9vw, 17px);
+    font-size: 17px;
 }
 
 html, body {

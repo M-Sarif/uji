@@ -34,7 +34,6 @@
 .choice-group .btn-choice.red.is-selected { background: #ef4444; color: #fff; border-color: #ef4444; }
 .choice-group .btn-choice.blue.is-selected { background: #2563eb; color: #fff; border-color: #2563eb; }
 .choice-group .btn-choice:focus-within { box-shadow: 0 0 0 3px #dbeafe; }
-.btn-primary svg { width: 1.125rem; height: 1.125rem; flex-shrink: 0; }
 
 /* ---------- Pop up konfirmasi ---------- */
 .modal-backdrop {
@@ -56,7 +55,7 @@
     animation: modalUp 0.2s ease;
 }
 @keyframes modalUp { from { transform: translateY(18px); } to { transform: translateY(0); } }
-.modal-sheet h2 { font-size: 1rem; font-weight: 700; color: #1e293b; }
+.modal-sheet h2 { font-size: 0.9375rem; font-weight: 700; color: #1e293b; }
 .modal-sheet p { font-size: 0.8125rem; color: #64748b; line-height: 1.55; margin-bottom: 0.5rem; }
 .modal-sheet .btn-outline { width: 100%; background: #fff; }
 
@@ -215,13 +214,9 @@ textarea.review-box:focus { outline: none; border-color: #60a5fa; box-shadow: 0 
 }
 .subtle-divider { border-top: 1px solid #eef2f7; margin: 1rem 0 0.875rem 0; }
 
-/* ---------- Tombol "Tidak Dilakukan" / "Ya, dilakukan" ---------- */
-.checklist-card .btn-choice {
-    flex: 1 1 0; padding: 0.8125rem 0.5rem; border-radius: 0.625rem;
-    font-size: 0.9375rem; font-weight: 500; text-align: center;
-    display: flex; align-items: center; justify-content: center;
-    background: #fff; border: 1.5px solid transparent;
-}
+/* Tombol "Tidak Dilakukan" / "Ya, dilakukan" -- ukuran & bentuk dasarnya
+   sudah disamakan lewat .btn-choice (components.css); di sini cukup
+   warna varian merah/biru + status terpilih saja. */
 .checklist-card .btn-choice.red  { border-color: #ef4444; color: #dc2626; }
 .checklist-card .btn-choice.blue { border-color: #2563eb; color: #1d4ed8; background: #fff; }
 .checklist-card .btn-choice.red.is-selected  { background: #ef4444; border-color: #ef4444; color: #fff; }
