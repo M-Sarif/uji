@@ -25,6 +25,7 @@ $checkIcon = '<svg viewBox="0 0 24 24" width="14" height="14" style="display:blo
     <p style="font-size:15px;font-weight:600;color:#1e293b;margin-bottom:2px;">Daftar LO</p>
     <p style="font-size:12px;color:#64748b;margin-bottom:20px;">Pilih LO untuk mengisi checklist</p>
 
+    <div data-tour="daftar-lo">
     <a href="index.php?screen=lo_list&toggle_all=1" class="lo-select-all" style="display:flex;align-items:center;gap:0.75rem;background:#fff;border:1px solid #e2e8f0;border-radius:1.25rem;box-shadow:0 2px 12px -4px rgba(0,0,0,0.08);padding:1rem;margin-bottom:1rem;font-size:0.875rem;font-weight:600;color:#334155;">
         <span class="lo-checkbox<?php echo $allChecked ? ' checked' : ''; ?>" style="width:1.25rem;height:1.25rem;border-radius:0.3125rem;border:1px solid #cbd5e1;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:<?php echo $allChecked ? '#2563eb' : '#fff'; ?>;<?php echo $allChecked ? 'border-color:#2563eb;' : ''; ?>">
             <?php if ($allChecked) echo $checkIcon; ?>
@@ -59,10 +60,19 @@ $checkIcon = '<svg viewBox="0 0 24 24" width="14" height="14" style="display:blo
         </div>
     </a>
     <?php endforeach; ?>
+    </div>
 
     <div class="row" style="margin-top:auto;padding-top:24px;">
         <?php if ($anyChecked): ?>
-            <a href="index.php?screen=checklist&step=1" class="btn-outline" style="flex:1;" data-tour="mulai-checklist">
+            <?php
+            // Kalau baru SEBAGIAN LO yang dicentang (belum semua), beri
+            // tutorial jeda 2 detik dulu sebelum sorotan pindah ke tombol
+            // ini - supaya pengguna sempat menyadari masih ada LO lain
+            // yang belum dipilih. Begitu semua LO tercentang, atribut ini
+            // tidak dipasang sama sekali sehingga sorotan langsung pindah.
+            $tourDelayAttr = $allChecked ? '' : ' data-tour-delay="2000"';
+            ?>
+            <a href="index.php?screen=checklist&step=1" class="btn-outline" style="flex:1;" data-tour="mulai-checklist"<?php echo $tourDelayAttr; ?>>
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path stroke-linecap="round" stroke-linejoin="round" d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                 Mulai Checklist
             </a>

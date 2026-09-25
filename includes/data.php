@@ -272,7 +272,7 @@ const TOUR_STEPS = [
 
     'lo_list' => [
         [
-            'target' => '.lo-card',
+            'target' => '[data-tour="daftar-lo"]',
             'title'  => 'Langkah 6 · Pilih LO',
             'text'   => 'Setelah verifikasi MT dan AMT selesai, langkah berikutnya adalah Checklist Pra-Pembongkaran. Pilih LO (Loading Order) yang akan dibongkar dengan menandainya di sini.',
             'place'  => 'bottom',

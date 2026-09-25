@@ -105,6 +105,8 @@
         this.els          = {};
         this.waitTimer    = null;
         this.waitDeadline = 0;
+        this.delayTimer   = null;
+        this._delayedForTarget = null;
         this._onReflow    = this._reflow.bind(this);
     }
 
@@ -213,6 +215,8 @@
 
     Tour.prototype._runStep = function () {
         clearTimeout(this.waitTimer);
+        clearTimeout(this.delayTimer);
+        this._delayedForTarget = null;
         this._waitingTarget = null;
         // Selalu lepas listener klik dari elemen langkah SEBELUMNYA di sini,
         // bukan cuma di _showOn/_showCentered. Kalau tidak, listener lama
@@ -247,6 +251,29 @@
         var el = document.querySelector(step.target);
         if (el && isVisible(el)) {
             this._waitingTarget = null;
+
+            // Beberapa elemen target sengaja diberi atribut
+            // "data-tour-delay" (dalam milidetik) oleh halamannya sendiri
+            // -- mis. tombol "Mulai Checklist" di Daftar LO diberi jeda
+            // 2 detik selama baru SEBAGIAN LO yang dicentang, supaya
+            // pengguna sempat menyadari belum semua LO dipilih sebelum
+            // sorotan tutorial pindah. Kalau semua LO sudah dicentang,
+            // atributnya tidak dipasang sama sekali -> langsung tampil.
+            var delayMs = parseInt(el.getAttribute('data-tour-delay') || '0', 10) || 0;
+            if (delayMs > 0 && this._delayedForTarget !== step.target) {
+                this._delayedForTarget = step.target;
+                var self = this;
+                clearTimeout(this.delayTimer);
+                this.delayTimer = setTimeout(function () {
+                    // Cek ulang, siapa tahu keadaannya sudah berubah selama
+                    // menunggu (mis. pengguna sempat mencentang LO lainnya
+                    // juga, atau tutorial sudah lanjut ke step lain).
+                    if (self.rawSteps[self.stepIndex] !== step) { return; }
+                    self._tryShowCurrent();
+                }, delayMs);
+                return;
+            }
+            this._delayedForTarget = null;
             this._showOn(el, step);
             return;
         }
@@ -260,18 +287,34 @@
         // tunggu TANPA batas waktu 20 detik - biarkan pengguna mengisi
         // datanya dulu, baru langkah tutorial ini muncul. Batas 20 detik
         // hanya berlaku untuk elemen yang benar-benar belum ada di DOM.
-        this.els.backdrop.classList.remove('is-visible');
-        this.els.tooltip.classList.remove('is-visible');
-        // Sembunyikan juga sisa 4 panel mask + cincin biru dari elemen yang
-        // disorot pada langkah SEBELUMNYA - kalau tidak, kotak sorotan itu
-        // akan terlihat "nyangkut"/diam di tempat lamanya walau tutorialnya
-        // sendiri sudah pindah ke status menunggu (mis. sesaat setelah
-        // menjawab kartu pertama, sebelum tombol "Simpan" aktif).
-        this._currentEl = null;
-        Object.keys(this.els.panels).forEach(function (k) {
-            this.els.panels[k].style.display = 'none';
-        }, this);
-        this.els.ring.style.display = 'none';
+        //
+        // Percobaan PERTAMA untuk step ini JANGAN langsung menyembunyikan
+        // sorotan yang masih tampil dari step SEBELUMNYA. Beberapa langkah
+        // (mis. "Pilih LO" -> "Mulai Checklist") pindah lewat klik tautan
+        // biasa yang memuat ulang HALAMAN YANG SAMA - begitu diklik, target
+        // baru memang belum ada sampai halaman baru selesai dimuat. Kalau
+        // sorotan lama langsung dihapus di sini, layar terlihat "kedip
+        // kosong" sesaat sebelum halaman baru muncul, sehingga terasa ada
+        // jeda meski sebenarnya cuma menunggu reload biasa. Membiarkan
+        // sorotan lama tetap menyala sampai reload selesai membuat
+        // transisinya terasa langsung/instan.
+        //
+        // Baru pada percobaan ULANG (setelah 400ms, artinya TIDAK terjadi
+        // reload dan kita betul-betul masih menunggu di halaman yang sama)
+        // sorotan lama itu disembunyikan, supaya tidak terlihat "nyangkut"
+        // menunjuk elemen yang sudah tidak relevan.
+        var isRetry = (this._waitingTarget === step.target);
+        if (isRetry) {
+            this.els.backdrop.classList.remove('is-visible');
+            this.els.tooltip.classList.remove('is-visible');
+            // Sembunyikan juga sisa 4 panel mask + cincin biru dari elemen
+            // yang disorot pada langkah SEBELUMNYA.
+            this._currentEl = null;
+            Object.keys(this.els.panels).forEach(function (k) {
+                this.els.panels[k].style.display = 'none';
+            }, this);
+            this.els.ring.style.display = 'none';
+        }
         this._waitingTarget = step.target;
 
         var waitingOnDisabled = !!(el && el.disabled);
