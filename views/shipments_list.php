@@ -43,7 +43,7 @@ $mtAktif      = ARRIVAL_SUBJECTS['mt_ok']['name']; // nomor polisi MT sama denga
                 <span class="tag-chip">PERTAMAX, BULK 2000 L</span>
             </div>
         </div>
-        <a href="index.php?screen=shipment" class="btn-detail">
+        <a href="index.php?screen=shipment" class="btn-detail" data-tour="lihat-detail">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path stroke-linecap="round" stroke-linejoin="round" d="M14 2v6h6M9 13h6M9 17h6M9 9h1"/></svg>
             Lihat Detail
         </a>

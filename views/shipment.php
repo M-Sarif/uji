@@ -68,7 +68,8 @@ $subtitles = [
                     $tag       = $clickable ? 'a' : 'div';
                     $hrefAttr  = $clickable ? ' href="' . h($step['href']) . '"' : '';
                 ?>
-                <<?php echo $tag; ?><?php echo $hrefAttr; ?><?php echo $locked ? ' id="arriveItem" data-href="' . h($step['href']) . '" aria-disabled="true"' : ''; ?> class="activity-item <?php echo $state; ?><?php echo $clickable ? ' clickable' : ''; ?>">
+                <?php $tourAttr = ($state === 'active') ? ' data-tour="activity-active" data-tour-label="' . h($step['label']) . '"' : ''; ?>
+                <<?php echo $tag; ?><?php echo $hrefAttr; ?><?php echo $locked ? ' id="arriveItem" data-href="' . h($step['href']) . '" aria-disabled="true"' : ''; ?><?php echo $tourAttr; ?> class="activity-item <?php echo $state; ?><?php echo $clickable ? ' clickable' : ''; ?>">
                     <span class="activity-node">
                         <?php if ($state === 'done'): ?>
                             <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
@@ -144,8 +145,11 @@ $subtitles = [
         var a = document.createElement('a');
         a.href = el.getAttribute('data-href');
         a.className = 'activity-item active clickable';
+        a.setAttribute('data-tour', 'activity-active');
+        a.setAttribute('data-tour-label', <?php echo json_encode(ACTIVITY_STEPS['arrive']['label']); ?>);
         a.innerHTML = el.innerHTML;
         el.parentNode.replaceChild(a, el);
+        if (window.OneFISTour) { window.OneFISTour.rescan(); }
     }, <?php echo (int) ceil($lockRemaining * 1000); ?>);
 })();
 </script>

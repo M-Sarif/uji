@@ -188,6 +188,180 @@ const TUTORIAL_TEXTS = [
     'claim_loss'           => '',
 ];
 
+// ---------------------------------------------------------------
+// TUTORIAL TERPANDU (Guided Tour ala "first time play" game)
+// ---------------------------------------------------------------
+// Menggantikan kotak petunjuk statis lama (TUTORIAL_TEXTS di atas
+// sekarang tidak lagi dirender - lihat includes/layout_top.php) dengan
+// tutorial bertahap yang menyorot (spotlight) elemen asli di halaman,
+// satu langkah setiap saat, persis alur pada dokumen panduan
+// "Aktifitas di SPBU". Urutan konstanta ini SENGAJA mengikuti urutan
+// dokumen tersebut apa adanya, bukan urutan lama yang tercampur
+// dengan alur "Buat Order" (yang bukan bagian dari aktivitas SPBU).
+//
+// Tiap langkah:
+//   'target' => selector CSS elemen asli yang disorot (harus benar-benar
+//               ada di halaman, supaya tutorial menunjuk ke tombol/
+//               kartu yang sungguhan, bukan ilustrasi terpisah)
+//   'title'  => judul singkat pada balon petunjuk
+//   'text'   => isi penjelasan (diringkas dari dokumen panduan)
+//   'place'  => posisi balon relatif ke elemen: top|bottom|left|right|center
+//               ('center' dipakai untuk langkah pembuka tanpa target elemen)
+const TOUR_STEPS = [
+
+    'dashboard' => [
+        [
+            'target' => null,
+            'title'  => 'Selamat Datang di OneFIS 👋',
+            'text'   => 'Tutorial singkat ini akan memandu Anda mengerjakan seluruh Aktifitas di SPBU, dari mobil tangki tiba sampai serah terima BBM selesai — persis urutan pada Panduan Aktifitas di SPBU.',
+            'place'  => 'center',
+        ],
+        [
+            'target' => '[data-tour="menu-shipment"]',
+            'title'  => 'Langkah 1 · Buka Menu Shipment',
+            'text'   => 'Pada halaman utama, ketuk menu "Shipments" untuk melihat daftar pengiriman BBM yang masuk ke SPBU Anda.',
+            'place'  => 'top',
+        ],
+    ],
+
+    'shipments_list' => [
+        [
+            'target' => '[data-tour="lihat-detail"]',
+            'title'  => 'Langkah 2 · Lihat Detail Order',
+            'text'   => 'Pilih "Lihat Detail" pada order yang dituju untuk membuka Detail Order, lalu Anda akan melihat tab "Aktifitas" berisi tahapan proses di SPBU.',
+            'place'  => 'top',
+        ],
+    ],
+
+    'shipment' => [
+        [
+            'target' => '.tabs .tab.active',
+            'title'  => 'Tab Aktifitas',
+            'text'   => 'Tab "Aktifitas" menampilkan tahapan proses di SPBU secara berurutan. Selama mobil tangki belum tiba, langkah "Tiba di Lokasi" akan tampak redup. Setelah AMT mengonfirmasi kedatangan lewat aplikasinya, langkah ini otomatis aktif.',
+            'place'  => 'bottom',
+        ],
+        [
+            'target'      => '[data-tour="activity-active"]',
+            'title'       => null, // diisi dinamis lewat JS sesuai label langkah yang aktif
+            'text'        => null,
+            'place'  => 'top',
+            'dynamic'     => true,
+        ],
+    ],
+
+    'verification' => [
+        [
+            'target' => '.subject-card',
+            'title'  => 'Langkah 3 · Verifikasi Kedatangan',
+            'text'   => 'Verifikasi kesesuaian data Mobil Tangki, AMT 1, dan AMT 2 dengan kondisi sebenarnya di lapangan sesuai tampilan pada aplikasi. Pilih "Ya, sesuai" atau "Tidak sesuai" untuk tiap kartu.',
+            'place'  => 'bottom',
+        ],
+        [
+            'target' => '#btnSimpan',
+            'title'  => 'Langkah 4 · Simpan',
+            'text'   => 'Setelah ketiga data (Mobil Tangki, AMT 1, AMT 2) selesai diverifikasi, ketuk "Simpan" untuk membuka konfirmasi pengiriman hasil verifikasi.',
+            'place'  => 'top',
+        ],
+        [
+            'target' => '#btnKirim',
+            'title'  => 'Langkah 5 · Kirim Verifikasi',
+            'text'   => 'Ketuk "Kirim Verifikasi MT dan AMT" untuk mengirimkan hasil verifikasi kedatangan.',
+            'place'  => 'top',
+        ],
+    ],
+
+    'lo_list' => [
+        [
+            'target' => '.lo-card',
+            'title'  => 'Langkah 6 · Pilih LO',
+            'text'   => 'Setelah verifikasi MT dan AMT selesai, langkah berikutnya adalah Checklist Pra-Pembongkaran. Pilih LO (Loading Order) yang akan dibongkar dengan menandainya di sini.',
+            'place'  => 'bottom',
+        ],
+        [
+            'target' => '[data-tour="mulai-checklist"]',
+            'title'  => 'Langkah 7 · Mulai Checklist',
+            'text'   => 'Setelah LO dipilih, ketuk "Mulai Checklist" untuk mengerjakan 15 soal Checklist Pra-Pembongkaran secara berurutan.',
+            'place'  => 'top',
+        ],
+    ],
+
+    'checklist' => [
+        [
+            'target' => '.checklist-card',
+            'title'  => 'Checklist Pra-Pembongkaran (15 Soal)',
+            'text'   => 'Jawab tiap soal sesuai kondisi sebenarnya di lapangan (Dilakukan/Tidak Dilakukan, Sesuai/Tidak Sesuai, atau isi form), lalu ketuk "Selanjutnya". Soal 6 (SPP) dan Soal 7 (Metode Pengukuran) punya sub-langkah tambahan — ikuti saja urutan yang tampil di layar.',
+            'place'  => 'bottom',
+        ],
+    ],
+
+    'notifikasi' => [
+        [
+            'target' => '[data-tour="notif-verifikasi"]',
+            'title'  => 'Langkah 8 · Verifikasi Order',
+            'text'   => 'Setelah Checklist Pra-Pembongkaran terkirim, tunggu inisiasi dari AMT. Begitu AMT mengirim Verifikasi Order, notifikasi berstatus "Aktif" akan muncul di sini — ketuk untuk membukanya.',
+            'place'  => 'bottom',
+        ],
+    ],
+
+    'qr_code' => [
+        [
+            'target' => '.qr-box',
+            'title'  => 'Kode QR & Kode Konfirmasi',
+            'text'   => 'Segera berikan Kode QR atau Kode Konfirmasi ini kepada AMT agar Verifikasi Order dapat diselesaikan olehnya — kode ini punya waktu kadaluwarsa, jadi jangan ditunda.',
+            'place'  => 'top',
+        ],
+        [
+            'target' => '#btnBeriPenilaian',
+            'title'  => 'Langkah 9 · Beri Penilaian',
+            'text'   => 'Setelah AMT menyelesaikan verifikasi, ketuk "Beri Penilaian" untuk menilai pelayanan AMT yang bertugas.',
+            'place'  => 'top',
+        ],
+    ],
+
+    'rating' => [
+        [
+            'target' => '.rating-card',
+            'title'  => 'Langkah 10 · Rating AMT',
+            'text'   => 'Berikan penilaian bintang untuk Safety AMT, Sarfas, Komunikasi, Operasional, dan Aspek Layanan pada tiap AMT yang bertugas. AMT juga menilai pelayanan SPBU dari sisi aplikasinya.',
+            'place'  => 'bottom',
+        ],
+        [
+            'target' => '#btnRatingLanjut',
+            'title'  => 'Selesai Menilai',
+            'text'   => 'Setelah semua kategori dinilai, tombol akan aktif. Ketuk untuk lanjut / mengirim penilaian.',
+            'place'  => 'top',
+        ],
+    ],
+
+    'done' => [
+        [
+            'target' => null,
+            'title'  => 'Selesai! 🎉',
+            'text'   => 'Seluruh Aktifitas di SPBU — dari Tiba di Lokasi, Checklist Pra-Pembongkaran, Verifikasi Order, hingga Rating AMT — telah selesai dilakukan. Tombol "Selesai" akan aktif setelah rating terkirim, menandakan serah terima order BBM tuntas.',
+            'place'  => 'center',
+        ],
+    ],
+];
+
+// Judul singkat tiap layar untuk indikator "Bagian X dari Y" pada
+// tutorial terpandu (hanya layar yang memang dilalui alur SPBU).
+const TOUR_SCREEN_ORDER = [
+    'dashboard', 'shipments_list', 'shipment', 'verification',
+    'lo_list', 'checklist', 'notifikasi', 'qr_code', 'rating', 'done',
+];
+const TOUR_SCREEN_LABELS = [
+    'dashboard'      => 'Beranda',
+    'shipments_list' => 'Daftar Shipment',
+    'shipment'       => 'Detail Order',
+    'verification'   => 'Tiba di Lokasi',
+    'lo_list'        => 'Daftar LO',
+    'checklist'      => 'Checklist',
+    'notifikasi'     => 'Notifikasi',
+    'qr_code'        => 'Verifikasi Order',
+    'rating'         => 'Rating AMT',
+    'done'           => 'Selesai',
+];
+
 // Layar sebelumnya, dipakai untuk tombol "back" di header
 const PREV_SCREEN = [
     'amt_home'              => 'role_select',

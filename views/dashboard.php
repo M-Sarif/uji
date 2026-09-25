@@ -2,7 +2,7 @@
 
     <!-- Kartu menu cepat -->
     <div class="card menu-card">
-        <a href="index.php?screen=shipments_list" class="menu-item">
+        <a href="index.php?screen=shipments_list" class="menu-item" data-tour="menu-shipment">
             <div class="menu-icon-box">
                 <img src="assets/empty-delivery-truck.png" alt="Shipments">
             </div>

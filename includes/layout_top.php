@@ -13,6 +13,7 @@
 <title>OneFIS<?php echo $headerTitle !== '' ? ' - ' . h($headerTitle) : ''; ?></title>
 <link rel="stylesheet" href="assets/css/base.css?v=<?php echo (int) @filemtime(__DIR__ . '/../assets/css/base.css'); ?>">
 <link rel="stylesheet" href="assets/css/components.css?v=<?php echo (int) @filemtime(__DIR__ . '/../assets/css/components.css'); ?>">
+<link rel="stylesheet" href="assets/css/tutorial.css?v=<?php echo (int) @filemtime(__DIR__ . '/../assets/css/tutorial.css'); ?>">
 <?php foreach (SCREEN_CSS[$screen] ?? [] as $cssFile): ?>
 <link rel="stylesheet" href="assets/css/<?php echo h($cssFile); ?>.css?v=<?php echo (int) @filemtime(__DIR__ . '/../assets/css/' . $cssFile . '.css'); ?>">
 <?php endforeach; ?>
@@ -105,16 +106,11 @@ if (is_array($flashSuccess)) {
         </div>
     <?php endif; ?>
 
-    <!-- Tutorial mengambang -->
-    <?php if ($tutorialText !== '' && $screen !== 'dashboard'): ?>
-        <div class="tutorial<?php echo $screen !== 'dashboard' ? ' simple-offset' : ''; ?>" id="tutorialBox" data-screen="<?php echo h($screen); ?>">
-            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-            <p><?php echo h($tutorialText); ?></p>
-            <button type="button" class="tutorial-close" id="tutorialClose" aria-label="Sembunyikan petunjuk">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" d="M6 6l12 12M18 6L6 18"/></svg>
-            </button>
-        </div>
-    <?php endif; ?>
+    <!-- Tutorial: sekarang berupa guided tour bersorot (spotlight) yang
+         menunjuk elemen asli di halaman, lihat assets/js/tutorial.js +
+         includes/layout_bottom.php. Kotak petunjuk statis lama sudah
+         digantikan supaya urutannya selalu mengikuti dokumen panduan
+         Aktifitas di SPBU dan tidak lagi kosong di sebagian layar. -->
 
     <!-- Konten utama -->
     <?php $hasWizardNav = in_array($screen, ['checklist', 'claim_loss', 'rating'], true); ?>

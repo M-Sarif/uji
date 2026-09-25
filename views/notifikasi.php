@@ -31,6 +31,17 @@ $loIds     = !empty($checked) ? array_keys($checked) : array_keys(LO_LIST);
 
     <p class="notif-date"><?php echo h(date('l, d/m/Y')); ?></p>
 
+    <div class="notif-list" data-type="verifikasi">
+        <a href="index.php?screen=qr_code" class="card notif-card" data-tour="notif-verifikasi" style="display:block;text-decoration:none;">
+            <div class="notif-row">
+                <span class="notif-title">Verifikasi Order</span>
+                <span class="notif-time">Hari ini, <?php echo h(date('H.i')); ?></span>
+            </div>
+            <p style="font-size:12px;color:#64748b;margin:2px 0 8px;">Permintaan verifikasi dari AMT <?php echo h($amt['name']); ?> · MT <?php echo h($mt['name']); ?></p>
+            <span class="chip chip-pending">Aktif</span>
+        </a>
+    </div>
+
     <div class="notif-list" data-type="claim">
         <div class="card notif-card">
             <div class="notif-row">
