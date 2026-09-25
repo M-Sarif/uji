@@ -31,6 +31,20 @@ if ($stepData['type'] === 'form_spp') {
     }
 }
 
+// Langkah 7 (form_ukur) - Nomor LO yang sudah punya hasil pengukuran DENGAN
+// selisih (claim_loss > 0) tapi BELUM diajukan klaimnya (diajukan !== true).
+// Dipakai untuk tombol "Ajukan Claim Losses" di bawah Daftar LO -- tombol
+// ini hanya tampil selama masih ada LO berstatus begini, dan otomatis
+// hilang lagi begitu semua LO yang bermasalah sudah diajukan klaimnya
+// (jadi tidak nyangkut / muncul terus walau klaim-nya sudah diajukan).
+$pendingClaimLoIds = [];
+foreach ($activeLoIds as $loId) {
+    $form = $_SESSION['lo_form'][$loId] ?? null;
+    if ($form && (float) $form['claim_loss'] > 0 && empty($form['diajukan'])) {
+        $pendingClaimLoIds[] = $loId;
+    }
+}
+
 // Ikon panah dipakai berulang di beberapa kartu
 $arrowRight   = '<svg class="arrow-icon" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 12h15M13 6l6 6-6 6"/></svg>';
 $chevronRight = '<svg class="chevron-icon" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 18l6-6-6-6"/></svg>';
@@ -141,6 +155,69 @@ $chevronRight = '<svg class="chevron-icon" viewBox="0 0 24 24"><path stroke-line
                 <?php echo $chevronRight; ?>
             </a>
             <?php endforeach; ?>
+
+            <?php if (!empty($pendingClaimLoIds)): ?>
+            <button type="button" id="btnAjukanClaimList" class="btn-outline hasil-btn-full ajukan-claim-list-btn">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg>
+                Ajukan Claim Losses
+            </button>
+
+            <!-- Pop up konfirmasi sebelum semua claim loss yang belum diajukan dikirim sekaligus -->
+            <div class="modal-backdrop" id="ajukanClaimListModal" hidden>
+                <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="ajukanClaimListJudul">
+                    <h2 id="ajukanClaimListJudul">Ajukan Claim Losses</h2>
+                    <p>
+                        Ada <strong><?php echo count($pendingClaimLoIds); ?></strong> LO dengan selisih kurang yang
+                        belum diajukan klaimnya:
+                    </p>
+                    <ul class="ajukan-claim-list-items">
+                        <?php foreach ($pendingClaimLoIds as $pendingLoId): $pendingForm = $_SESSION['lo_form'][$pendingLoId]; ?>
+                        <li>
+                            <strong><?php echo h($pendingLoId); ?></strong>
+                            &mdash; <?php echo h(number_format((float) $pendingForm['claim_loss'], 2, ',', '.')); ?> L
+                        </li>
+                        <?php endforeach; ?>
+                    </ul>
+                    <p style="color:#94a3b8;">Setelah diajukan, klaim untuk LO di atas tidak dapat dibatalkan lagi dari sini.</p>
+                    <form method="post" action="index.php">
+                        <input type="hidden" name="action" value="ajukan_claim_bulk">
+                        <?php foreach ($pendingClaimLoIds as $pendingLoId): ?>
+                        <input type="hidden" name="lo_ids[]" value="<?php echo h($pendingLoId); ?>">
+                        <?php endforeach; ?>
+                        <button type="submit" class="btn-primary" id="btnYaAjukanClaimList">Ya, Ajukan</button>
+                    </form>
+                    <button type="button" class="btn-outline modal-close" id="btnBatalAjukanClaimList">Batal</button>
+                </div>
+            </div>
+
+            <script>
+            (function () {
+                var btnOpen  = document.getElementById('btnAjukanClaimList');
+                var btnBatal = document.getElementById('btnBatalAjukanClaimList');
+                var modal    = document.getElementById('ajukanClaimListModal');
+                if (!btnOpen || !modal) { return; }
+
+                function bukaModal() {
+                    modal.hidden = false;
+                    document.getElementById('btnYaAjukanClaimList').focus();
+                }
+                function tutupModal() {
+                    modal.hidden = true;
+                    btnOpen.focus();
+                }
+
+                btnOpen.addEventListener('click', bukaModal);
+                btnBatal.addEventListener('click', tutupModal);
+
+                modal.addEventListener('click', function (e) {
+                    if (e.target === modal) { tutupModal(); }
+                });
+                document.addEventListener('keydown', function (e) {
+                    if (e.key === 'Escape' && !modal.hidden) { tutupModal(); }
+                });
+            })();
+            </script>
+            <?php endif; ?>
         <?php break;
 
         case 'konfirmasi_lo': ?>
@@ -237,6 +314,41 @@ $chevronRight = '<svg class="chevron-icon" viewBox="0 0 24 24"><path stroke-line
     </form>
 </div>
 <?php endif; ?>
+
+<script>
+/*
+ * Pertahankan posisi scroll di halaman checklist ini (per langkah).
+ * Tanpa ini, tiap kali form Produk/Segel disimpan (submit -> redirect
+ * kembali ke langkah yang sama), browser me-render ulang halaman dari
+ * atas -- padahal kartu yang belum diisi biasanya ada di bagian bawah
+ * (mis. daftar Segel setelah daftar Produk). Posisi scroll disimpan
+ * terus-menerus ke sessionStorage selagi pengguna men-scroll, lalu
+ * dikembalikan begitu halaman yang sama (langkah yang sama) dimuat lagi.
+ */
+(function () {
+    var scrollKey = 'checklistScrollStep<?php echo (int) $step; ?>';
+
+    var saved = sessionStorage.getItem(scrollKey);
+    if (saved !== null) {
+        var y = parseInt(saved, 10);
+        if (!isNaN(y)) {
+            // requestAnimationFrame supaya posisi di-set setelah layout selesai,
+            // termasuk saat pop up Produk/Segel sedang terbuka di atasnya.
+            requestAnimationFrame(function () { window.scrollTo(0, y); });
+        }
+    }
+
+    var pending = false;
+    window.addEventListener('scroll', function () {
+        if (pending) { return; }
+        pending = true;
+        requestAnimationFrame(function () {
+            sessionStorage.setItem(scrollKey, String(window.scrollY));
+            pending = false;
+        });
+    }, { passive: true });
+})();
+</script>
 
 <?php if ($modalSegel !== null):
     $tersimpan  = $_SESSION['spp_segel'][$modalSegel] ?? null;

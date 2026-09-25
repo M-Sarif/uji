@@ -302,6 +302,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             go_to('checklist', ['step' => 7]);
             break;
 
+        case 'ajukan_claim_bulk':
+            // Tombol "Ajukan Claim Losses" di bawah Daftar LO (langkah 7):
+            // menandai SEKALIGUS semua LO yang dipilih (yang tadi punya
+            // selisih & belum diajukan) menjadi "diajukan" = true, supaya
+            // tombolnya tidak nyangkut/muncul lagi walau klaim-nya sudah
+            // diajukan (lihat $pendingClaimLoIds di views/checklist.php).
+            $loIdsToClaim = (array) ($_POST['lo_ids'] ?? []);
+            foreach ($loIdsToClaim as $idToClaim) {
+                $idToClaim = (string) $idToClaim;
+                if (array_key_exists($idToClaim, LO_LIST) && isset($_SESSION['lo_form'][$idToClaim])) {
+                    $_SESSION['lo_form'][$idToClaim]['diajukan'] = true;
+                }
+            }
+            go_to('checklist', ['step' => 7]);
+            break;
+
         case 'kirim_checklist':
             // Tombol "Kirim" di Daftar LO, dikonfirmasi lewat pop up
             // "Ya, Kirim". Hanya LO yang dicentang DAN wizard-nya sudah

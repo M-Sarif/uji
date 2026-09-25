@@ -312,7 +312,19 @@ function hitung_vcf(float $densityObs, float $suhuObs): float
         return 1.0;
     }
 
-    $alpha15 = 341.0957 / ($densityObs ** 2);
+    // BUG LAMA: field "Density Obs" di form diisi pengguna dalam satuan
+    // kg/L / g/cm3 (mis. 0.7150 untuk Pertalite -- sesuai placeholder
+    // "0.000" di halaman Ajukan Claim Loss), padahal rumus K0/density^2 di
+    // bawah ini butuh density dalam kg/m3 (mis. 715.0). Kalau angka kecil
+    // (0.7150) langsung dipangkatkan dua sebagai penyebut, alpha15 jadi
+    // sangat besar sehingga exp(-alpha*deltaT*...) dibulatkan jadi 0 oleh
+    // PHP untuk hampir semua suhu observasi yang tidak persis 15°C --
+    // inilah sebabnya hasil Generate selalu "0 L" walau Level BBM di SPP
+    // dan Level BBM Sebelum Bongkar sudah diisi berbeda. Auto-konversi ke
+    // kg/m3 di sini supaya isian wajar (kg/L, nilai < 10) tetap benar.
+    $densityKgM3 = $densityObs < 10.0 ? $densityObs * 1000.0 : $densityObs;
+
+    $alpha15 = 341.0957 / ($densityKgM3 ** 2);
     $deltaT  = $suhuObs - 15.0;
 
     return exp(-$alpha15 * $deltaT * (1 + 0.8 * $alpha15 * $deltaT));
@@ -329,7 +341,9 @@ function hitung_vcf(float $densityObs, float $suhuObs): float
  *   muat) dan "Level BBM Sebelum Bongkar" (saat sampai tujuan) dikonversi
  *   ke liter memakai rasio tera kompartemen (COMPARTMENT_TERA_RATE), lalu
  *   dikoreksi ke suhu standar 15°C memakai VCF dari suhu & density obs.
- *   Kalau level tidak turun (selisih <= 0 mm), tidak ada claim loss.
+ *   Selisih dihitung sebagai nilai mutlak (abs) kedua level supaya hasilnya
+ *   tetap benar berapa pun arah bacaan dipstick-nya. Kalau kedua level
+ *   sama persis, selisihnya 0 (tidak ada claim loss).
  */
 function hitung_claim_loss(string $metode, array $nilai, string $loId): float
 {
@@ -344,10 +358,14 @@ function hitung_claim_loss(string $metode, array $nilai, string $loId): float
     $kompartemen = (int) ($nilai['kompartemen'] ?? 0);
     $literPerMm  = COMPARTMENT_TERA_RATE[$kompartemen] ?? COMPARTMENT_TERA_RATE['default'];
 
-    // Level SPP (saat muat) seharusnya >= level sebelum bongkar (saat
-    // tujuan) kalau ada kekurangan BBM di jalan. Kalau levelnya malah naik
-    // atau sama, anggap tidak ada selisih (0), bukan angka negatif.
-    $selisihMm = max(0.0, ($nilai['level_spp'] ?? 0) - ($nilai['level_sebelum_bongkar'] ?? 0));
+    // Selisih level dipstick (mm) antara "Level BBM di SPP" (saat muat) dan
+    // "Level BBM Sebelum Bongkar" (saat tiba di tujuan). Dipakai nilai
+    // MUTLAK (abs) karena arah selisih tergantung cara baca dipstick di
+    // lapangan (innage: makin besar makin banyak isi, atau ullage: makin
+    // besar makin sedikit isi) -- yang penting adalah BESAR selisihnya,
+    // bukan angka mana yang lebih besar. Kalau kedua level sama persis,
+    // selisihnya otomatis 0 (tidak ada claim loss).
+    $selisihMm = abs(($nilai['level_spp'] ?? 0) - ($nilai['level_sebelum_bongkar'] ?? 0));
     $volumeObs = $selisihMm * $literPerMm;
 
     $vcf = hitung_vcf((float) ($nilai['density_obs'] ?? 0), (float) ($nilai['temperatur_obs'] ?? 15));
