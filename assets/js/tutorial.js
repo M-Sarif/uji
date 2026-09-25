@@ -49,25 +49,6 @@
             try { localStorage.setItem(LS_SEEN, JSON.stringify(seen)); } catch (e) {}
         }
     }
-    // Dipanggil HANYA saat request ini baru saja mereset progres alur
-    // (pengguna balik ke dashboard/beranda AMT — lihat index.php &
-    // reset_flow_keep_work()). Layar-layar alur setelah dashboard jadi
-    // dianggap "belum pernah dilihat" lagi, supaya tutorialnya muncul
-    // ulang begitu pengguna masuk lagi ke alur itu dari awal.
-    // Dashboard/beranda sendiri TIDAK ikut dihapus (tidak perlu tampil
-    // ulang tiap kali sekadar balik ke halaman utama). "Lewati Tutorial"
-    // yang eksplisit tetap dihormati (lihat isSkipped() di start()).
-    function clearSeenForFlow(currentScreen, screenOrder) {
-        var seen = readSeen();
-        var kept = seen.filter(function (s) {
-            return s === currentScreen || screenOrder.indexOf(s) === -1;
-        });
-        try { localStorage.setItem(LS_SEEN, JSON.stringify(kept)); } catch (e) {}
-        screenOrder.forEach(function (s) {
-            if (s !== currentScreen) { clearStepPos(s); }
-        });
-    }
-
     function isSkipped() {
         try { return localStorage.getItem(LS_SKIPPED) === '1'; } catch (e) { return false; }
     }
@@ -101,6 +82,10 @@
     function isVisible(el) {
         if (!el) { return false; }
         if (el.hidden) { return false; }
+        // Tombol yang masih "disabled" (mis. "Simpan" sebelum ketiga
+        // pertanyaan dijawab) belum boleh disorot - tunggu sampai
+        // pengguna selesai mengisi data dan tombolnya aktif.
+        if (el.disabled) { return false; }
         var anc = el;
         while (anc) {
             if (anc.hidden) { return false; }
@@ -125,9 +110,44 @@
 
     Tour.prototype.start = function (force) {
         if (!this.rawSteps.length) { return; }
-        if (!force && (isSkipped() || readSeen().indexOf(this.screen) !== -1)) { return; }
+        if (!force && isSkipped()) { return; }
+
+        // Layar ini bisa dikunjungi BERKALI-KALI dengan status berbeda tiap
+        // kali (mis. halaman Detail Order: pertama kali menunjukkan "Tiba
+        // di Lokasi", lalu nanti kembali lagi dengan status "Isi Checklist",
+        // "Verifikasi Order", dst - lewat langkah { dynamic: true }). Kalau
+        // cuma nama layarnya saja yang dicatat sebagai "sudah ditonton",
+        // begitu status PERTAMA selesai ditonton, tutorial tidak akan pernah
+        // muncul lagi untuk status-status berikutnya di layar yang sama.
+        // Jadi untuk layar yang punya langkah dinamis, kita catat per
+        // LABEL aktivitasnya masing-masing (mis. "shipment::Isi Checklist"),
+        // bukan cuma "shipment" saja.
+        var dynIdx = -1;
+        for (var i = 0; i < this.rawSteps.length; i++) {
+            if (this.rawSteps[i].dynamic) { dynIdx = i; break; }
+        }
+        var dynLabel = null;
+        if (dynIdx !== -1) {
+            var dEl = document.querySelector(this.rawSteps[dynIdx].target);
+            dynLabel = dEl ? (dEl.getAttribute('data-tour-label') || null) : null;
+        }
+        this._seenKey = (dynIdx !== -1 && dynLabel) ? (this.screen + '::' + dynLabel) : this.screen;
+
+        var seen = readSeen();
+        if (!force && seen.indexOf(this._seenKey) !== -1) { return; }
+
         var savedPos = force ? 0 : readStepPos(this.screen);
-        this.stepIndex = (savedPos >= 0 && savedPos < this.rawSteps.length) ? savedPos : 0;
+        var startPos = (savedPos >= 0 && savedPos < this.rawSteps.length) ? savedPos : 0;
+
+        // Kalau bagian AWAL/statis layar ini (mis. penjelasan "Tab Aktifitas")
+        // sudah pernah ditonton sebelumnya, tapi status dinamis SEKARANG ini
+        // yang baru ("Isi Checklist", dst) belum - langsung loncat ke langkah
+        // dinamisnya saja, tidak perlu mengulang penjelasan dari awal lagi.
+        if (!force && dynIdx !== -1 && startPos < dynIdx && seen.indexOf(this.screen) !== -1) {
+            startPos = dynIdx;
+        }
+
+        this.stepIndex = startPos;
         this._buildOverlay();
         this._runStep();
     };
@@ -194,9 +214,17 @@
     Tour.prototype._runStep = function () {
         clearTimeout(this.waitTimer);
         this._waitingTarget = null;
+        // Selalu lepas listener klik dari elemen langkah SEBELUMNYA di sini,
+        // bukan cuma di _showOn/_showCentered. Kalau tidak, listener lama
+        // masih menempel di elemen yang sudah tidak lagi menjadi "target"
+        // langkah saat ini (mis. saat langkah berikutnya masuk status
+        // menunggu karena tombolnya masih disabled) - dan bisa ke-trigger
+        // lagi tanpa sengaja.
+        this._detachElListener();
 
         if (this.stepIndex >= this.rawSteps.length) {
             markSeen(this.screen);
+            if (this._seenKey && this._seenKey !== this.screen) { markSeen(this._seenKey); }
             clearStepPos(this.screen);
             this._destroy();
             return;
@@ -208,20 +236,6 @@
     Tour.prototype._tryShowCurrent = function () {
         var step = this.rawSteps[this.stepIndex];
         if (!step) { return; }
-
-        // Jeda sebelum langkah ini tampil (mis. supaya pengguna sempat
-        // melihat halaman barunya dulu, baru kotak tutorial muncul).
-        // Ditandai per-index supaya jedanya cuma dipakai sekali, tidak
-        // mengulang tiap kali _tryShowCurrent dipanggil ulang (mis. saat
-        // menunggu elemen dinamis muncul).
-        if (step.delayMs && this._delayedForIndex !== this.stepIndex) {
-            this._delayedForIndex = this.stepIndex;
-            this.els.backdrop.classList.remove('is-visible');
-            this.els.tooltip.classList.remove('is-visible');
-            var self2 = this;
-            this.waitTimer = setTimeout(function () { self2._tryShowCurrent(); }, step.delayMs);
-            return;
-        }
 
         // Langkah pembuka/penutup tanpa target (mis. "Selamat Datang", "Selesai!")
         if (!step.target) {
@@ -240,14 +254,34 @@
         // Elemen belum ada / masih tersembunyi (mis. tombol di dalam pop up
         // yang baru muncul otomatis setelah 5 detik) — tunggu, jangan
         // menutupi layar dengan spotlight yang menunjuk ke tempat kosong.
+        //
+        // Kalau elemennya SUDAH ADA di halaman tapi cuma "disabled" (mis.
+        // tombol "Simpan" menunggu ketiga pertanyaan dijawab pengguna),
+        // tunggu TANPA batas waktu 20 detik - biarkan pengguna mengisi
+        // datanya dulu, baru langkah tutorial ini muncul. Batas 20 detik
+        // hanya berlaku untuk elemen yang benar-benar belum ada di DOM.
         this.els.backdrop.classList.remove('is-visible');
         this.els.tooltip.classList.remove('is-visible');
+        // Sembunyikan juga sisa 4 panel mask + cincin biru dari elemen yang
+        // disorot pada langkah SEBELUMNYA - kalau tidak, kotak sorotan itu
+        // akan terlihat "nyangkut"/diam di tempat lamanya walau tutorialnya
+        // sendiri sudah pindah ke status menunggu (mis. sesaat setelah
+        // menjawab kartu pertama, sebelum tombol "Simpan" aktif).
+        this._currentEl = null;
+        Object.keys(this.els.panels).forEach(function (k) {
+            this.els.panels[k].style.display = 'none';
+        }, this);
+        this.els.ring.style.display = 'none';
         this._waitingTarget = step.target;
-        if (!this.waitDeadline) { this.waitDeadline = Date.now() + 20000; }
+
+        var waitingOnDisabled = !!(el && el.disabled);
+        if (!waitingOnDisabled && !this.waitDeadline) {
+            this.waitDeadline = Date.now() + 20000;
+        }
 
         var self = this;
         this.waitTimer = setTimeout(function () {
-            if (Date.now() > self.waitDeadline) {
+            if (!waitingOnDisabled && self.waitDeadline && Date.now() > self.waitDeadline) {
                 self.waitDeadline = 0;
                 self._advanceSkippingHidden();
                 return;
@@ -301,10 +335,12 @@
         this._detachElListener();
         this._currentEl = el;
         this._currentPlace = step.place || 'bottom';
-        // Bukan backdrop penuh layar di sini - "lubang terang" dibentuk oleh
-        // 4 panel di _positionOn yang mengelilingi elemen. Kalau backdrop
-        // penuh layar ikut dinyalakan, ia menutupi elemen yang disorot juga
-        // (warnanya jadi gelap padahal seharusnya tampil asli).
+        // JANGAN nyalakan backdrop gelap layar-penuh di sini: kalau dinyalakan,
+        // lapisan gelapnya ikut menutupi elemen yang sedang disorot juga,
+        // sehingga warna aslinya (mis. ikon terang) tampak jadi gelap/kusam.
+        // Yang menggelapkan AREA SEKITAR elemen cukup 4 panel mask
+        // (lihat _positionOn) - itu sudah menyisakan "lubang" transparan
+        // persis di atas elemen yang disorot, sehingga warna aslinya tampil.
         this.els.backdrop.classList.remove('is-visible');
         this.els.backdrop.classList.remove('is-blocking'); // elemen lain di layar tetap bisa dipencet
         el.scrollIntoView({ block: 'center', behavior: 'smooth' });
@@ -328,7 +364,16 @@
         hint.textContent = '👉 Ketuk elemen yang bersinar untuk melanjutkan';
         hint.hidden = false;
 
-        this._elClickHandler = function () { self._next(); };
+        // Detach dulu SEBELUM lanjut: sebuah tap pada <label> radio memicu
+        // 2 event "click" berantai (satu di <label>, satu lagi otomatis di
+        // <input> pasangannya) yang sama-sama lewat/bubbling di elemen ini.
+        // Kalau tidak di-detach lebih dulu, event kedua bisa memanggil
+        // _next() sekali lagi dan tutorial melompati satu langkah tanpa
+        // sengaja (mis. langkah "Simpan" terlewat begitu saja).
+        this._elClickHandler = function () {
+            self._detachElListener();
+            self._next();
+        };
         this._elListenerEl   = el;
         el.addEventListener('click', this._elClickHandler, true);
 
@@ -376,19 +421,8 @@
         var tt = this.els.tooltip;
         var arrow = tt.querySelector('[data-tour-arrow]');
         var ttW = 320;
-        var ttH = 190; // perkiraan tinggi tooltip, dipakai untuk cek muat/tidaknya di atas/bawah elemen
         var gap = 14;
         var top, left, place2 = place;
-
-        // Elemen dekat tepi atas/bawah layar -> tooltip tidak akan muat di
-        // sisi yang diminta ('top'/'bottom'), pindahkan ke sisi sebaliknya
-        // supaya tidak terpotong keluar layar (lihat juga clamp horizontal
-        // di bawah untuk sisi kiri/kanan).
-        if (place2 === 'top' && (rect.top - gap - ttH) < 8) {
-            place2 = 'bottom';
-        } else if (place2 === 'bottom' && (rect.bottom + gap + ttH) > (vh - 8)) {
-            place2 = 'top';
-        }
 
         if (place2 === 'top') {
             top  = rect.top - gap;
@@ -436,19 +470,11 @@
 
     window.OneFISTour = {
         init: function (config) {
+            activeTour = new Tour(config);
+
             var params = new URLSearchParams(window.location.search);
             var forceRestart = params.get('tour') === 'restart';
             if (forceRestart) { resetAll(); }
-
-            // Alur baru saja direset di server (balik ke dashboard/beranda
-            // AMT) -> lupakan tutorial layar-layar alur berikutnya supaya
-            // tampil lagi saat dilalui ulang, TANPA mengganggu status
-            // dashboard sendiri maupun layar di luar alur ini.
-            if (!forceRestart && config.flowWasReset) {
-                clearSeenForFlow(config.screen, config.screenOrder || []);
-            }
-
-            activeTour = new Tour(config);
 
             activeTour.start(forceRestart);
 

@@ -165,6 +165,10 @@ function render_stars(string $amtKey, string $catKey, int $selected): void
             // AMT 1: tombol "Selanjutnya" tunggal, aktif jika sudah lengkap
             btnLanjut.disabled = !complete;
         }
+
+        // Kalau tutorial sedang menunggu tombol ini aktif/tampil, langsung
+        // coba tampilkan sekarang juga (tidak menunggu polling 400ms).
+        if (window.OneFISTour) { window.OneFISTour.rescan(); }
     }
 
     form.addEventListener('change', function (e) {

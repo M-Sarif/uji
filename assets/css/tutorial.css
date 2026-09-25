@@ -56,10 +56,18 @@
     opacity: 0;
     transform: translateY(6px);
     transition: opacity 0.18s ease, transform 0.18s ease;
+    /* Selagi tersembunyi (opacity 0), tetap saja elemen ini "position:fixed"
+       dan hampir selebar layar - tanpa ini, kotak tak kasat mata itu masih
+       menelan tap/scroll pengguna persis di posisi terakhirnya (mis. tepat
+       di atas kartu AMT), sehingga tampak seperti input tidak bisa dipencet
+       dan halaman tidak bisa di-scroll. Baru boleh menerima klik saat
+       benar-benar terlihat (.is-visible). */
+    pointer-events: none;
 }
 .tour-tooltip.is-visible {
     opacity: 1;
     transform: translateY(0);
+    pointer-events: auto;
 }
 .tour-tooltip.place-center {
     left: 50% !important;

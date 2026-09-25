@@ -114,6 +114,10 @@ unset($_SESSION['arrival_error']);
         });
 
         btn.disabled = (answered !== groups.length);
+
+        // Kalau tutorial sedang menunggu tombol "Simpan" ini aktif, langsung
+        // coba tampilkan sekarang juga (tidak menunggu polling 400ms).
+        if (window.OneFISTour) { window.OneFISTour.rescan(); }
     }
 
     form.addEventListener('change', function (e) {
