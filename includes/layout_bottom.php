@@ -37,6 +37,9 @@
         screenOrder:  screenOrder,
         screenLabels: screenLabels,
         screenIndex:  idx === -1 ? 0 : (idx + 1),
+        // true persis pada request yang baru saja mereset progres alur
+        // (balik ke dashboard/beranda AMT) -- lihat index.php.
+        flowWasReset: <?php echo json_encode($flowWasReset); ?>,
     });
 })();
 </script>

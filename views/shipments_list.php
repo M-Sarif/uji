@@ -21,7 +21,7 @@ $mtAktif      = ARRIVAL_SUBJECTS['mt_ok']['name']; // nomor polisi MT sama denga
 
 <div class="content-pad" style="padding-top:0;">
 
-    <div class="card shipment-card" style="margin-bottom:16px;">
+    <div class="card shipment-card" data-tour="lihat-detail" style="margin-bottom:16px;">
         <div class="top-row">
             <p class="title-sm">24/06/26 10:00 AM</p>
             <span class="chip <?php echo $orderSelesai ? 'emerald' : 'amber'; ?>"><?php echo $orderSelesai ? 'Selesai Dikirim' : 'Dikirim'; ?></span>
@@ -43,7 +43,7 @@ $mtAktif      = ARRIVAL_SUBJECTS['mt_ok']['name']; // nomor polisi MT sama denga
                 <span class="tag-chip">PERTAMAX, BULK 2000 L</span>
             </div>
         </div>
-        <a href="index.php?screen=shipment" class="btn-detail" data-tour="lihat-detail">
+        <a href="index.php?screen=shipment" class="btn-detail">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path stroke-linecap="round" stroke-linejoin="round" d="M14 2v6h6M9 13h6M9 17h6M9 9h1"/></svg>
             Lihat Detail
         </a>

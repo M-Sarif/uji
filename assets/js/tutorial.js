@@ -49,6 +49,25 @@
             try { localStorage.setItem(LS_SEEN, JSON.stringify(seen)); } catch (e) {}
         }
     }
+    // Dipanggil HANYA saat request ini baru saja mereset progres alur
+    // (pengguna balik ke dashboard/beranda AMT — lihat index.php &
+    // reset_flow_keep_work()). Layar-layar alur setelah dashboard jadi
+    // dianggap "belum pernah dilihat" lagi, supaya tutorialnya muncul
+    // ulang begitu pengguna masuk lagi ke alur itu dari awal.
+    // Dashboard/beranda sendiri TIDAK ikut dihapus (tidak perlu tampil
+    // ulang tiap kali sekadar balik ke halaman utama). "Lewati Tutorial"
+    // yang eksplisit tetap dihormati (lihat isSkipped() di start()).
+    function clearSeenForFlow(currentScreen, screenOrder) {
+        var seen = readSeen();
+        var kept = seen.filter(function (s) {
+            return s === currentScreen || screenOrder.indexOf(s) === -1;
+        });
+        try { localStorage.setItem(LS_SEEN, JSON.stringify(kept)); } catch (e) {}
+        screenOrder.forEach(function (s) {
+            if (s !== currentScreen) { clearStepPos(s); }
+        });
+    }
+
     function isSkipped() {
         try { return localStorage.getItem(LS_SKIPPED) === '1'; } catch (e) { return false; }
     }
@@ -190,6 +209,20 @@
         var step = this.rawSteps[this.stepIndex];
         if (!step) { return; }
 
+        // Jeda sebelum langkah ini tampil (mis. supaya pengguna sempat
+        // melihat halaman barunya dulu, baru kotak tutorial muncul).
+        // Ditandai per-index supaya jedanya cuma dipakai sekali, tidak
+        // mengulang tiap kali _tryShowCurrent dipanggil ulang (mis. saat
+        // menunggu elemen dinamis muncul).
+        if (step.delayMs && this._delayedForIndex !== this.stepIndex) {
+            this._delayedForIndex = this.stepIndex;
+            this.els.backdrop.classList.remove('is-visible');
+            this.els.tooltip.classList.remove('is-visible');
+            var self2 = this;
+            this.waitTimer = setTimeout(function () { self2._tryShowCurrent(); }, step.delayMs);
+            return;
+        }
+
         // Langkah pembuka/penutup tanpa target (mis. "Selamat Datang", "Selesai!")
         if (!step.target) {
             this._waitingTarget = null;
@@ -268,7 +301,11 @@
         this._detachElListener();
         this._currentEl = el;
         this._currentPlace = step.place || 'bottom';
-        this.els.backdrop.classList.add('is-visible');
+        // Bukan backdrop penuh layar di sini - "lubang terang" dibentuk oleh
+        // 4 panel di _positionOn yang mengelilingi elemen. Kalau backdrop
+        // penuh layar ikut dinyalakan, ia menutupi elemen yang disorot juga
+        // (warnanya jadi gelap padahal seharusnya tampil asli).
+        this.els.backdrop.classList.remove('is-visible');
         this.els.backdrop.classList.remove('is-blocking'); // elemen lain di layar tetap bisa dipencet
         el.scrollIntoView({ block: 'center', behavior: 'smooth' });
 
@@ -339,8 +376,19 @@
         var tt = this.els.tooltip;
         var arrow = tt.querySelector('[data-tour-arrow]');
         var ttW = 320;
+        var ttH = 190; // perkiraan tinggi tooltip, dipakai untuk cek muat/tidaknya di atas/bawah elemen
         var gap = 14;
         var top, left, place2 = place;
+
+        // Elemen dekat tepi atas/bawah layar -> tooltip tidak akan muat di
+        // sisi yang diminta ('top'/'bottom'), pindahkan ke sisi sebaliknya
+        // supaya tidak terpotong keluar layar (lihat juga clamp horizontal
+        // di bawah untuk sisi kiri/kanan).
+        if (place2 === 'top' && (rect.top - gap - ttH) < 8) {
+            place2 = 'bottom';
+        } else if (place2 === 'bottom' && (rect.bottom + gap + ttH) > (vh - 8)) {
+            place2 = 'top';
+        }
 
         if (place2 === 'top') {
             top  = rect.top - gap;
@@ -388,11 +436,19 @@
 
     window.OneFISTour = {
         init: function (config) {
-            activeTour = new Tour(config);
-
             var params = new URLSearchParams(window.location.search);
             var forceRestart = params.get('tour') === 'restart';
             if (forceRestart) { resetAll(); }
+
+            // Alur baru saja direset di server (balik ke dashboard/beranda
+            // AMT) -> lupakan tutorial layar-layar alur berikutnya supaya
+            // tampil lagi saat dilalui ulang, TANPA mengganggu status
+            // dashboard sendiri maupun layar di luar alur ini.
+            if (!forceRestart && config.flowWasReset) {
+                clearSeenForFlow(config.screen, config.screenOrder || []);
+            }
+
+            activeTour = new Tour(config);
 
             activeTour.start(forceRestart);
 

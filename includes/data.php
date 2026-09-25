@@ -220,7 +220,10 @@ const TOUR_STEPS = [
             'target' => '[data-tour="menu-shipment"]',
             'title'  => 'Langkah 1 · Buka Menu Shipment',
             'text'   => 'Pada halaman utama, ketuk menu "Shipments" untuk melihat daftar pengiriman BBM yang masuk ke SPBU Anda.',
-            'place'  => 'top',
+            // Kartu Shipments ada di dekat bagian paling atas layar, jadi
+            // tooltip ditaruh di BAWAH elemen (bukan di atas) supaya tidak
+            // terpotong keluar layar.
+            'place'  => 'bottom',
         ],
     ],
 
@@ -230,16 +233,13 @@ const TOUR_STEPS = [
             'title'  => 'Langkah 2 · Lihat Detail Order',
             'text'   => 'Pilih "Lihat Detail" pada order yang dituju untuk membuka Detail Order, lalu Anda akan melihat tab "Aktifitas" berisi tahapan proses di SPBU.',
             'place'  => 'top',
+            // Beri jeda ~2 detik sebelum tutorial ini muncul, supaya
+            // pengguna sempat melihat dulu halaman Shipments-nya.
+            'delayMs' => 2000,
         ],
     ],
 
     'shipment' => [
-        [
-            'target' => '.tabs .tab.active',
-            'title'  => 'Tab Aktifitas',
-            'text'   => 'Tab "Aktifitas" menampilkan tahapan proses di SPBU secara berurutan. Selama mobil tangki belum tiba, langkah "Tiba di Lokasi" akan tampak redup. Setelah AMT mengonfirmasi kedatangan lewat aplikasinya, langkah ini otomatis aktif.',
-            'place'  => 'bottom',
-        ],
         [
             'target'      => '[data-tour="activity-active"]',
             'title'       => null, // diisi dinamis lewat JS sesuai label langkah yang aktif

@@ -57,9 +57,16 @@ if (!$isPost && $screen === 'end_work' && !work_is_running()) {
 /* Setiap kali pengguna kembali ke halaman utama (dashboard) -- baik lewat
  * tombol back di header/browser, mengetik ulang alamatnya, maupun link
  * lain -- seluruh progres alur order/checklist/verifikasi dimulai dari
- * awal lagi. Status jam kerja (Start/End Work) tetap dipertahankan. */
+ * awal lagi. Status jam kerja (Start/End Work) tetap dipertahankan.
+ * $flowWasReset dipakai di includes/layout_bottom.php supaya tutorial
+ * layar-layar setelah dashboard (shipments_list, shipment, dst) ikut
+ * dianggap "belum pernah dilihat" lagi -- tapi HANYA saat momen ini,
+ * bukan tiap kali pengguna balik langsung ke layar SPBU tanpa lewat
+ * dashboard dulu (lihat tutorial.js). */
+$flowWasReset = false;
 if (in_array($screen, ['dashboard', $amtHome], true) && $_SERVER['REQUEST_METHOD'] !== 'POST') {
     reset_flow_keep_work();
+    $flowWasReset = true;
 }
 
 /* --------------------------------------------------------------
