@@ -1,468 +1,150 @@
-/* ============================================================
-   OneFIS - verification.css
-   Khusus alur di lokasi SPBU: Tiba di Lokasi, Checklist LO, QR
-   verifikasi, Rating AMT, wizard checklist, dan halaman Selesai.
-   ============================================================ */
+<?php
+/**
+ * Layar "Tiba di Lokasi".
+ * Tampil setelah pengguna menekan langkah "Tiba di Lokasi" pada
+ * halaman Detail Order (views/shipment.php).
+ *
+ * Isi layar:
+ *  - Info waktu tiba & SPBU keberapa dari rute mobil tangki
+ *  - Kartu verifikasi Mobil Tangki, AMT 1, dan AMT 2 (data: ARRIVAL_SUBJECTS)
+ *  - Tombol "Simpan" yang baru aktif setelah SEMUA pertanyaan dijawab
+ */
 
-/* ---------- Tiba di Lokasi (verification) ---------- */
-.arrival-wrap { display: flex; flex-direction: column; min-height: 100%; }
-.arrival-body { flex: 1 0 auto; padding-top: 1rem; display: flex; flex-direction: column; gap: 0.875rem; }
-.arrival-body .card + .card { margin-top: 0; }
-.arrival-footer { position: sticky; bottom: 0; z-index: 5; padding-bottom: calc(1rem + env(safe-area-inset-bottom)); }
+$arrivalError = $_SESSION['arrival_error'] ?? '';
+unset($_SESSION['arrival_error']);
+?>
+<form method="post" action="index.php" class="arrival-wrap" id="arrivalForm">
+    <input type="hidden" name="action" value="kirim_verifikasi">
 
-.arrival-info { display: flex; gap: 0.75rem; background: #f8fafc; }
-.arrival-info-col { flex: 1; display: flex; flex-direction: column; gap: 0.375rem; }
-.arrival-info-col .label { font-size: 0.6875rem; font-weight: 600; color: #94a3b8; }
-.arrival-info-col .value { font-size: 0.8125rem; font-weight: 700; color: #1e293b; }
+    <div class="content-pad arrival-body">
 
-.subject-row { display: flex; align-items: center; gap: 0.875rem; margin-bottom: 0.875rem; }
-.subject-thumb {
-    width: 4.5rem; height: 4.5rem; flex-shrink: 0;
-    border-radius: 0.75rem; overflow: hidden;
-    background: #f1f5f9; border: 1px solid #e2e8f0;
-}
-.subject-thumb img { width: 100%; height: 100%; display: block; }
-.subject-meta { min-width: 0; }
-.subject-name { font-size: 0.875rem; font-weight: 700; color: #1e293b; line-height: 1.35; }
-.subject-sub { font-size: 0.75rem; color: #64748b; font-weight: 500; margin-top: 0.125rem; }
+        <!-- Ringkasan waktu tiba -->
+        <div class="card arrival-info">
+            <div class="arrival-info-col">
+                <span class="label">Waktu Tiba</span>
+                <span class="value"><?php echo h($_SESSION['arrival_time'] ?? date('d/m/Y H:i:s')); ?></span>
+            </div>
+            <div class="arrival-info-col">
+                <span class="label">SPBU ke</span>
+                <span class="value"><?php echo (int) ARRIVAL_SPBU_KE; ?> / <?php echo (int) ARRIVAL_SPBU_TOTAL; ?></span>
+            </div>
+        </div>
 
-/* Tombol pilihan: radio disembunyikan, label yang jadi tombolnya */
-.choice-group .btn-choice { position: relative; cursor: pointer; transition: background 0.15s, color 0.15s; }
-.choice-group .btn-choice input[type="radio"] {
-    position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none;
-}
-.choice-group .btn-choice.red.is-selected { background: #ef4444; color: #fff; border-color: #ef4444; }
-.choice-group .btn-choice.blue.is-selected { background: #2563eb; color: #fff; border-color: #2563eb; }
-.choice-group .btn-choice:focus-within { box-shadow: 0 0 0 3px #dbeafe; }
+        <!-- Kartu verifikasi: mobil tangki, AMT 1, AMT 2 -->
+        <?php foreach (ARRIVAL_SUBJECTS as $name => $subject): ?>
+            <?php $answer = $_SESSION[$name] ?? null; ?>
+            <div class="card subject-card">
+                <div class="subject-row">
+                    <div class="subject-thumb">
+                        <img src="<?php echo h($subject['photo']); ?>"
+                             alt="<?php echo h($subject['name']); ?>"
+                             style="object-fit:<?php echo h($subject['fit']); ?>;">
+                    </div>
+                    <div class="subject-meta">
+                        <p class="subject-name"><?php echo h($subject['name']); ?></p>
+                        <p class="subject-sub"><?php echo h($subject['sub']); ?></p>
+                    </div>
+                </div>
 
-/* ---------- Pop up konfirmasi ---------- */
-.modal-backdrop {
-    position: fixed; inset: 0; z-index: 100;
-    background: rgba(15,23,42,0.45);
-    display: flex; align-items: flex-end; justify-content: center;
-    animation: modalFade 0.15s ease;
-}
-.modal-backdrop[hidden] { display: none; }
-@keyframes modalFade { from { opacity: 0; } to { opacity: 1; } }
+                <p class="question"><?php echo h($subject['question']); ?></p>
 
-.modal-sheet {
-    width: 100%; max-width: 390px;
-    background: #fff;
-    border-radius: 1.5rem 1.5rem 0 0;
-    padding: 1.5rem 1.25rem calc(1.5rem + env(safe-area-inset-bottom)) 1.25rem;
-    box-shadow: 0 -10px 40px -10px rgba(15,23,42,0.35);
-    display: flex; flex-direction: column; gap: 0.75rem;
-    animation: modalUp 0.2s ease;
-}
-@keyframes modalUp { from { transform: translateY(18px); } to { transform: translateY(0); } }
-.modal-sheet h2 { font-size: 0.9375rem; font-weight: 700; color: #1e293b; }
-.modal-sheet p { font-size: 0.8125rem; color: #64748b; line-height: 1.55; margin-bottom: 0.5rem; }
-.modal-sheet .btn-outline { width: 100%; background: #fff; }
+                <div class="row choice-group" data-group="<?php echo h($name); ?>">
+                    <label class="btn-choice red<?php echo $answer === false ? ' is-selected' : ''; ?>">
+                        <input type="radio" name="<?php echo h($name); ?>" value="tidak"
+                               <?php echo $answer === false ? 'checked' : ''; ?>>
+                        Tidak sesuai
+                    </label>
+                    <label class="btn-choice blue<?php echo $answer === true ? ' is-selected' : ''; ?>">
+                        <input type="radio" name="<?php echo h($name); ?>" value="ya"
+                               <?php echo $answer === true ? 'checked' : ''; ?>>
+                        Ya, sesuai
+                    </label>
+                </div>
+            </div>
+        <?php endforeach; ?>
 
-/* Di layar desktop kartu HP berada di tengah, modal ikut menyesuaikan */
-@media (min-width: 641px) {
-    .modal-backdrop { align-items: center; padding: 1rem; }
-    .modal-sheet { border-radius: 1.25rem; }
-}
+        <?php if ($arrivalError !== ''): ?>
+            <p class="error-text"><?php echo h($arrivalError); ?></p>
+        <?php endif; ?>
 
-/* ---------- Shipment / Verification ---------- */
-.stripe-card { position: relative; overflow: hidden; padding-left: 1.5rem; }
-.stripe-card::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 0.375rem; background: #3b82f6; }
-.avatar-circle { width: 3rem; height: 3rem; border-radius: 50%; background: #eff6ff; color: #3b82f6; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 1px solid #e2e8f0; }
-.avatar-circle svg { width: 1.5rem; height: 1.5rem; fill: none; stroke: currentColor; stroke-width: 2; }
-.avatar-circle img { width: 100%; height: 100%; object-fit: cover; }
-.person-row { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; }
-.person-name { font-size: 0.9375rem; font-weight: 700; color: #1e293b; }
-.person-name.small { font-size: 0.875rem; }
-.person-sub { font-size: 0.75rem; color: #64748b; font-weight: 500; }
-.question { font-size: 0.75rem; font-weight: 600; color: #334155; margin-bottom: 0.75rem; }
+    </div>
 
-/* ---------- LO List ---------- */
-.lo-select-all {
-    background: #fff; border: 1px solid #e2e8f0; border-radius: 1.25rem;
-    box-shadow: 0 2px 12px -4px rgba(0,0,0,0.05);
-    padding: 1rem; cursor: pointer; display: flex; align-items: center; gap: 0.75rem;
-    margin-bottom: 1rem; font-size: 0.875rem; font-weight: 600; color: #334155;
-}
-.lo-card {
-    background: #fff; border: 1px solid #e2e8f0; border-radius: 1.25rem;
-    box-shadow: 0 2px 12px -4px rgba(0,0,0,0.05);
-    padding: 1rem; cursor: pointer; display: flex; align-items: flex-start; gap: 1rem;
-    margin-bottom: 1rem;
-}
-.lo-card.selected { border-color: #3b82f6; background: #eff6ff66; }
-.lo-checkbox { width: 1.25rem; height: 1.25rem; border-radius: 0.3125rem; border: 1px solid #cbd5e1; margin-top: 0.125rem; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background:#fff; }
-.lo-checkbox.checked { background: #2563eb; border-color: #2563eb; }
-.lo-checkbox svg { width: 0.875rem; height: 0.875rem; color: #fff; fill: none; stroke: currentColor; stroke-width: 3; }
-.lo-detail { flex: 1; display: flex; flex-direction: column; gap: 0.625rem; font-size: 0.875rem; min-width: 0; }
-.lo-detail .lrow { display: flex; align-items: center; }
-.lo-detail .lrow .label { width: 6.5rem; flex-shrink: 0; color: #64748b; font-weight: 500; }
-.lo-detail .lrow .val { font-weight: 600; color: #334155; display: flex; align-items: center; }
-.lo-detail .lrow .val.done { color: #059669; font-weight: 700; }
-.lo-detail .lrow .val.wait { color: #d97706; font-weight: 700; }
-.lo-detail .lrow .val .colon { margin-right: 0.5rem; }
-.lo-detail .lrow .val .order-input {
-    flex: 1; min-width: 0; border: 1px solid #cbd5e1; border-radius: 0.5rem;
-    padding: 0.375rem 0.625rem; background: #fff; font-weight: 600; color: #334155;
-    font-size: 0.8125rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
+    <!-- Tombol simpan (nonaktif sampai semua pertanyaan dijawab) -->
+    <div class="sticky-footer arrival-footer">
+        <button type="button" class="btn-primary" id="btnSimpan" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 3h11l3 3v15a0 0 0 010 0H5a0 0 0 010 0V3z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8 3v6h8V3M8 21v-6h8v6"/>
+            </svg>
+            Simpan
+        </button>
+    </div>
 
-/* ---------- Notifikasi ---------- */
-.notif-body { padding-top: 1rem; }
-.pill-tabs { display: flex; gap: 0.375rem; background: #f1f5f9; border-radius: 0.75rem; padding: 0.25rem; }
-.pill-tab { flex: 1; text-align: center; padding: 0.5rem 0.25rem; border-radius: 0.625rem; font-size: 0.75rem; font-weight: 700; color: #64748b; cursor: pointer; background: transparent; border: none; font-family: inherit; white-space: nowrap; }
-.pill-tab.active { background: #ffffff; color: #1d4ed8; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
-.notif-date { font-size: 0.8125rem; font-weight: 700; color: #1e293b; margin: 1rem 0 0.625rem 0.125rem; }
-.notif-card { display: flex; flex-direction: column; gap: 0.5rem; }
-.notif-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.75rem; }
-.notif-title { font-size: 0.875rem; font-weight: 700; color: #1e293b; }
-.notif-time { font-size: 0.6875rem; color: #94a3b8; font-weight: 500; white-space: nowrap; }
-.chip-done { display: inline-block; width: fit-content; }
+    <!-- Pop up konfirmasi sebelum hasil verifikasi dikirim -->
+    <div class="modal-backdrop" id="konfirmasiModal" hidden>
+        <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="konfirmasiJudul">
+            <h2 id="konfirmasiJudul">Konfirmasi Kirim Hasil Verifikasi</h2>
+            <p>Apakah Anda yakin ingin mengirim hasil verifikasi MT dan AMT?</p>
+            <button type="submit" class="btn-primary" id="btnKirim">Kirim Verifikasi MT dan AMT</button>
+            <button type="button" class="btn-outline modal-close" id="btnTutup">Tutup</button>
+        </div>
+    </div>
+</form>
 
-/* ---------- Pop up: grid AMT / MT / LO / Order ---------- */
-.verif-modal-grid { display: flex; gap: 1rem; padding-bottom: 0.75rem; margin-bottom: 0.25rem; border-bottom: 1px solid #eef2f7; }
-.verif-modal-col { flex: 1; display: flex; flex-direction: column; gap: 0.25rem; min-width: 0; }
-.verif-modal-col .label { font-size: 0.6875rem; font-weight: 500; color: #94a3b8; }
-.verif-modal-col .value { font-size: 0.8125rem; font-weight: 700; color: #1e293b; word-break: break-word; }
+<script>
+(function () {
+    var form   = document.getElementById('arrivalForm');
+    var btn    = document.getElementById('btnSimpan');
+    var groups = form.querySelectorAll('.choice-group');
 
-/* ---------- Permintaan Verifikasi (LO yang di Serahkan) ---------- */
-.verif-body { padding-top: 1.25rem; }
-.verif-body .section-title { font-size: 0.9375rem; font-weight: 700; color: #1e293b; }
-.verif-lo-card { display: flex; flex-direction: column; gap: 0.875rem; }
-.verif-lo-row { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
-.verif-lo-id { font-size: 0.8125rem; font-weight: 600; color: #1e293b; }
+    /* Tandai tombol terpilih + aktifkan "Simpan" bila semua sudah dijawab */
+    function refresh() {
+        var answered = 0;
 
-/* ---------- QR ---------- */
-.qr-box { background: #fff; border-radius: 1.25rem; padding: 2rem; border: 1px solid #f1f5f9; text-align: center; box-shadow: 0 2px 12px -4px rgba(0,0,0,0.05); margin-bottom: 1.5rem; }
-.qr-box h2 { font-size: 0.9375rem; font-weight: 700; color: #1e293b; margin-bottom: 0.5rem; }
-.qr-box p.desc { font-size: 0.75rem; color: #64748b; margin-bottom: 2rem; line-height: 1.6; }
-.qr-visual { width: 12rem; height: 12rem; margin: 0 auto; background: #fff; border: 2px solid #f1f5f9; border-radius: 1.25rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 4px rgba(0,0,0,0.05); margin-bottom: 2rem; padding: 0.875rem; }
-.qr-visual svg { width: 100%; height: 100%; color: #1e293b; shape-rendering: crispEdges; }
-.qr-alt { position: relative; padding-top: 1rem; border-top: 1px dashed #e2e8f0; }
-.qr-alt p.label { font-size: 0.6875rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.15em; margin-bottom: 0.75rem; }
-.qr-code-text { font-size: 2.25rem; font-weight: 900; letter-spacing: 0.3em; color: #2563eb; }
+        groups.forEach(function (group) {
+            var isAnswered = false;
 
-/* ---------- Rating ---------- */
-.stars { display: flex; justify-content: center; gap: 0.5rem; }
-.star-input { display: none; }
-.star-label { cursor: pointer; }
-.star-label svg { width: 1.75rem; height: 1.75rem; fill: #f8fafc; stroke: #e2e8f0; stroke-width: 1.5; transition: fill 0.1s, stroke 0.1s; }
-/* trik CSS murni: urutan radio dibalik (row-reverse) supaya bisa highlight bintang di kiri saat salah satu dipilih, tanpa JS */
-.stars-inner { display: flex; flex-direction: row-reverse; justify-content: center; gap: 0.5rem; }
-.stars-inner .star-input:checked ~ .star-label svg,
-.stars-inner .star-label:hover svg,
-.stars-inner .star-label:hover ~ .star-label svg {
-    fill: #facc15; stroke: #facc15;
-}
-.rating-title { font-size: 0.875rem; font-weight: 700; color: #1e293b; text-align: center; margin-bottom: 0.25rem; }
-.rating-desc { font-size: 0.6875rem; color: #64748b; text-align: center; margin-bottom: 0.75rem; line-height: 1.5; padding: 0 0.5rem; }
-textarea.review-box {
-    width: 100%; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 0.625rem; padding: 0.75rem;
-    font-size: 0.75rem; font-family: inherit; resize: vertical;
-}
-textarea.review-box:focus { outline: none; border-color: #60a5fa; box-shadow: 0 0 0 3px #dbeafe; }
-.error-text { color: #dc2626; font-size: 0.75rem; font-weight: 600; margin-top: 0.5rem; text-align: center; }
+            group.querySelectorAll('.btn-choice').forEach(function (label) {
+                var input = label.querySelector('input[type="radio"]');
+                label.classList.toggle('is-selected', input.checked);
+                if (input.checked) { isAnswered = true; }
+            });
 
-.rating-card { text-align: center; }
-.rating-feedback { margin-top: 0.625rem; padding-top: 0.75rem; border-top: 1px dashed #eef2f7; }
-.rating-feedback-title { font-size: 0.9375rem; font-weight: 700; color: #1e293b; margin-bottom: 0.25rem; }
-.rating-feedback-body { font-size: 0.75rem; color: #64748b; line-height: 1.5; }
+            if (isAnswered) { answered++; }
+        });
 
-/* Spinner kecil di tombol "Telah Kirim" saat form sedang dikirim */
-.btn-primary.is-loading { color: transparent; pointer-events: none; position: relative; }
-.btn-primary.is-loading::after {
-    content: ""; position: absolute; width: 1.125rem; height: 1.125rem;
-    border-radius: 50%; border: 2.5px solid rgba(255,255,255,0.45); border-top-color: #fff;
-    animation: btnSpin 0.7s linear infinite;
-}
-@keyframes btnSpin { to { transform: rotate(360deg); } }
+        btn.disabled = (answered !== groups.length);
+    }
 
-/* ============================================================
-   Checklist wizard (Checklist Pra Bongkar BBM SPBU)
-   Ukuran & warna disamakan dengan tampilan aplikasi.
-   ============================================================ */
+    form.addEventListener('change', function (e) {
+        if (e.target.type === 'radio') { refresh(); }
+    });
 
-/* ---------- Indikator langkah ----------
-   Hijau = langkah yang sudah dilewati, biru = langkah aktif. */
-.progress-row { display: flex; align-items: center; gap: 0.5rem; padding: 1.375rem 1rem 0.25rem 1rem; }
-.progress-seg { height: 0.3125rem; flex: 1 1 0; border-radius: 999px; background: #e2e8f0; }
-.progress-seg.done { background: #22c55e; }
-.progress-seg.current { background: #2563eb; }
-.progress-count {
-    flex-shrink: 0; margin-left: 0.5rem;
-    font-size: 0.875rem; font-weight: 500; color: #64748b; letter-spacing: 0.01em;
-}
+    /* ---------- Pop up konfirmasi ---------- */
+    var modal = document.getElementById('konfirmasiModal');
 
-/* ---------- Kartu pertanyaan ---------- */
-.checklist-card {
-    background: #fff; border-radius: 1rem; padding: 1.125rem;
-    border: 1px solid #eef2f7; box-shadow: 0 4px 18px -12px rgba(15,23,42,0.18);
-    margin: 0.75rem 1rem 1rem 1rem;
-}
-.checklist-card h2 {
-    font-size: 1.0625rem; font-weight: 400; color: #1f2937;
-    line-height: 1.5; letter-spacing: -0.005em; margin-bottom: 1rem;
-}
-.checklist-card h2 .req,
-.claim-form-field label .req { color: #ef4444; font-weight: 600; }
+    function bukaModal() {
+        modal.hidden = false;
+        document.getElementById('btnKirim').focus();
+    }
+    function tutupModal() {
+        modal.hidden = true;
+        btn.focus();
+    }
 
-/* ---------- Kotak isian di dalam kartu ---------- */
-.subtle-box { background: #fff; border-radius: 0.875rem; padding: 1rem; border: 1px solid #e8edf3; }
-.subtle-box .hint {
-    font-size: 0.875rem; font-style: italic; font-weight: 400; color: #94a3b8;
-    margin-bottom: 0.875rem; line-height: 1.5;
-}
-.subtle-divider { border-top: 1px solid #eef2f7; margin: 1rem 0 0.875rem 0; }
+    btn.addEventListener('click', function () {
+        if (!btn.disabled) { bukaModal(); }
+    });
+    document.getElementById('btnTutup').addEventListener('click', tutupModal);
 
-/* Tombol "Tidak Dilakukan" / "Ya, dilakukan" -- ukuran & bentuk dasarnya
-   sudah disamakan lewat .btn-choice (components.css); di sini cukup
-   warna varian merah/biru + status terpilih saja. */
-.checklist-card .btn-choice.red  { border-color: #ef4444; color: #dc2626; }
-.checklist-card .btn-choice.blue { border-color: #2563eb; color: #1d4ed8; background: #fff; }
-.checklist-card .btn-choice.red.is-selected  { background: #ef4444; border-color: #ef4444; color: #fff; }
-.checklist-card .btn-choice.blue.is-selected { background: #2563eb; border-color: #2563eb; color: #fff; }
+    /* klik area gelap di luar kartu = tutup */
+    modal.addEventListener('click', function (e) {
+        if (e.target === modal) { tutupModal(); }
+    });
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && !modal.hidden) { tutupModal(); }
+    });
 
-/* ---------- Area ambil foto ---------- */
-.photo-drop {
-    width: 100%; min-height: 6rem; background: #fff;
-    border: 1.5px dashed #60a5fa; border-radius: 0.75rem;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 0.25rem; padding: 1rem; cursor: pointer; text-align: center;
-}
-.photo-drop-title { font-size: 1rem; font-weight: 600; color: #2563eb; }
-.photo-drop-sub { font-size: 0.8125rem; font-weight: 400; color: #94a3b8; }
-
-/* ---------- Judul bagian di dalam kartu (Produk / Segel / Daftar LO) ---------- */
-.section-heading { font-size: 1.0625rem; font-weight: 600; color: #1e293b; margin-bottom: 0.25rem; }
-.section-heading-gap { margin-top: 1.5rem; }
-.section-sub { font-size: 0.875rem; font-weight: 400; color: #94a3b8; line-height: 1.5; margin-bottom: 0.875rem; }
-
-/* ---------- Kartu Produk & Segel (langkah 6) ---------- */
-.nav-item-card {
-    display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;
-    background: #fff; border: 1px solid #e2e8f0; border-radius: 0.875rem;
-    padding: 0.875rem 1rem; margin-bottom: 0.75rem; cursor: pointer;
-}
-.nav-item-card.done { border-color: #86efac; }
-.nav-item-main { display: flex; flex-direction: column; align-items: flex-start; gap: 0.3125rem; min-width: 0; }
-.nav-item-label,
-.nav-item-code { font-size: 0.8125rem; font-weight: 400; color: #94a3b8; letter-spacing: 0.01em; }
-.nav-item-title { font-size: 1rem; font-weight: 500; color: #1e293b; }
-.arrow-icon { width: 1.25rem; height: 1.25rem; flex-shrink: 0; color: #cbd5e1; fill: none; stroke: currentColor; stroke-width: 1.75; }
-.chevron-icon { width: 1.125rem; height: 1.125rem; flex-shrink: 0; color: #2563eb; fill: none; stroke: currentColor; stroke-width: 2.25; }
-
-.chip {
-    display: inline-block; padding: 0.3125rem 0.6875rem;
-    font-size: 0.75rem; font-weight: 500; border-radius: 0.375rem;
-}
-.chip-pending { background: #fef9c3; color: #a16207; }
-.chip-done { background: #dcfce7; color: #15803d; }
-
-/* ---------- Dialog verifikasi Produk & Segel (langkah 6) ---------- */
-.spp-modal-backdrop {
-    position: fixed; inset: 0; z-index: 100;
-    background: rgba(15,23,42,0.45);
-    display: flex; align-items: flex-end; justify-content: center;
-    padding: 1rem; overflow-y: auto;
-    animation: modalFade 0.15s ease;
-}
-.spp-modal-dismiss { position: absolute; inset: 0; }
-
-.spp-modal {
-    position: relative; z-index: 1;
-    width: 100%; max-width: 358px;
-    background: #fff; border-radius: 1rem;
-    padding: 1.125rem;
-    box-shadow: 0 -10px 40px -10px rgba(15,23,42,0.35);
-    animation: modalUp 0.2s ease;
-}
-.spp-modal-title { font-size: 1.0625rem; font-weight: 700; color: #1e293b; margin-bottom: 0.875rem; }
-
-.spp-modal-rows {
-    display: flex; flex-direction: column; gap: 0.625rem;
-    padding-bottom: 1rem; margin-bottom: 1rem; border-bottom: 1px solid #eef2f7;
-}
-.spp-modal-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; font-size: 0.875rem; }
-.spp-modal-row .label { color: #94a3b8; font-weight: 400; }
-.spp-modal-row .value { color: #1e293b; font-weight: 600; text-align: right; }
-
-.spp-modal-question { font-size: 0.875rem; font-weight: 600; color: #334155; margin-bottom: 0.625rem; }
-.spp-opt-row { display: flex; gap: 0.625rem; margin-bottom: 1.125rem; }
-.spp-opt { flex: 1 1 0; position: relative; }
-.spp-opt input { position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none; }
-.spp-opt span {
-    display: flex; align-items: center; justify-content: center;
-    padding: 0.75rem 0.5rem; border-radius: 0.5rem;
-    border: 1px solid #cbd5e1; background: #fff;
-    font-size: 0.875rem; font-weight: 500; color: #475569; cursor: pointer;
-}
-/* Belum dipilih = kotak putih polos. Baru berwarna setelah dipilih:
-   biru untuk jawaban positif, merah transparan untuk jawaban negatif. */
-.spp-opt input:checked + span { border-color: #2563eb; background: #dbeafe; color: #1d4ed8; }
-.spp-opt.danger input:checked + span { border-color: #ef4444; background: #fee2e2; color: #b91c1c; }
-.spp-opt input:focus-visible + span { box-shadow: 0 0 0 3px #dbeafe; }
-.spp-opt.danger input:focus-visible + span { box-shadow: 0 0 0 3px #fee2e2; }
-
-.spp-modal-save,
-.spp-modal-cancel {
-    display: flex; align-items: center; justify-content: center; width: 100%;
-    padding: 0.8125rem; border-radius: 0.5rem;
-    font-size: 0.9375rem; font-weight: 600; font-family: inherit;
-    text-decoration: none; cursor: pointer;
-}
-.spp-modal-save { border: none; background: #2563eb; color: #fff; margin-bottom: 0.625rem; }
-.spp-modal-save:hover { background: #1d4ed8; }
-.spp-modal-cancel { border: 1px solid #e2e8f0; background: #fff; color: #475569; font-weight: 500; }
-.spp-modal-cancel:hover { background: #f8fafc; }
-
-/* ---------- Kartu LO di langkah pengukuran (langkah 7) ---------- */
-.measure-lo-card {
-    display: flex; align-items: center; gap: 0.5rem;
-    background: #fff; border: 1.5px solid #2563eb; border-radius: 0.875rem;
-    padding: 1rem; margin-bottom: 0.875rem; cursor: pointer;
-}
-.measure-lo-card .lo-detail,
-.konfirmasi-card .lo-detail { flex: 1; display: flex; flex-direction: column; gap: 0.625rem; font-size: 0.875rem; min-width: 0; }
-.measure-lo-card .lrow,
-.konfirmasi-card .lrow { display: flex; align-items: center; }
-.measure-lo-card .lrow .label,
-.konfirmasi-card .lrow .label { width: 7rem; flex-shrink: 0; color: #94a3b8; font-weight: 400; }
-.measure-lo-card .lrow .val,
-.konfirmasi-card .lrow .val { flex: 1; min-width: 0; display: flex; align-items: center; font-weight: 500; color: #334155; }
-.measure-lo-card .lrow .val .colon,
-.konfirmasi-card .lrow .val .colon { margin-right: 0.5rem; color: #334155; }
-.measure-lo-card .lrow .val.wait { color: #d97706; font-weight: 500; }
-.measure-lo-card .lrow .val.done { color: #15803d; font-weight: 500; }
-.measure-lo-card .lrow .val.claim-loss-val { color: #dc2626; font-weight: 500; }
-.measure-lo-card .lrow .val .order-input {
-    flex: 1; min-width: 0; border: 1px solid #cbd5e1; border-radius: 0.5rem;
-    padding: 0.375rem 0.625rem; background: #fff; font-weight: 500; color: #334155;
-    font-size: 0.8125rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-
-/* ---------- Konfirmasi status LO (langkah 15) ---------- */
-.konfirmasi-card {
-    background: #fff; border: 1px solid #e2e8f0; border-radius: 0.875rem;
-    padding: 1rem; margin-bottom: 0.875rem;
-}
-.konfirmasi-actions { margin-top: 1rem; }
-
-/* ============================================================
-   Halaman "Ajukan Claim Loss"
-   ============================================================ */
-.claim-pad { padding: 1.25rem 1rem 0.5rem 1rem; }
-.claim-head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
-.claim-title { font-size: 1.25rem; font-weight: 700; color: #1e293b; letter-spacing: -0.01em; }
-.claim-sub { font-size: 0.9375rem; font-weight: 400; color: #94a3b8; line-height: 1.5; margin: 0.25rem 0 1rem 0; }
-
-.claim-loss-link {
-    display: inline-flex; align-items: center; gap: 0.375rem; flex-shrink: 0;
-    font-size: 0.9375rem; font-weight: 500; color: #2563eb; text-decoration: none;
-}
-.claim-loss-link svg { width: 1.0625rem; height: 1.0625rem; fill: none; stroke: currentColor; stroke-width: 1.75; }
-
-.method-card {
-    display: flex; align-items: center; justify-content: space-between; gap: 0.875rem;
-    background: #fff; border: 1px solid #e2e8f0; border-radius: 0.875rem;
-    padding: 1rem; margin-bottom: 0.75rem; cursor: pointer;
-}
-.method-card.selected { border-color: #2563eb; background: #eff6ff; }
-.method-main { min-width: 0; }
-.method-title { font-size: 1.0625rem; font-weight: 600; color: #1e293b; margin-bottom: 0.25rem; }
-.method-desc { font-size: 0.875rem; font-weight: 400; color: #64748b; line-height: 1.45; }
-.radio-dot {
-    width: 1.25rem; height: 1.25rem; border-radius: 50%; border: 1.5px solid #cbd5e1;
-    flex-shrink: 0; position: relative; background: #fff;
-}
-.radio-dot.checked { border-color: #2563eb; border-width: 2px; }
-.radio-dot.checked::after {
-    content: ""; position: absolute; inset: 3px; border-radius: 50%; background: #2563eb;
-}
-
-.claim-form { margin-top: 1.5rem; }
-.claim-form-field { margin-bottom: 1.375rem; }
-.claim-form-field label { display: block; font-size: 1.0625rem; font-weight: 600; color: #1e293b; margin-bottom: 0.625rem; }
-.claim-input-wrap {
-    display: flex; align-items: center; border: 1px solid #e2e8f0; border-radius: 0.625rem;
-    padding: 0.875rem 1rem; background: #fff;
-}
-.claim-input-wrap:focus-within { border-color: #60a5fa; box-shadow: 0 0 0 3px #dbeafe; }
-.claim-input-wrap input {
-    flex: 1; min-width: 0; border: none; outline: none; background: transparent;
-    font-size: 1rem; font-family: inherit; color: #1e293b;
-}
-.claim-input-wrap input::placeholder { color: #cbd5e1; }
-.claim-input-wrap .unit { font-size: 1rem; color: #94a3b8; font-weight: 400; margin-left: 0.5rem; flex-shrink: 0; }
-.claim-field-hint { font-size: 0.8125rem; font-weight: 400; color: #3b82f6; margin-top: 0.4375rem; line-height: 1.5; }
-
-/* ---------- Pop up "Hasil Generate Claim Losses" ---------- */
-.hasil-generate-sheet { text-align: center; }
-.hasil-generate-sheet h2 { text-align: left; }
-.hasil-row {
-    display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;
-    text-align: left; padding: 0.25rem 0;
-}
-.hasil-label { font-size: 0.875rem; font-weight: 500; color: #64748b; }
-.hasil-value { font-size: 0.9375rem; font-weight: 700; color: #1e293b; }
-.hasil-badge {
-    font-size: 0.8125rem; font-weight: 700; padding: 0.25rem 0.75rem;
-    border-radius: 999px;
-}
-.hasil-badge.bisa { background: #dcfce7; color: #15803d; }
-.hasil-badge.tidak-bisa { background: #f1f5f9; color: #64748b; }
-.hasil-caption { font-size: 0.8125rem; color: #64748b; line-height: 1.55; text-align: left; margin: -0.25rem 0 0.25rem 0; }
-.hasil-caption strong { color: #1e293b; }
-.hasil-barrel { display: flex; justify-content: center; padding: 0.5rem 0 0.75rem 0; }
-.hasil-barrel img { width: 6.5rem; height: 6.5rem; }
-.hasil-generate-sheet form,
-.hasil-btn-full { width: 100%; display: block; text-align: center; }
-
-/* ============================================================
-   Navigasi bawah (dipakai wizard checklist & claim loss)
-   Navigasi selalu menempel di bawah layar walau isi halaman pendek.
-   ============================================================ */
-.content-with-nav { display: flex; flex-direction: column; }
-.content-with-nav > * { flex-shrink: 0; }
-.content-with-nav > form { display: flex; flex-direction: column; flex: 1 0 auto; }
-.content-with-nav > form > * { flex-shrink: 0; }
-.wizard-nav { margin-top: auto; }
-.wizard-nav[hidden] { display: none; }
-.wizard-nav {
-    position: sticky; bottom: 0; left: 0; right: 0;
-    padding: 0.875rem 1rem calc(0.875rem + env(safe-area-inset-bottom)) 1rem;
-    background: #fff; border-top: 1px solid #f1f5f9;
-    display: flex; gap: 0.75rem; align-items: stretch;
-}
-.wizard-nav .btn-wiz {
-    flex: 1 1 0; padding: 0.875rem 0.75rem; border-radius: 0.625rem;
-    font-size: 0.9375rem; font-weight: 500; font-family: inherit;
-    border: 1.5px solid #2563eb; color: #2563eb; background: #fff;
-    display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
-    text-decoration: none; cursor: pointer;
-}
-.wizard-nav .btn-wiz:hover { background: #eff6ff; }
-.wizard-nav .btn-wiz.is-disabled {
-    border-color: #e2e8f0; color: #cbd5e1; background: #fff;
-    pointer-events: none; cursor: not-allowed;
-}
-.wizard-nav .btn-wiz svg { width: 1.0625rem; height: 1.0625rem; flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 2; }
-.wizard-nav .btn-primary { flex: 1 1 0; padding: 0.875rem 0.75rem; border-radius: 0.625rem; font-size: 0.9375rem; font-weight: 500; }
-.wizard-nav .btn-primary:disabled { background: #e2e8f0; color: #94a3b8; box-shadow: none; }
-.wizard-nav .btn-next { flex: 1 1 0; }
-
-/* ---------- Done ---------- */
-.done-wrap { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 6rem 1.5rem 2rem 1.5rem; min-height: 100%; }
-.done-icon { width: 6rem; height: 6rem; border-radius: 50%; background: #d1fae5; color: #10b981; display: flex; align-items: center; justify-content: center; margin-bottom: 1.5rem; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
-.done-icon svg { width: 3rem; height: 3rem; fill: none; stroke: currentColor; stroke-width: 2; }
-.done-wrap h1 { font-size: 1.5rem; font-weight: 700; color: #1e293b; margin-bottom: 0.75rem; }
-.done-wrap p { font-size: 0.875rem; color: #64748b; max-width: 16.25rem; margin: 0 auto 2rem auto; line-height: 1.6; }
-.done-wrap .btn-primary { margin-top: auto; }
-/* ---------- Tombol "Ajukan Claim Losses" di Daftar LO (langkah 7) ---------- */
-.ajukan-claim-list-btn {
-    margin-top: 0.75rem;
-    display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
-    color: #2563eb; border-color: #bfdbfe; background: #eff6ff; cursor: pointer;
-}
-.ajukan-claim-list-btn:hover { background: #dbeafe; }
-.ajukan-claim-list-items { margin: 0 0 0.75rem 0; padding-left: 1.125rem; font-size: 0.8125rem; color: #334155; }
-.ajukan-claim-list-items li { margin-bottom: 0.25rem; }
+    refresh();
+})();
+</script>

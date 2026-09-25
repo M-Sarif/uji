@@ -457,3 +457,12 @@ textarea.review-box:focus { outline: none; border-color: #60a5fa; box-shadow: 0 
 .done-wrap h1 { font-size: 1.5rem; font-weight: 700; color: #1e293b; margin-bottom: 0.75rem; }
 .done-wrap p { font-size: 0.875rem; color: #64748b; max-width: 16.25rem; margin: 0 auto 2rem auto; line-height: 1.6; }
 .done-wrap .btn-primary { margin-top: auto; }
+/* ---------- Tombol "Ajukan Claim Losses" di Daftar LO (langkah 7) ---------- */
+.ajukan-claim-list-btn {
+    margin-top: 0.75rem;
+    display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+    color: #2563eb; border-color: #bfdbfe; background: #eff6ff; cursor: pointer;
+}
+.ajukan-claim-list-btn:hover { background: #dbeafe; }
+.ajukan-claim-list-items { margin: 0 0 0.75rem 0; padding-left: 1.125rem; font-size: 0.8125rem; color: #334155; }
+.ajukan-claim-list-items li { margin-bottom: 0.25rem; }
