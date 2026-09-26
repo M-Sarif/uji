@@ -271,7 +271,7 @@ $chevronRight = '<svg class="chevron-icon" viewBox="0 0 24 24"><path stroke-line
     $nextLabel = $step < 15 ? 'Selanjutnya' : 'Konfirmasi LO';
     ?>
     <?php if ($stepDone): ?>
-        <a href="<?php echo $nextHref; ?>" class="btn-wiz">
+        <a href="<?php echo $nextHref; ?>" class="btn-wiz" data-tour="wizard-next">
             <?php echo h($nextLabel); ?>
             <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 12h15M13 6l6 6-6 6"/></svg>
         </a>

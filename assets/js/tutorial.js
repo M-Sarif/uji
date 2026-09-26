@@ -364,14 +364,31 @@
         }, 400);
     };
 
+    // Pindah ke langkah berikutnya. Secara default cuma stepIndex+1, TAPI
+    // kalau langkah SAAT INI punya 'jumpTo' (indeks angka), pakai itu.
+    // Dipakai untuk membangun blok pengulangan (loop) tanpa menduplikasi
+    // langkah: mis. langkah "Simpan Produk" ber-jumpTo langsung ke langkah
+    // "Verifikasi Segel" (melompati langkah loop "Produk Berikutnya" yang
+    // cuma boleh muncul lewat loopBackTo, bukan lewat alur maju biasa) --
+    // lihat CHECKLIST_SOAL6_TOUR_STEPS di includes/data.php untuk contoh
+    // lengkapnya.
+    Tour.prototype._advanceIndex = function () {
+        var current = this.rawSteps[this.stepIndex];
+        if (current && typeof current.jumpTo === 'number') {
+            this.stepIndex = current.jumpTo;
+        } else {
+            this.stepIndex++;
+        }
+    };
+
     Tour.prototype._advanceSkippingHidden = function () {
-        this.stepIndex++;
+        this._advanceIndex();
         this._runStep();
     };
 
     Tour.prototype._next = function () {
         this.waitDeadline = 0;
-        this.stepIndex++;
+        this._advanceIndex();
         this._runStep();
     };
 
