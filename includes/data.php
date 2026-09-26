@@ -364,41 +364,63 @@ const CHECKLIST_SOAL6_TOUR_STEPS = [
         'text'   => 'Periksa kesesuaian SPP yaitu produk, nomor segel (periksa keutuhan segel bawah dan atas), nopol Mobil Tangki, dan nama AMT. Ketuk salah satu kartu Produk untuk memulai verifikasi.',
         'place'  => 'bottom',
     ],
+    // 'target' tetap menempel pada baris pilihan Sesuai/Tidak Sesuai (supaya
+    // tutorial hanya lanjut begitu pengguna BENAR-BENAR menjawab), tapi
+    // 'highlight' sengaja diarahkan ke SELURUH kartu pop up (.spp-modal) --
+    // jadi sorotan hijaunya membingkai semua isi kartu (Nomor LO, Produk,
+    // Qty, dan pilihannya), bukan cuma kotak kecil di sekitar tombolnya saja.
     [
-        'target' => '[data-tour="spp-produk-kesesuaian"]',
-        'title'  => 'Verifikasi Produk',
-        'text'   => 'Bandingkan Nomor LO, Produk, dan Qty pada pop up ini dengan kondisi sebenarnya, lalu pilih "Sesuai" atau "Tidak Sesuai".',
-        'place'  => 'top',
+        'target'    => '[data-tour="spp-produk-kesesuaian"]',
+        'highlight' => '.spp-modal',
+        'title'     => 'Verifikasi Produk',
+        'text'      => 'Bandingkan Nomor LO, Produk, dan Qty pada kartu ini dengan kondisi sebenarnya, lalu pilih "Sesuai" atau "Tidak Sesuai".',
+        'place'     => 'top',
     ],
     [
-        'target' => '.spp-modal-save',
-        'title'  => 'Simpan Verifikasi Produk',
-        'text'   => 'Ketuk "Simpan". Ulangi langkah yang sama untuk produk lainnya.',
-        'place'  => 'top',
+        'target'    => '.spp-modal-save',
+        'highlight' => '.spp-modal',
+        'title'     => 'Simpan Verifikasi Produk',
+        'text'      => 'Ketuk "Simpan". Kalau masih ada produk lain yang belum diverifikasi, kartu Produk berikutnya akan disorot lagi -- ulangi langkah yang sama untuk produk tersebut sebelum lanjut ke Segel.',
+        'place'     => 'top',
+    ],
+    // Gerbang menuju bagian Segel. 'loopBackIf' dicek dulu SETIAP kali
+    // langkah ini hendak ditampilkan: kalau masih ada kartu Produk berstatus
+    // "Belum Terisi" (mis. baru 1 dari 2 produk yang selesai diverifikasi),
+    // tutorial dilempar balik ke 'loopBackTo' (indeks 0 = kartu Produk)
+    // supaya pengguna mengisi produk yang tersisa dulu -- BUKAN langsung
+    // lanjut ke Segel. Begitu semua Produk sudah terisi, baru langkah ini
+    // benar-benar tampil.
+    [
+        'target'     => '[data-tour="spp-segel-group"]',
+        'title'      => 'Verifikasi Segel',
+        'text'       => 'Setelah semua Produk terverifikasi, ketuk salah satu nomor Segel yang dibongkar di SPBU saat ini.',
+        'place'      => 'bottom',
+        'loopBackIf' => '[data-tour="spp-produk-group"] .chip-pending',
+        'loopBackTo' => 0,
+    ],
+    // Sama seperti pop up Produk: 'highlight' menyorot SELURUH kartu Segel
+    // (.spp-modal) supaya kedua pertanyaan + tombol Simpan terlihat sebagai
+    // satu kesatuan kartu, bukan cuma baris pilihannya saja.
+    [
+        'target'    => '[data-tour="spp-segel-kesesuaian"]',
+        'highlight' => '.spp-modal',
+        'title'     => 'Kesesuaian Nomor Segel',
+        'text'      => 'Verifikasi "Bagaimana nomor segel yang didapat?" — pilih "Sesuai" atau "Tidak Sesuai".',
+        'place'     => 'top',
     ],
     [
-        'target' => '[data-tour="spp-segel-group"]',
-        'title'  => 'Verifikasi Segel',
-        'text'   => 'Setelah semua Produk terverifikasi, ketuk salah satu nomor Segel yang dibongkar di SPBU saat ini.',
-        'place'  => 'bottom',
+        'target'    => '[data-tour="spp-segel-kondisi"]',
+        'highlight' => '.spp-modal',
+        'title'     => 'Kondisi Segel',
+        'text'      => 'Verifikasi "Bagaimana kondisi segel yang didapat?" — pilih "Baik" atau "Rusak".',
+        'place'     => 'top',
     ],
     [
-        'target' => '[data-tour="spp-segel-kesesuaian"]',
-        'title'  => 'Kesesuaian Nomor Segel',
-        'text'   => 'Verifikasi "Bagaimana nomor segel yang didapat?" — pilih "Sesuai" atau "Tidak Sesuai".',
-        'place'  => 'top',
-    ],
-    [
-        'target' => '[data-tour="spp-segel-kondisi"]',
-        'title'  => 'Kondisi Segel',
-        'text'   => 'Verifikasi "Bagaimana kondisi segel yang didapat?" — pilih "Baik" atau "Rusak".',
-        'place'  => 'top',
-    ],
-    [
-        'target' => '.spp-modal-save',
-        'title'  => 'Simpan Verifikasi Segel',
-        'text'   => 'Ketuk "Simpan". Ulangi untuk segel lainnya, lalu ketuk "Selanjutnya" setelah semua Produk dan Segel selesai diverifikasi.',
-        'place'  => 'top',
+        'target'    => '.spp-modal-save',
+        'highlight' => '.spp-modal',
+        'title'     => 'Simpan Verifikasi Segel',
+        'text'      => 'Ketuk "Simpan". Ulangi untuk segel lainnya, lalu ketuk "Selanjutnya" setelah semua Produk dan Segel selesai diverifikasi.',
+        'place'     => 'top',
     ],
 ];
 

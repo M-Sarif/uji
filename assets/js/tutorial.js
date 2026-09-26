@@ -222,7 +222,11 @@
     };
 
     Tour.prototype._reflow = function () {
-        if (this._currentEl) { this._positionOn(this._currentEl, this._currentPlace); }
+        // Sorotan (ring + mask) mengikuti '_currentHighlightEl' -- yang bisa
+        // saja berbeda dari '_currentEl' (elemen yang diberi listener klik
+        // untuk lanjut ke langkah berikutnya), lihat catatan di _showOn.
+        var target = this._currentHighlightEl || this._currentEl;
+        if (target) { this._positionOn(target, this._currentPlace); }
     };
 
     Tour.prototype._runStep = function () {
@@ -252,6 +256,20 @@
     Tour.prototype._tryShowCurrent = function () {
         var step = this.rawSteps[this.stepIndex];
         if (!step) { return; }
+
+        // Sebagian langkah punya syarat "loopBackIf": sebelum langkah ini
+        // ditampilkan, cek dulu apakah selector tsb masih ditemukan di
+        // halaman (mis. masih ada kartu Produk berstatus "Belum Terisi").
+        // Kalau masih ada, jangan tampilkan langkah ini -- lempar balik
+        // tutorial ke 'loopBackTo' (mis. kartu Produk lagi) supaya pengguna
+        // menuntaskan data yang tersisa dulu sebelum benar-benar lanjut
+        // (contoh: 2 produk yang dibongkar harus diisi keduanya sebelum
+        // tutorial melangkah ke bagian Segel).
+        if (step.loopBackIf && document.querySelector(step.loopBackIf)) {
+            this.stepIndex = step.loopBackTo || 0;
+            this._runStep();
+            return;
+        }
 
         // Langkah pembuka/penutup tanpa target (mis. "Selamat Datang", "Selesai!")
         if (!step.target) {
@@ -322,6 +340,7 @@
             // Sembunyikan juga sisa 4 panel mask + cincin biru dari elemen
             // yang disorot pada langkah SEBELUMNYA.
             this._currentEl = null;
+            this._currentHighlightEl = null;
             Object.keys(this.els.panels).forEach(function (k) {
                 this.els.panels[k].style.display = 'none';
             }, this);
@@ -372,6 +391,7 @@
         }, this);
         this.els.ring.style.display = 'none';
         this._currentEl = null;
+        this._currentHighlightEl = null;
 
         this.els.backdrop.classList.add('is-blocking');
 
@@ -390,6 +410,20 @@
         this._detachElListener();
         this._currentEl = el;
         this._currentPlace = step.place || 'bottom';
+
+        // 'step.highlight' (opsional) memisahkan elemen yang DISOROT SECARA
+        // VISUAL (ring hijau + mask gelap sekitarnya) dari 'el' yang dipakai
+        // sebagai PEMICU untuk lanjut ke langkah berikutnya. Ini dipakai
+        // supaya pop up Produk/Segel disorot SATU KOTAK PENUH mengelilingi
+        // seluruh kartu (.spp-modal) -- bukan cuma kotak kecil di sekitar
+        // baris pilihan Sesuai/Tidak Sesuai atau tombol Simpan -- sementara
+        // tutorial tetap baru lanjut begitu pengguna benar-benar menjawab /
+        // menekan tombol yang dimaksud (elemen 'el' yang sebenarnya).
+        // Kalau 'highlight' tidak diisi atau elemennya tidak ditemukan,
+        // fallback ke 'el' seperti semula (perilaku lama, tidak berubah).
+        var highlightEl = (step.highlight && document.querySelector(step.highlight)) || el;
+        this._currentHighlightEl = highlightEl;
+
         // JANGAN nyalakan backdrop gelap layar-penuh di sini: kalau dinyalakan,
         // lapisan gelapnya ikut menutupi elemen yang sedang disorot juga,
         // sehingga warna aslinya (mis. ikon terang) tampak jadi gelap/kusam.
@@ -398,12 +432,12 @@
         // persis di atas elemen yang disorot, sehingga warna aslinya tampil.
         this.els.backdrop.classList.remove('is-visible');
         this.els.backdrop.classList.remove('is-blocking'); // elemen lain di layar tetap bisa dipencet
-        el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        highlightEl.scrollIntoView({ block: 'center', behavior: 'smooth' });
 
         var self = this;
         var startStepIndex = this.stepIndex;
         // beri sedikit waktu untuk smooth-scroll sebelum menghitung posisi
-        setTimeout(function () { self._positionOn(el, self._currentPlace); }, 220);
+        setTimeout(function () { self._positionOn(highlightEl, self._currentPlace); }, 220);
 
         this._fillTooltip(step, el);
         // Step dinamis bisa membatalkan diri sendiri & lompat ke step
