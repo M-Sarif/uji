@@ -110,6 +110,7 @@ $chevronRight = '<svg class="chevron-icon" viewBox="0 0 24 24"><path stroke-line
         <?php break;
 
         case 'form_spp': ?>
+            <div data-tour="spp-produk-group">
             <p class="section-heading">Produk</p>
             <p class="section-sub">Isi kesesuaian produk yang telah diterima pihak SPBU.</p>
             <?php foreach ($activeLoIds as $loId): $lo = LO_LIST[$loId]; $filled = !empty($_SESSION['spp_produk'][$loId]); ?>
@@ -122,7 +123,9 @@ $chevronRight = '<svg class="chevron-icon" viewBox="0 0 24 24"><path stroke-line
                 <?php echo $arrowRight; ?>
             </a>
             <?php endforeach; ?>
+            </div>
 
+            <div data-tour="spp-segel-group">
             <p class="section-heading section-heading-gap">Segel</p>
             <p class="section-sub">Pilih nomor segel yang dibongkar di SPBU saat ini.</p>
             <?php foreach (SEGEL_LIST as $segel): $bongkar = !empty($_SESSION['spp_segel'][$segel]); ?>
@@ -135,6 +138,7 @@ $chevronRight = '<svg class="chevron-icon" viewBox="0 0 24 24"><path stroke-line
                 <?php echo $arrowRight; ?>
             </a>
             <?php endforeach; ?>
+            </div>
         <?php break;
 
         case 'form_ukur': ?>
@@ -298,7 +302,7 @@ $chevronRight = '<svg class="chevron-icon" viewBox="0 0 24 24"><path stroke-line
         </div>
 
         <p class="spp-modal-question">Bagaimana LO, Produk, dan Qty yang didapat?</p>
-        <div class="spp-opt-row">
+        <div class="spp-opt-row" data-tour="spp-produk-kesesuaian">
             <label class="spp-opt danger">
                 <input type="radio" name="kesesuaian" value="tidak" required<?php echo $kesesuaian === 'tidak' ? ' checked' : ''; ?>>
                 <span>Tidak Sesuai</span>
@@ -363,7 +367,7 @@ $chevronRight = '<svg class="chevron-icon" viewBox="0 0 24 24"><path stroke-line
         <h3 class="spp-modal-title">Segel <?php echo h($modalSegel); ?></h3>
 
         <p class="spp-modal-question">Bagaimana nomor segel yang didapat?</p>
-        <div class="spp-opt-row">
+        <div class="spp-opt-row" data-tour="spp-segel-kesesuaian">
             <label class="spp-opt danger">
                 <input type="radio" name="kesesuaian" value="tidak" required<?php echo $kesesuaian === 'tidak' ? ' checked' : ''; ?>>
                 <span>Tidak Sesuai</span>
@@ -375,7 +379,7 @@ $chevronRight = '<svg class="chevron-icon" viewBox="0 0 24 24"><path stroke-line
         </div>
 
         <p class="spp-modal-question">Bagaimana kondisi segel yang didapat?</p>
-        <div class="spp-opt-row">
+        <div class="spp-opt-row" data-tour="spp-segel-kondisi">
             <label class="spp-opt danger">
                 <input type="radio" name="kondisi" value="rusak" required<?php echo $kondisi === 'rusak' ? ' checked' : ''; ?>>
                 <span>Rusak</span>

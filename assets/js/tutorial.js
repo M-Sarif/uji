@@ -9,7 +9,11 @@
  *   steps: [ { target, title, text, place, dynamic } ... ],   // dari TOUR_STEPS[screen]
  *   screenOrder: [ 'dashboard', 'shipments_list', ... ],
  *   screenLabels: { dashboard: 'Beranda', ... },
- *   screenIndex: 2 // posisi $screen di screenOrder (1-based), 0 kalau di luar alur
+ *   screenIndex: 2, // posisi $screen di screenOrder (1-based), 0 kalau di luar alur
+ *   subKey: null,   // opsional: kunci pelacakan "sudah ditonton" + posisi
+ *                    // langkah PENGGANTI `screen` -- dipakai untuk sub-tutorial
+ *                    // yang harus dilacak terpisah dari tutorial umum layar yang
+ *                    // sama (mis. 'checklist_soal6' pada layar 'checklist').
  * }
  */
 (function (window, document) {
@@ -97,6 +101,14 @@
 
     function Tour(config) {
         this.screen       = config.screen;
+        // posKey = kunci untuk melacak status "sudah ditonton" (LS_SEEN)
+        // dan posisi langkah (sessionStorage) tutorial ini. Biasanya sama
+        // dengan nama layar, TAPI kalau config.subKey diisi (mis. tutorial
+        // khusus Soal 6 pada layar 'checklist'), pakai itu -- supaya
+        // sub-tutorial ini dilacak TERPISAH dari tutorial umum layar yang
+        // sama dan tetap tampil pertama kali dicapai walau tutorial umum
+        // layar itu sudah pernah ditonton.
+        this.posKey       = config.subKey || config.screen;
         this.rawSteps     = (config.steps || []);
         this.screenOrder  = config.screenOrder || [];
         this.screenLabels = config.screenLabels || {};
@@ -133,19 +145,19 @@
             var dEl = document.querySelector(this.rawSteps[dynIdx].target);
             dynLabel = dEl ? (dEl.getAttribute('data-tour-label') || null) : null;
         }
-        this._seenKey = (dynIdx !== -1 && dynLabel) ? (this.screen + '::' + dynLabel) : this.screen;
+        this._seenKey = (dynIdx !== -1 && dynLabel) ? (this.posKey + '::' + dynLabel) : this.posKey;
 
         var seen = readSeen();
         if (!force && seen.indexOf(this._seenKey) !== -1) { return; }
 
-        var savedPos = force ? 0 : readStepPos(this.screen);
+        var savedPos = force ? 0 : readStepPos(this.posKey);
         var startPos = (savedPos >= 0 && savedPos < this.rawSteps.length) ? savedPos : 0;
 
         // Kalau bagian AWAL/statis layar ini (mis. penjelasan "Tab Aktifitas")
         // sudah pernah ditonton sebelumnya, tapi status dinamis SEKARANG ini
         // yang baru ("Isi Checklist", dst) belum - langsung loncat ke langkah
         // dinamisnya saja, tidak perlu mengulang penjelasan dari awal lagi.
-        if (!force && dynIdx !== -1 && startPos < dynIdx && seen.indexOf(this.screen) !== -1) {
+        if (!force && dynIdx !== -1 && startPos < dynIdx && seen.indexOf(this.posKey) !== -1) {
             startPos = dynIdx;
         }
 
@@ -227,13 +239,13 @@
         this._detachElListener();
 
         if (this.stepIndex >= this.rawSteps.length) {
-            markSeen(this.screen);
-            if (this._seenKey && this._seenKey !== this.screen) { markSeen(this._seenKey); }
-            clearStepPos(this.screen);
+            markSeen(this.posKey);
+            if (this._seenKey && this._seenKey !== this.posKey) { markSeen(this._seenKey); }
+            clearStepPos(this.posKey);
             this._destroy();
             return;
         }
-        saveStepPos(this.screen, this.stepIndex);
+        saveStepPos(this.posKey, this.stepIndex);
         this._tryShowCurrent();
     };
 

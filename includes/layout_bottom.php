@@ -28,7 +28,19 @@
 (function () {
     var screenOrder  = <?php echo json_encode(TOUR_SCREEN_ORDER); ?>;
     var screenLabels = <?php echo json_encode(TOUR_SCREEN_LABELS); ?>;
-    var steps        = <?php echo json_encode(TOUR_STEPS[$screen] ?? []); ?>;
+    <?php
+    // Soal 6 ("Periksa kesesuaian SPP...") pada wizard checklist punya
+    // tutorial tersendiri (CHECKLIST_SOAL6_TOUR_STEPS) yang menyorot
+    // sub-langkah verifikasi Produk lalu Segel lewat pop up -- lihat
+    // catatan panjang di includes/data.php. $tourSubKey memisahkan
+    // status "sudah ditonton"-nya dari tutorial umum layar 'checklist'
+    // (langkah 1-15 lainnya), supaya tetap tampil pertama kali soal ini
+    // dicapai walau tutorial umum sudah pernah ditonton.
+    $isChecklistSoal6 = $screen === 'checklist' && ($_SESSION['checklist_step'] ?? null) === 6;
+    $tourSteps  = $isChecklistSoal6 ? CHECKLIST_SOAL6_TOUR_STEPS : (TOUR_STEPS[$screen] ?? []);
+    $tourSubKey = $isChecklistSoal6 ? 'checklist_soal6' : null;
+    ?>
+    var steps        = <?php echo json_encode($tourSteps); ?>;
     var idx          = screenOrder.indexOf(<?php echo json_encode($screen); ?>);
 
     window.OneFISTour.init({
@@ -37,6 +49,10 @@
         screenOrder:  screenOrder,
         screenLabels: screenLabels,
         screenIndex:  idx === -1 ? 0 : (idx + 1),
+        // Kunci pelacakan "sudah ditonton" + posisi langkah terpisah dari
+        // nama layar biasa (lihat tutorial.js -> this.posKey). null berarti
+        // pakai nama layar seperti biasa.
+        subKey:       <?php echo json_encode($tourSubKey); ?>,
         // true persis pada request yang baru saja mereset progres alur
         // (balik ke dashboard/beranda AMT) -- lihat index.php.
         flowWasReset: <?php echo json_encode($flowWasReset); ?>,

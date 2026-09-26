@@ -289,7 +289,7 @@ const TOUR_STEPS = [
         [
             'target' => '.checklist-card',
             'title'  => 'Checklist Pra-Pembongkaran (15 Soal)',
-            'text'   => 'Jawab tiap soal sesuai kondisi sebenarnya di lapangan (Dilakukan/Tidak Dilakukan, Sesuai/Tidak Sesuai, atau isi form), lalu ketuk "Selanjutnya". Soal 6 (SPP) dan Soal 7 (Metode Pengukuran) punya sub-langkah tambahan — ikuti saja urutan yang tampil di layar.',
+            'text'   => 'Jawab tiap soal sesuai kondisi sebenarnya di lapangan (Dilakukan/Tidak Dilakukan, Sesuai/Tidak Sesuai, atau isi form), lalu ketuk "Selanjutnya". Soal 6 (SPP) dan Soal 7 (Metode Pengukuran) punya tutorial tersendiri begitu Anda sampai di soal itu.',
             'place'  => 'bottom',
         ],
     ],
@@ -340,6 +340,65 @@ const TOUR_STEPS = [
             'text'   => 'Seluruh Aktifitas di SPBU — dari Tiba di Lokasi, Checklist Pra-Pembongkaran, Verifikasi Order, hingga Rating AMT — telah selesai dilakukan. Tombol "Selesai" akan aktif setelah rating terkirim, menandakan serah terima order BBM tuntas.',
             'place'  => 'center',
         ],
+    ],
+];
+
+// Tutorial terpandu KHUSUS Soal 6 ("Periksa kesesuaian SPP yaitu produk,
+// nomor segel...") pada wizard Checklist Pra-Pembongkaran. Dipakai lewat
+// $tourSubKey di includes/layout_bottom.php (bukan lewat TOUR_STEPS
+// biasa) supaya statusnya "sudah ditonton" dilacak TERPISAH dari tutorial
+// umum layar 'checklist' - jadi tetap tampil pertama kali soal ini
+// dicapai, walau tutorial umum langkah 1-5 sudah pernah ditonton
+// sebelumnya. Urutan & isi teks mengikuti dokumen panduan "Aktifitas di
+// SPBU" persis, termasuk sub-langkah verifikasi Produk lalu Segel yang
+// masing-masing dibuka lewat pop up (lihat views/checklist.php).
+//
+// Elemen target-nya sengaja "menempel" pada aksi asli (mis. baris pilihan
+// Sesuai/Tidak Sesuai) supaya sentuhan pengguna untuk MENJAWAB pertanyaan
+// itu SEKALIGUS jadi sentuhan untuk melanjutkan tutorial - persis pola
+// yang sudah dipakai pada tutorial layar 'verification'.
+const CHECKLIST_SOAL6_TOUR_STEPS = [
+    [
+        'target' => '[data-tour="spp-produk-group"]',
+        'title'  => 'Soal 6 · Periksa Kesesuaian SPP',
+        'text'   => 'Periksa kesesuaian SPP yaitu produk, nomor segel (periksa keutuhan segel bawah dan atas), nopol Mobil Tangki, dan nama AMT. Ketuk salah satu kartu Produk untuk memulai verifikasi.',
+        'place'  => 'bottom',
+    ],
+    [
+        'target' => '[data-tour="spp-produk-kesesuaian"]',
+        'title'  => 'Verifikasi Produk',
+        'text'   => 'Bandingkan Nomor LO, Produk, dan Qty pada pop up ini dengan kondisi sebenarnya, lalu pilih "Sesuai" atau "Tidak Sesuai".',
+        'place'  => 'top',
+    ],
+    [
+        'target' => '.spp-modal-save',
+        'title'  => 'Simpan Verifikasi Produk',
+        'text'   => 'Ketuk "Simpan". Ulangi langkah yang sama untuk produk lainnya.',
+        'place'  => 'top',
+    ],
+    [
+        'target' => '[data-tour="spp-segel-group"]',
+        'title'  => 'Verifikasi Segel',
+        'text'   => 'Setelah semua Produk terverifikasi, ketuk salah satu nomor Segel yang dibongkar di SPBU saat ini.',
+        'place'  => 'bottom',
+    ],
+    [
+        'target' => '[data-tour="spp-segel-kesesuaian"]',
+        'title'  => 'Kesesuaian Nomor Segel',
+        'text'   => 'Verifikasi "Bagaimana nomor segel yang didapat?" — pilih "Sesuai" atau "Tidak Sesuai".',
+        'place'  => 'top',
+    ],
+    [
+        'target' => '[data-tour="spp-segel-kondisi"]',
+        'title'  => 'Kondisi Segel',
+        'text'   => 'Verifikasi "Bagaimana kondisi segel yang didapat?" — pilih "Baik" atau "Rusak".',
+        'place'  => 'top',
+    ],
+    [
+        'target' => '.spp-modal-save',
+        'title'  => 'Simpan Verifikasi Segel',
+        'text'   => 'Ketuk "Simpan". Ulangi untuk segel lainnya, lalu ketuk "Selanjutnya" setelah semua Produk dan Segel selesai diverifikasi.',
+        'place'  => 'top',
     ],
 ];
 
