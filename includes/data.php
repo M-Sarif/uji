@@ -433,29 +433,44 @@ const CHECKLIST_SOAL6_TOUR_STEPS = [
     //      klik pengguna secara diam-diam tapi TIDAK menampilkan sorotan/
     //      tooltip-nya lagi untuk Segel kedua dan seterusnya.
     [
-        'target'    => '[data-tour="spp-segel-kesesuaian"]',
-        'highlight' => '.spp-modal',
-        'title'     => 'Kesesuaian Nomor Segel',
-        'text'      => 'Verifikasi "Bagaimana nomor segel yang didapat?" — pilih "Sesuai" atau "Tidak Sesuai".',
-        'place'     => 'top',
-        'quietIf'   => '[data-tour="spp-segel-group"] .chip-done',
+        'target'     => '[data-tour="spp-segel-kesesuaian"]',
+        'highlight'  => '.spp-modal',
+        'title'      => 'Kesesuaian Nomor Segel',
+        'text'       => 'Verifikasi "Bagaimana nomor segel yang didapat?" — pilih "Sesuai" atau "Tidak Sesuai".',
+        'place'      => 'top',
+        'quietIf'    => '[data-tour="spp-segel-group"] .chip-done',
+        'quietIfMin' => [
+            'selector' => '[data-tour="spp-segel-group"]',
+            'attr'     => 'data-tour-done-count',
+            'min'      => 1,
+        ],
     ],
     [
-        'target'    => '[data-tour="spp-segel-kondisi"]',
-        'highlight' => '.spp-modal',
-        'title'     => 'Kondisi Segel',
-        'text'      => 'Verifikasi "Bagaimana kondisi segel yang didapat?" — pilih "Baik" atau "Rusak".',
-        'place'     => 'top',
-        'quietIf'   => '[data-tour="spp-segel-group"] .chip-done',
+        'target'     => '[data-tour="spp-segel-kondisi"]',
+        'highlight'  => '.spp-modal',
+        'title'      => 'Kondisi Segel',
+        'text'       => 'Verifikasi "Bagaimana kondisi segel yang didapat?" — pilih "Baik" atau "Rusak".',
+        'place'      => 'top',
+        'quietIf'    => '[data-tour="spp-segel-group"] .chip-done',
+        'quietIfMin' => [
+            'selector' => '[data-tour="spp-segel-group"]',
+            'attr'     => 'data-tour-done-count',
+            'min'      => 1,
+        ],
     ],
     // 7. Simpan pop up Segel. Sama juga: diam-diam mulai Segel kedua.
     [
-        'target'    => '.spp-modal-save',
-        'highlight' => '.spp-modal',
-        'title'     => 'Simpan Verifikasi Segel',
-        'text'      => 'Ketuk "Simpan".',
-        'place'     => 'top',
-        'quietIf'   => '[data-tour="spp-segel-group"] .chip-done',
+        'target'     => '.spp-modal-save',
+        'highlight'  => '.spp-modal',
+        'title'      => 'Simpan Verifikasi Segel',
+        'text'       => 'Ketuk "Simpan".',
+        'place'      => 'top',
+        'quietIf'    => '[data-tour="spp-segel-group"] .chip-done',
+        'quietIfMin' => [
+            'selector' => '[data-tour="spp-segel-group"]',
+            'attr'     => 'data-tour-done-count',
+            'min'      => 1,
+        ],
     ],
     // 8. Setelah Segel PERTAMA disimpan (langkah 7), langkah ini muncul
     //    TEPAT SATU KALI: menyorot SELURUH bagian Segel ('highlight' =
