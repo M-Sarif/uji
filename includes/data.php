@@ -357,147 +357,143 @@ const TOUR_STEPS = [
 // Sesuai/Tidak Sesuai) supaya sentuhan pengguna untuk MENJAWAB pertanyaan
 // itu SEKALIGUS jadi sentuhan untuk melanjutkan tutorial - persis pola
 // yang sudah dipakai pada tutorial layar 'verification'.
-//
-// STRUKTUR LOOP Produk & Segel (dibaca sekali sebelum melihat langkah 0-9
-// di bawah, supaya alurnya jelas):
-//
-// Kartu pembuka kelompok (mis. "[data-tour=spp-produk-group]") HANYA
-// ditampilkan SATU KALI di awal (langkah 0 untuk Produk). Begitu satu
-// kartu selesai disimpan dan MASIH ADA kartu lain yang "Belum Terisi",
-// tutorial TIDAK mengulang kartu pembuka itu lagi -- ia langsung melompat
-// ke langkah "<Grup> Berikutnya" yang menyorot SPESIFIK kartu yang belum
-// terisi berikutnya (selector ':not(.done)' otomatis mengambil kartu
-// PERTAMA yang belum terisi sesuai urutannya di halaman). Ini dicapai
-// lewat 2 mekanisme yang saling melengkapi pada mesin tutorial
-// (assets/js/tutorial.js):
-//   - 'loopBackIf' + 'loopBackTo' : dicek SETIAP KALI sebuah langkah
-//     "gerbang" (mis. langkah 3 dan 9 di bawah) hendak ditampilkan --
-//     kalau selector-nya masih ditemukan (artinya masih ada kartu
-//     "Belum Terisi"), tutorial dilempar ke indeks 'loopBackTo' (langkah
-//     "<Grup> Berikutnya"), BUKAN menampilkan gerbang itu.
-//   - 'jumpTo' : dipasang pada langkah SEBELUM sebuah slot loop supaya
-//     alur MAJU biasa (bukan loop-back) melompati slot itu, dan pada slot
-//     loop itu sendiri supaya sekali diketuk ia melompat balik ke langkah
-//     pertama pertanyaan (Kesesuaian), bukan cuma +1 seperti biasa.
-// Dengan begini, kartu pembuka & pertanyaan-pertanyaannya bisa dipakai
-// ULANG untuk kartu kedua/ketiga/dst tanpa perlu menduplikasi langkahnya.
 const CHECKLIST_SOAL6_TOUR_STEPS = [
-    // 0) Kartu pembuka kelompok Produk -- hanya tampil di sini, tidak
-    // pernah diulang lagi walau masih ada produk lain yang belum terisi
-    // (lihat 'produk-next' di langkah 4).
+    // 0. Perkenalan Produk -- HANYA tampil SATU KALI, tidak pernah diulang
+    //    lagi walau ada beberapa produk yang harus diverifikasi satu per
+    //    satu (lihat langkah 3 "Lanjutkan ke Produk Berikutnya").
     [
         'target' => '[data-tour="spp-produk-group"]',
         'title'  => 'Soal 6 · Periksa Kesesuaian SPP',
         'text'   => 'Periksa kesesuaian SPP yaitu produk, nomor segel (periksa keutuhan segel bawah dan atas), nopol Mobil Tangki, dan nama AMT. Ketuk salah satu kartu Produk untuk memulai verifikasi.',
         'place'  => 'bottom',
     ],
-    // 1) 'target' tetap menempel pada baris pilihan Sesuai/Tidak Sesuai
-    // (supaya tutorial hanya lanjut begitu pengguna BENAR-BENAR menjawab),
-    // tapi 'highlight' sengaja diarahkan ke SELURUH kartu pop up
-    // (.spp-modal) -- jadi sorotan hijaunya membingkai semua isi kartu
-    // (Nomor LO, Produk, Qty, dan pilihannya), bukan cuma kotak kecil di
-    // sekitar tombolnya saja. Langkah ini dipakai ULANG untuk tiap produk
-    // (lihat 'jumpTo' pada langkah 4).
+    // 1. Isi pop up Produk. 'highlight' sengaja diarahkan ke SELURUH kartu
+    //    pop up (.spp-modal) -- jadi sorotan hijaunya membingkai semua isi
+    //    kartu (Nomor LO, Produk, Qty, dan pilihannya), bukan cuma kotak
+    //    kecil di sekitar baris Sesuai/Tidak Sesuai saja. 'target' tetap
+    //    menempel pada baris pilihan itu supaya tutorial baru lanjut
+    //    begitu pengguna BENAR-BENAR menjawab.
+    //    'quietIf': penjelasan pop up ini HANYA ditampilkan untuk produk
+    //    PERTAMA. Begitu ada minimal satu kartu Produk lain yang sudah
+    //    berstatus "Sudah Terisi" (chip-done), berarti pengguna sudah
+    //    pernah melihat penjelasan ini -- jadi untuk produk-produk
+    //    berikutnya, langkah ini tetap MELACAK sentuhan pengguna (supaya
+    //    tutorial tahu kapan harus lanjut), tapi TIDAK menampilkan
+    //    sorotan/tooltip-nya lagi. Ini yang membuat tutorial pop up Produk
+    //    terasa "cukup sekali saja", bukan berulang di setiap produk.
     [
         'target'    => '[data-tour="spp-produk-kesesuaian"]',
         'highlight' => '.spp-modal',
         'title'     => 'Verifikasi Produk',
         'text'      => 'Bandingkan Nomor LO, Produk, dan Qty pada kartu ini dengan kondisi sebenarnya, lalu pilih "Sesuai" atau "Tidak Sesuai".',
         'place'     => 'top',
+        'quietIf'   => '[data-tour="spp-produk-group"] .chip-done',
     ],
-    // 2) Simpan Produk. Normalnya lanjut ke langkah 3 (+1 biasa).
+    // 2. Simpan pop up Produk. Sama seperti langkah 1: diam-diam setelah
+    //    produk pertama (lihat 'quietIf' di atas).
     [
         'target'    => '.spp-modal-save',
         'highlight' => '.spp-modal',
         'title'     => 'Simpan Verifikasi Produk',
-        'text'      => 'Ketuk "Simpan". Jika masih ada produk lain yang belum diverifikasi, kartu produk tersebut akan langsung disorot untuk Anda lanjutkan.',
+        'text'      => 'Ketuk "Simpan".',
         'place'     => 'top',
+        'quietIf'   => '[data-tour="spp-produk-group"] .chip-done',
     ],
-    // 3) GERBANG Produk -> Segel. 'loopBackIf' dicek dulu SETIAP kali
-    // langkah ini hendak ditampilkan: kalau masih ada kartu Produk
-    // berstatus "Belum Terisi", tutorial dilempar ke 'loopBackTo' (langkah
-    // 4 = "Produk Berikutnya"), BUKAN kartu pembuka (langkah 0) seperti
-    // sebelumnya -- supaya pengguna langsung diarahkan ke kartu yang
-    // belum terisi tanpa mengulang penjelasan dari awal. Begitu semua
-    // Produk terisi, langkah ini betul-betul tampil (kartu pembuka Segel),
-    // dan 'jumpTo' melompati langkah 4 (slot loop Produk yang sudah tidak
-    // relevan lagi) langsung menuju langkah 5 (pertanyaan Kesesuaian Segel).
+    // 3. 'requireTarget' dicek dulu SETIAP kali langkah ini hendak
+    //    ditampilkan: kalau MASIH ada kartu Produk lain berstatus "Belum
+    //    Terisi" (mis. baru 1 dari 2 produk yang selesai diverifikasi),
+    //    tutorial LANGSUNG menyorot kartu Produk berikutnya yang belum
+    //    terisi itu -- TANPA mengulang penjelasan langkah 0 dari awal.
+    //    Begitu SEMUA Produk sudah terisi, selector-nya tidak lagi
+    //    ditemukan sehingga langkah ini otomatis dilewati (tidak pernah
+    //    "nyangkut" menyorot sesuatu yang sudah tidak relevan) dan
+    //    tutorial lanjut sendiri ke bagian Segel (langkah 4).
     [
-        'target'     => '[data-tour="spp-segel-group"]',
-        'title'      => 'Verifikasi Segel',
-        'text'       => 'Setelah semua Produk terverifikasi, ketuk salah satu nomor Segel yang dibongkar di SPBU saat ini.',
-        'place'      => 'bottom',
-        'loopBackIf' => '[data-tour="spp-produk-group"] .chip-pending',
-        'loopBackTo' => 4,
-        'jumpTo'     => 5,
+        'target'        => '[data-tour="spp-produk-group"] .nav-item-card:not(.done)',
+        'requireTarget' => '[data-tour="spp-produk-group"] .nav-item-card:not(.done)',
+        'jumpOnClickTo' => 1,
+        'title'         => 'Lanjutkan ke Produk Berikutnya',
+        'text'          => 'Masih ada Produk lain yang belum diverifikasi. Ketuk kartu ini untuk melanjutkan.',
+        'place'         => 'bottom',
     ],
-    // 4) "Produk Berikutnya" -- HANYA dicapai lewat loopBackTo di langkah
-    // 3 di atas (tidak pernah lewat alur maju biasa, karena langkah 3
-    // selalu melompat ke 5 lewat 'jumpTo'). Selector ':not(.done)' otomatis
-    // menyorot kartu PERTAMA yang masih "Belum Terisi", jadi pengguna
-    // selalu diarahkan ke produk yang benar berikutnya. Begitu diketuk,
-    // 'jumpTo' melompat balik ke langkah 1 (pertanyaan Kesesuaian) untuk
-    // mengulang verifikasi produk ini.
+    // 4. Perkenalan Segel -- HANYA tampil SATU KALI, tepat setelah SEMUA
+    //    Produk selesai diverifikasi (baru tercapai lewat langkah 2 atau 3
+    //    di atas).
     [
-        'target' => '[data-tour="spp-produk-group"] .nav-item-card:not(.done)',
-        'title'  => 'Produk Berikutnya',
-        'text'   => 'Masih ada produk yang belum diverifikasi. Ketuk kartu ini untuk melanjutkan.',
+        'target' => '[data-tour="spp-segel-group"]',
+        'title'  => 'Verifikasi Segel',
+        'text'   => 'Setelah semua Produk terverifikasi, ketuk salah satu nomor Segel yang dibongkar di SPBU saat ini.',
         'place'  => 'bottom',
-        'jumpTo' => 1,
     ],
-    // 5) Sama seperti pop up Produk: 'highlight' menyorot SELURUH kartu
-    // Segel (.spp-modal). Dipakai ULANG untuk tiap nomor segel (lihat
-    // 'jumpTo' pada langkah 8).
+    // 5-6. Isi pop up Segel. Sama seperti Produk: 'highlight' menyorot
+    //      SELURUH kartu pop up (.spp-modal), bukan cuma baris pilihannya
+    //      saja. 'quietIf': penjelasan ini juga HANYA tampil untuk Segel
+    //      PERTAMA -- begitu ada minimal satu Segel lain yang sudah
+    //      "Sudah Dibongkar" (chip-done), langkah ini tetap melacak
+    //      klik pengguna secara diam-diam tapi TIDAK menampilkan sorotan/
+    //      tooltip-nya lagi untuk Segel kedua dan seterusnya.
     [
         'target'    => '[data-tour="spp-segel-kesesuaian"]',
         'highlight' => '.spp-modal',
         'title'     => 'Kesesuaian Nomor Segel',
         'text'      => 'Verifikasi "Bagaimana nomor segel yang didapat?" — pilih "Sesuai" atau "Tidak Sesuai".',
         'place'     => 'top',
+        'quietIf'   => '[data-tour="spp-segel-group"] .chip-done',
     ],
-    // 6) Kondisi Segel.
     [
         'target'    => '[data-tour="spp-segel-kondisi"]',
         'highlight' => '.spp-modal',
         'title'     => 'Kondisi Segel',
         'text'      => 'Verifikasi "Bagaimana kondisi segel yang didapat?" — pilih "Baik" atau "Rusak".',
         'place'     => 'top',
+        'quietIf'   => '[data-tour="spp-segel-group"] .chip-done',
     ],
-    // 7) Simpan Segel. 'jumpTo' melompati langkah 8 (slot loop Segel yang
-    // hanya relevan lewat loopBackTo) langsung menuju langkah 9 (gerbang
-    // akhir), persis pola langkah 3 di atas.
+    // 7. Simpan pop up Segel. Sama juga: diam-diam mulai Segel kedua.
     [
         'target'    => '.spp-modal-save',
         'highlight' => '.spp-modal',
         'title'     => 'Simpan Verifikasi Segel',
-        'text'      => 'Ketuk "Simpan". Jika masih ada nomor segel lain yang belum diverifikasi, kartu segel tersebut akan langsung disorot -- ulangi sampai semua segel selesai.',
+        'text'      => 'Ketuk "Simpan".',
         'place'     => 'top',
-        'jumpTo'    => 9,
+        'quietIf'   => '[data-tour="spp-segel-group"] .chip-done',
     ],
-    // 8) "Segel Berikutnya" -- HANYA dicapai lewat loopBackTo di langkah 9
-    // di bawah, sama pola dengan langkah 4 untuk Produk.
+    // 8. Setelah Segel PERTAMA disimpan (langkah 7), langkah ini muncul
+    //    TEPAT SATU KALI: menyorot SELURUH bagian Segel ('highlight' =
+    //    seluruh grup, bukan cuma satu kartu) supaya pengguna melihat
+    //    semua nomor Segel yang masih "Belum Dibongkar" sekaligus, lalu
+    //    memintanya melengkapi semuanya satu per satu. 'target' tetap
+    //    menempel ke kartu Segel pertama yang belum terisi (dipakai untuk
+    //    mendeteksi klik & requireTarget), sementara 'quietIfMin' membuat
+    //    langkah ini DIAM (tidak menyorot apa pun lagi, tapi tetap
+    //    melacak klik secara diam-diam) begitu SUDAH ADA 2 atau lebih
+    //    Segel yang terisi -- artinya hint ini sudah pernah tampil
+    //    sebelumnya. Jadi hint "Isi Sisa Segel" ini betul-betul hanya
+    //    tampil SATU KALI; sesudah itu tidak ada tutorial lagi sampai
+    //    SEMUA Segel selesai (baru langkah 9 di bawah yang muncul).
     [
-        'target' => '[data-tour="spp-segel-group"] .nav-item-card:not(.done)',
-        'title'  => 'Segel Berikutnya',
-        'text'   => 'Masih ada nomor segel yang belum diverifikasi. Ketuk kartu ini untuk melanjutkan.',
-        'place'  => 'bottom',
-        'jumpTo' => 5,
+        'target'        => '[data-tour="spp-segel-group"] .nav-item-card:not(.done)',
+        'highlight'     => '[data-tour="spp-segel-group"]',
+        'requireTarget' => '[data-tour="spp-segel-group"] .nav-item-card:not(.done)',
+        'quietIfMin'    => [
+            'selector' => '[data-tour="spp-segel-group"]',
+            'attr'     => 'data-tour-done-count',
+            'min'      => 2,
+        ],
+        'jumpOnClickTo' => 5,
+        'title'         => 'Lengkapi Sisa Segel',
+        'text'          => 'Masih ada nomor Segel lain yang belum diverifikasi (ditandai "Belum Dibongkar"). Lengkapi semuanya satu per satu.',
+        'place'         => 'bottom',
     ],
-    // 9) GERBANG AKHIR. Sama seperti langkah 3, tapi untuk Segel: kalau
-    // masih ada kartu Segel "Belum Terisi", dilempar ke langkah 8. Begitu
-    // SEMUA Produk & SEMUA Segel terverifikasi (baru saat itu tombol
-    // "Selanjutnya" pada wizard aktif -- lihat checklist_step_done() di
-    // includes/functions.php), langkah ini menyorot tombol tersebut
-    // (data-tour="wizard-next" pada views/checklist.php, HANYA dipasang
-    // pada tautan yang aktif/tidak disabled) dan menjadi langkah PENUTUP
-    // tutorial Soal 6.
+    // 9. Baru setelah BENAR-BENAR SEMUA Produk dan SEMUA Segel selesai
+    //    diverifikasi (tombol "Selanjutnya" otomatis aktif -- lihat
+    //    checklist_step_done() di includes/functions.php), tutorial
+    //    menyorot tombol tsb dan meminta pengguna melanjutkan ke soal
+    //    checklist berikutnya.
     [
-        'target'     => '[data-tour="wizard-next"]',
-        'title'      => 'Lanjut ke Soal Berikutnya',
-        'text'       => 'Semua Produk dan Segel sudah terverifikasi. Ketuk "Selanjutnya" untuk melanjutkan ke soal berikutnya.',
-        'place'      => 'top',
-        'loopBackIf' => '[data-tour="spp-segel-group"] .chip-pending',
-        'loopBackTo' => 8,
+        'target' => '[data-tour="wizard-next"]',
+        'title'  => 'Lanjutkan Checklist',
+        'text'   => 'Semua Produk dan Segel sudah diverifikasi. Ketuk "Selanjutnya" untuk melanjutkan ke soal checklist berikutnya.',
+        'place'  => 'top',
     ],
 ];
 

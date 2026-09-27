@@ -99,6 +99,27 @@
         return rect.width > 0 && rect.height > 0;
     }
 
+    // Menentukan apakah suatu langkah harus ditampilkan "diam-diam" (lihat
+    // _showQuiet): entah lewat 'quietIf' (selector sederhana - diam kalau
+    // DITEMUKAN), atau 'quietIfMin' (diam kalau suatu atribut data- pada
+    // elemen tsb sudah mencapai angka minimum tertentu, dipakai untuk
+    // hint "Lengkapi Sisa Segel" yang cuma boleh tampil TEPAT SATU KALI:
+    // saat baru 1 Segel yang terisi, bukan lagi saat sudah 2 atau lebih).
+    function isQuietStep(step) {
+        if (step.quietIf && document.querySelector(step.quietIf)) {
+            return true;
+        }
+        if (step.quietIfMin) {
+            var cfg = step.quietIfMin;
+            var cfgEl = document.querySelector(cfg.selector);
+            if (cfgEl) {
+                var val = parseInt(cfgEl.getAttribute(cfg.attr) || '0', 10) || 0;
+                if (val >= cfg.min) { return true; }
+            }
+        }
+        return false;
+    }
+
     function Tour(config) {
         this.screen       = config.screen;
         // posKey = kunci untuk melacak status "sudah ditonton" (LS_SEEN)
@@ -222,6 +243,12 @@
     };
 
     Tour.prototype._reflow = function () {
+        // Kalau langkah saat ini sedang "diam-diam" (lihat _showQuiet),
+        // JANGAN reposisi ring sama sekali -- _positionOn selalu menyalakan
+        // kembali ring.style.display, yang akan membuat sorotan hijau
+        // muncul tiba-tiba lagi saat pengguna resize/scroll layar padahal
+        // seharusnya sudah disembunyikan permanen untuk langkah ini.
+        if (this._quiet) { return; }
         // Sorotan (ring + mask) mengikuti '_currentHighlightEl' -- yang bisa
         // saja berbeda dari '_currentEl' (elemen yang diberi listener klik
         // untuk lanjut ke langkah berikutnya), lihat catatan di _showOn.
@@ -257,16 +284,16 @@
         var step = this.rawSteps[this.stepIndex];
         if (!step) { return; }
 
-        // Sebagian langkah punya syarat "loopBackIf": sebelum langkah ini
-        // ditampilkan, cek dulu apakah selector tsb masih ditemukan di
-        // halaman (mis. masih ada kartu Produk berstatus "Belum Terisi").
-        // Kalau masih ada, jangan tampilkan langkah ini -- lempar balik
-        // tutorial ke 'loopBackTo' (mis. kartu Produk lagi) supaya pengguna
-        // menuntaskan data yang tersisa dulu sebelum benar-benar lanjut
-        // (contoh: 2 produk yang dibongkar harus diisi keduanya sebelum
-        // tutorial melangkah ke bagian Segel).
-        if (step.loopBackIf && document.querySelector(step.loopBackIf)) {
-            this.stepIndex = step.loopBackTo || 0;
+        // Sebagian langkah (mis. "Lanjutkan ke Produk/Segel Berikutnya")
+        // hanya relevan SELAMA syarat 'requireTarget'-nya masih ditemukan
+        // di halaman (mis. masih ada kartu Produk/Segel berstatus "Belum
+        // Terisi"). Begitu selector itu TIDAK ditemukan lagi (berarti
+        // semuanya sudah terisi), langkah ini dilewati begitu saja --
+        // lanjut ke langkah berikutnya tanpa menampilkan sorotan yang
+        // sudah tidak relevan lagi (jadi tidak pernah "nyangkut"/stuck
+        // menunggu sesuatu yang tidak akan pernah muncul).
+        if (step.requireTarget && !document.querySelector(step.requireTarget)) {
+            this.stepIndex++;
             this._runStep();
             return;
         }
@@ -364,31 +391,14 @@
         }, 400);
     };
 
-    // Pindah ke langkah berikutnya. Secara default cuma stepIndex+1, TAPI
-    // kalau langkah SAAT INI punya 'jumpTo' (indeks angka), pakai itu.
-    // Dipakai untuk membangun blok pengulangan (loop) tanpa menduplikasi
-    // langkah: mis. langkah "Simpan Produk" ber-jumpTo langsung ke langkah
-    // "Verifikasi Segel" (melompati langkah loop "Produk Berikutnya" yang
-    // cuma boleh muncul lewat loopBackTo, bukan lewat alur maju biasa) --
-    // lihat CHECKLIST_SOAL6_TOUR_STEPS di includes/data.php untuk contoh
-    // lengkapnya.
-    Tour.prototype._advanceIndex = function () {
-        var current = this.rawSteps[this.stepIndex];
-        if (current && typeof current.jumpTo === 'number') {
-            this.stepIndex = current.jumpTo;
-        } else {
-            this.stepIndex++;
-        }
-    };
-
     Tour.prototype._advanceSkippingHidden = function () {
-        this._advanceIndex();
+        this.stepIndex++;
         this._runStep();
     };
 
     Tour.prototype._next = function () {
         this.waitDeadline = 0;
-        this._advanceIndex();
+        this.stepIndex++;
         this._runStep();
     };
 
@@ -402,6 +412,7 @@
 
     Tour.prototype._showCentered = function (step) {
         this._detachElListener();
+        this._quiet = false;
         this.els.backdrop.classList.add('is-visible');
         Object.keys(this.els.panels).forEach(function (k) {
             this.els.panels[k].style.display = 'none';
@@ -427,6 +438,23 @@
         this._detachElListener();
         this._currentEl = el;
         this._currentPlace = step.place || 'bottom';
+
+        // 'step.quietIf' (opsional): kalau selector ini DITEMUKAN di
+        // halaman (mis. sudah ada kartu Produk lain berstatus "Sudah
+        // Terisi" -- artinya ini BUKAN produk pertama), langkah ini tidak
+        // lagi menampilkan sorotan ring + tooltip-nya sama sekali -- supaya
+        // penjelasan pop up Produk/Segel benar-benar hanya tampil SATU
+        // KALI, tidak berulang di setiap produk berikutnya. Listener klik
+        // pada elemen aksi TETAP dipasang (secara diam-diam) supaya
+        // progres tutorial tetap lanjut begitu pengguna benar-benar
+        // melakukan aksinya (mis. menyimpan verifikasi produk kedua) --
+        // hanya saja pengguna tidak melihat kotak hijau/tooltip lagi.
+        if (isQuietStep(step)) {
+            this._quiet = true;
+            this._showQuiet(el, step);
+            return;
+        }
+        this._quiet = false;
 
         // 'step.highlight' (opsional) memisahkan elemen yang DISOROT SECARA
         // VISUAL (ring hijau + mask gelap sekitarnya) dari 'el' yang dipakai
@@ -478,12 +506,55 @@
         // sengaja (mis. langkah "Simpan" terlewat begitu saja).
         this._elClickHandler = function () {
             self._detachElListener();
-            self._next();
+            // 'jumpOnClickTo' (opsional): dipakai oleh langkah "Lanjutkan
+            // ke Produk/Segel Berikutnya" supaya sentuhan pengguna pada
+            // kartu tsb langsung membawa tutorial ke langkah verifikasi
+            // (bukan cuma stepIndex+1 seperti biasa, karena kartu itu
+            // membuka pop up yang sama seperti pop up produk/segel yang
+            // PERTAMA -- jadi langkah tutorialnya juga harus kembali ke
+            // langkah pop up yang sama itu).
+            if (typeof step.jumpOnClickTo === 'number') {
+                self.stepIndex = step.jumpOnClickTo;
+                self._runStep();
+            } else {
+                self._next();
+            }
         };
         this._elListenerEl   = el;
         el.addEventListener('click', this._elClickHandler, true);
 
         requestAnimationFrame(function () { tt.classList.add('is-visible'); });
+    };
+
+    // Versi "diam-diam" dari _showOn: TIDAK menampilkan ring, mask gelap,
+    // maupun tooltip sama sekali -- tapi tetap memasang listener klik pada
+    // elemen aksi ('el') supaya begitu pengguna benar-benar menjawab /
+    // menekan tombolnya, tutorial tetap lanjut ke langkah berikutnya (atau
+    // 'jumpOnClickTo' kalau diisi) persis seperti langkah yang tampil
+    // biasa. Dipakai supaya penjelasan pop up Produk (langkah 1 & 2) tidak
+    // mengulang tampilannya lagi mulai produk kedua dan seterusnya.
+    Tour.prototype._showQuiet = function (el, step) {
+        this.els.backdrop.classList.remove('is-visible');
+        this.els.backdrop.classList.remove('is-blocking');
+        this.els.tooltip.classList.remove('is-visible');
+        Object.keys(this.els.panels).forEach(function (k) {
+            this.els.panels[k].style.display = 'none';
+        }, this);
+        this.els.ring.style.display = 'none';
+        this._currentHighlightEl = null;
+
+        var self = this;
+        this._elClickHandler = function () {
+            self._detachElListener();
+            if (typeof step.jumpOnClickTo === 'number') {
+                self.stepIndex = step.jumpOnClickTo;
+                self._runStep();
+            } else {
+                self._next();
+            }
+        };
+        this._elListenerEl = el;
+        el.addEventListener('click', this._elClickHandler, true);
     };
 
     Tour.prototype._fillTooltip = function (step, el) {

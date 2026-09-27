@@ -125,7 +125,18 @@ $chevronRight = '<svg class="chevron-icon" viewBox="0 0 24 24"><path stroke-line
             <?php endforeach; ?>
             </div>
 
-            <div data-tour="spp-segel-group">
+            <?php
+            // Dipakai oleh tutorial (lihat CHECKLIST_SOAL6_TOUR_STEPS di
+            // includes/data.php) untuk membedakan "baru saja 1 segel
+            // terisi" (masih perlu ditampilkan hint "Isi Sisa Segel") dari
+            // "2 atau lebih sudah terisi" (hint itu tidak perlu diulang
+            // lagi, tutorial diam sampai semuanya lengkap).
+            $segelDoneCount = 0;
+            foreach (SEGEL_LIST as $s) {
+                if (!empty($_SESSION['spp_segel'][$s])) { $segelDoneCount++; }
+            }
+            ?>
+            <div data-tour="spp-segel-group" data-tour-done-count="<?php echo $segelDoneCount; ?>">
             <p class="section-heading section-heading-gap">Segel</p>
             <p class="section-sub">Pilih nomor segel yang dibongkar di SPBU saat ini.</p>
             <?php foreach (SEGEL_LIST as $segel): $bongkar = !empty($_SESSION['spp_segel'][$segel]); ?>
