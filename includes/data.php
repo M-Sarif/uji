@@ -621,6 +621,11 @@ const CHECKLIST_SOAL7_TOUR_STEPS = [
         'title'     => 'Isi Form Pengukuran',
         'text'      => 'Isi seluruh kolom wajib (Kompartemen, Level BBM di SPP, Level BBM Sebelum Bongkar, dan kolom lain sesuai metode yang dipilih) sesuai kondisi sebenarnya, lalu ketuk "Generate".',
         'place'     => 'top',
+        // 'dock' => 'top': halaman TIDAK bergulir otomatis & tooltip ditaruh
+        // di pita tersendiri di bawah header (konten didorong turun), jadi
+        // kolom input form tidak tertutup tutorial (lihat _layoutDock di
+        // assets/js/tutorial.js).
+        'dock'      => 'top',
         'quietIf'   => '.claim-pad[data-tour-any-done="1"]',
         'skipIf'    => '.hasil-generate-sheet',
     ],

@@ -141,6 +141,21 @@
 .tour-tooltip.place-center .tour-footer { justify-content: center; }
 .tour-tooltip.place-center .tour-hint { text-align: center; }
 
+/* Mode "dock": tooltip menempati pita sendiri di bawah header (posisi &
+   lebar diatur JS, .content didorong turun) sehingga tidak menutupi form. */
+.tour-tooltip.is-docked,
+.tour-tooltip.is-docked.is-visible {
+    transform: none !important;
+    max-width: none;
+    padding: 0.7rem 0.9rem 0.45rem;
+    border-radius: 0.9rem;
+}
+.tour-tooltip.is-docked .tour-arrow { display: none; }
+.tour-tooltip.is-docked .tour-eyebrow { margin-bottom: 0.15rem; }
+.tour-tooltip.is-docked .tour-title { font-size: 14px; margin-bottom: 0.2rem; }
+.tour-tooltip.is-docked .tour-text { font-size: 12.5px; line-height: 1.4; margin-bottom: 0.4rem; }
+.tour-tooltip.is-docked .tour-hint { margin-bottom: 0.3rem; }
+
 /* Atribut [hidden] HARUS selalu menang atas display milik komponen ini,
    walau spesifisitasnya sama - kalau tidak, elemen tetap tampak. */
 .tour-tooltip [hidden] { display: none !important; }

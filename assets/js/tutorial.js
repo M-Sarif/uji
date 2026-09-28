@@ -357,6 +357,7 @@
         // menunggu karena tombolnya masih disabled) - dan bisa ke-trigger
         // lagi tanpa sengaja.
         this._detachElListener();
+        this._clearDock();
 
         if (this.stepIndex >= this.rawSteps.length) {
             markSeen(this.posKey);
@@ -598,8 +599,10 @@
             // lakukan apa-apa lagi.
             if (self._currentEl !== el) { return; }
             self._currentHighlightEl = el;
-            el.scrollIntoView({ block: 'center', behavior: 'smooth' });
-            setTimeout(function () { self._positionOn(el, self._currentPlace); }, 150);
+            if (!self._docked) {
+                el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+            }
+            setTimeout(function () { self._positionOn(el, self._currentPlace); }, self._docked ? 30 : 150);
             var tt = self.els.tooltip;
             var hint = tt.querySelector('[data-tour-hint]');
             if (hint) { hint.textContent = '👉 Ketuk elemen yang bersinar untuk melanjutkan'; }
@@ -695,12 +698,21 @@
         // persis di atas elemen yang disorot, sehingga warna aslinya tampil.
         this.els.backdrop.classList.remove('is-visible');
         this.els.backdrop.classList.remove('is-blocking'); // elemen lain di layar tetap bisa dipencet
-        highlightEl.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        // 'dock' => 'top' (opsional): dipakai untuk sorotan yang lebih tinggi
+        // dari layar (mis. seluruh .claim-form pada "Isi Form Pengukuran").
+        // Untuk langkah ini halaman TIDAK di-scroll otomatis, dan tooltip
+        // ditaruh di pita khusus tepat di bawah header (konten didorong
+        // turun setinggi tooltip) sehingga TIDAK PERNAH menutupi kolom
+        // input. Pengguna bebas men-scroll form sendiri.
+        this._docked = (step.dock === 'top') && !!document.querySelector('.content');
+        if (!this._docked) {
+            highlightEl.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        }
 
         var self = this;
         var startStepIndex = this.stepIndex;
         // beri sedikit waktu untuk smooth-scroll sebelum menghitung posisi
-        setTimeout(function () { self._positionOn(highlightEl, self._currentPlace); }, 220);
+        setTimeout(function () { self._positionOn(highlightEl, self._currentPlace); }, this._docked ? 30 : 220);
 
         this._fillTooltip(step, el);
         // Step dinamis bisa membatalkan diri sendiri & lompat ke step
@@ -849,12 +861,55 @@
         tt.querySelector('[data-tour-text]').textContent = label.text || '';
     };
 
+    // Mode "dock": tooltip menempati pita sendiri tepat di bawah header dan
+    // .content didorong turun setinggi tooltip (margin-top), jadi area
+    // scroll form otomatis mengecil & tidak ada input yang tertimpa.
+    Tour.prototype._layoutDock = function () {
+        var content = document.querySelector('.content');
+        var tt = this.els.tooltip;
+        if (!content || !tt) { this._docked = false; return; }
+        var gap  = 8;
+        var prev = parseFloat(content.style.marginTop) || 0;
+        var top  = content.getBoundingClientRect().top - prev; // tepi atas tanpa margin kita
+        var box  = (content.parentElement || content).getBoundingClientRect();
+
+        tt.classList.add('is-docked');
+        tt.style.left  = (box.left + 12) + 'px';
+        tt.style.width = Math.max(0, box.width - 24) + 'px';
+        tt.style.top   = (top + gap) + 'px';
+
+        var want = (tt.offsetHeight + gap * 2) + 'px';
+        if (content.style.marginTop !== want) { content.style.marginTop = want; }
+    };
+
+    Tour.prototype._clearDock = function () {
+        this._docked = false;
+        var content = document.querySelector('.content');
+        if (content) { content.style.marginTop = ''; }
+        var tt = this.els && this.els.tooltip;
+        if (tt) {
+            tt.classList.remove('is-docked');
+            tt.style.width = '';
+        }
+    };
+
     Tour.prototype._positionOn = function (el, place) {
+        if (this._docked) { this._layoutDock(); }
         var rect = el.getBoundingClientRect();
         var pad  = 8;
         var vw   = window.innerWidth;
         var vh   = window.innerHeight;
         var panels = this.els.panels;
+
+        // Sorotan yang lebih tinggi dari area scroll dipotong sebatas area
+        // .content yang terlihat, supaya ring tidak menabrak tooltip/header.
+        if (this._docked) {
+            var vis = document.querySelector('.content').getBoundingClientRect();
+            var cTop = Math.max(rect.top, vis.top + pad);
+            var cBot = Math.max(cTop, Math.min(rect.bottom, vis.bottom - pad));
+            rect = { top: cTop, bottom: cBot, left: rect.left, right: rect.right,
+                     width: rect.width, height: cBot - cTop };
+        }
 
         panels.top.style.cssText    = 'display:block;left:0;top:0;width:' + vw + 'px;height:' + Math.max(0, rect.top - pad) + 'px;';
         panels.bottom.style.cssText = 'display:block;left:0;top:' + (rect.bottom + pad) + 'px;width:' + vw + 'px;height:' + Math.max(0, vh - rect.bottom - pad) + 'px;';
@@ -870,6 +925,11 @@
 
         var tt = this.els.tooltip;
         var arrow = tt.querySelector('[data-tour-arrow]');
+        if (this._docked) {
+            // posisi tooltip sudah diatur oleh _layoutDock (lihat CSS .is-docked)
+            arrow.style.display = 'none';
+            return;
+        }
         var ttW = 320;
         var gap = 14;
         var top, left, place2 = place;
@@ -942,6 +1002,7 @@
         clearTimeout(this._autoTimer);
         clearTimeout(this.waitTimer);
         this._detachElListener();
+        this._clearDock();
         window.removeEventListener('resize', this._onReflow);
         window.removeEventListener('scroll', this._onReflow, true);
         var els = this.els;
