@@ -45,10 +45,24 @@
     // layar (lihat catatan panjang di includes/data.php).
     $isChecklistSoal7 = ($screen === 'checklist' && ($_SESSION['checklist_step'] ?? null) === 7)
         || $screen === 'claim_loss';
+    // Soal 8 (Test Report): hanya satu langkah -- setelah 5 detik tanpa aksi,
+    // tutorial muncul menyorot "Selanjutnya" (tidak berpindah halaman sendiri).
+    $isChecklistSoal8 = $screen === 'checklist' && ($_SESSION['checklist_step'] ?? null) === 8;
+    // Soal 15 (Konfirmasi Status LO) dan Daftar LO berstatus "Draft"
+    // (siap dikirim) masing-masing punya tutorial sendiri.
+    $isChecklistSoal15 = $screen === 'checklist' && ($_SESSION['checklist_step'] ?? null) === 15;
+    $isLoKirim = $screen === 'lo_list' && !empty(array_filter($_SESSION['lo_draft'] ?? []));
     $tourSteps  = $isChecklistSoal6 ? CHECKLIST_SOAL6_TOUR_STEPS
         : ($isChecklistSoal7 ? CHECKLIST_SOAL7_TOUR_STEPS
-        : (TOUR_STEPS[$screen] ?? []));
-    $tourSubKey = $isChecklistSoal6 ? 'checklist_soal6' : ($isChecklistSoal7 ? 'checklist_soal7' : null);
+        : ($isChecklistSoal8 ? CHECKLIST_SOAL8_TOUR_STEPS
+        : ($isChecklistSoal15 ? CHECKLIST_SOAL15_TOUR_STEPS
+        : ($isLoKirim ? LO_KIRIM_TOUR_STEPS
+        : (TOUR_STEPS[$screen] ?? [])))));
+    $tourSubKey = $isChecklistSoal6 ? 'checklist_soal6'
+        : ($isChecklistSoal7 ? 'checklist_soal7'
+        : ($isChecklistSoal8 ? 'checklist_soal8'
+        : ($isChecklistSoal15 ? 'checklist_soal15'
+        : ($isLoKirim ? 'lo_list_kirim' : null))));
     ?>
     var steps        = <?php echo json_encode($tourSteps); ?>;
     var idx          = screenOrder.indexOf(<?php echo json_encode($screen); ?>);

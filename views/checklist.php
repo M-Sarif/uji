@@ -249,12 +249,55 @@ $chevronRight = '<svg class="chevron-icon" viewBox="0 0 24 24"><path stroke-line
             <?php endif; ?>
         <?php break;
 
+        case 'dual_verif':
+            $answerLawan = checklist_answer_lawan($step); ?>
+            <div class="subtle-box">
+                <p class="hint">Verifikasi pelaksanaan tugas Anda (Mandiri)</p>
+                <div class="row choice-group">
+                    <a href="<?php echo $baseUrl; ?>&jawab=tidak" class="btn-choice red<?php echo $answer === 'tidak' ? ' is-selected' : ''; ?>">Tidak Dilakukan</a>
+                    <a href="<?php echo $baseUrl; ?>&jawab=ya" class="btn-choice blue<?php echo $answer === 'ya' ? ' is-selected' : ''; ?>">Ya, dilakukan</a>
+                </div>
+                <div class="subtle-divider"></div>
+                <p class="hint">Foto sebagai bukti (opsional)</p>
+                <label class="photo-drop">
+                    <input type="file" accept="image/*" capture="environment" hidden>
+                    <span class="photo-drop-title">Ambil Foto</span>
+                    <span class="photo-drop-sub">Tap untuk membuka kamera</span>
+                </label>
+                <div class="subtle-divider"></div>
+                <p class="hint">Verifikasi Tugas Role Lawan</p>
+                <div class="row choice-group" data-tour="verif-lawan">
+                    <a href="<?php echo $baseUrl; ?>&jawab_lawan=tidak" class="btn-choice red<?php echo $answerLawan === 'tidak' ? ' is-selected' : ''; ?>">Tidak Dilakukan</a>
+                    <a href="<?php echo $baseUrl; ?>&jawab_lawan=ya" class="btn-choice blue<?php echo $answerLawan === 'ya' ? ' is-selected' : ''; ?>">Ya, dilakukan</a>
+                </div>
+            </div>
+        <?php break;
+
+        case 'test_report': ?>
+            <div class="test-report-box">
+                <div class="test-report-doc">Dokumen Test Report</div>
+                <p class="test-report-status">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                    Dokumen telah dilihat
+                </p>
+            </div>
+        <?php break;
+
         case 'konfirmasi_lo': ?>
             <p class="section-sub">Tentukan status bongkar untuk LO yang dipilih.</p>
+            <?php
+            // Dipakai tutorial Soal 15 (CHECKLIST_SOAL15_TOUR_STEPS): jumlah
+            // LO yang statusnya sudah dipilih + kelas 'is-set' per kartu.
+            $konfirmasiDoneCount = 0;
+            foreach ($activeLoIds as $kId) {
+                if (!empty($_SESSION['lo_bongkar'][$kId])) { $konfirmasiDoneCount++; }
+            }
+            ?>
+            <div data-tour="konfirmasi-lo-group" data-tour-done-count="<?php echo $konfirmasiDoneCount; ?>">
             <?php foreach ($activeLoIds as $loId):
                 $lo     = LO_LIST[$loId];
                 $status = $_SESSION['lo_bongkar'][$loId] ?? null; ?>
-            <div class="konfirmasi-card">
+            <div class="konfirmasi-card<?php echo $status ? ' is-set' : ''; ?>">
                 <div class="lo-detail">
                     <div class="lrow"><span class="label">Nomor LO</span><span class="val"><span class="colon">:</span><?php echo h($loId); ?></span></div>
                     <div class="lrow"><span class="label">Order</span><span class="val"><span class="colon">:</span><?php echo h($lo['order']); ?></span></div>
@@ -265,6 +308,7 @@ $chevronRight = '<svg class="chevron-icon" viewBox="0 0 24 24"><path stroke-line
                 </div>
             </div>
             <?php endforeach; ?>
+            </div>
         <?php break;
     endswitch; ?>
 </div>

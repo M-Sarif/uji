@@ -422,6 +422,13 @@ if ($screen === 'checklist') {
         $_SESSION['checklist_answers'][$step] = $_GET['jawab'];
     }
 
+    // Jawaban verifikasi Tugas Role Lawan (langkah bertipe 'dual_verif': 11, 13, 14)
+    if (isset($_GET['jawab_lawan']) && in_array($_GET['jawab_lawan'], ['ya', 'tidak'], true)
+        && (CHECKLIST_STEPS[$step]['type'] ?? '') === 'dual_verif'
+    ) {
+        $_SESSION['checklist_answers_lawan'][$step] = $_GET['jawab_lawan'];
+    }
+
     // Langkah 15: status akhir tiap LO
     if (isset($_GET['lo'], $_GET['status'])
         && array_key_exists((string) $_GET['lo'], LO_LIST)

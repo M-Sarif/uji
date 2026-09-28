@@ -63,13 +63,13 @@ const CHECKLIST_STEPS = [
     5  => ['text' => 'Pasang kabel arde dan yakinkan terpasang dengan benar.', 'type' => 'action'],
     6  => ['text' => 'Periksa kesesuaian SPP yaitu produk, nomor segel (periksa keutuhan segel bawah dan atas) nopol Mobil Tangki, dan nama AMT.', 'type' => 'form_spp'],
     7  => ['text' => 'Persiapkan alat ukur, buka tutup manhole atas mobil tangki BBM, periksa jenis dan volume BBM dari IJK bout-nya, dan pastikan sertifikat tera sesuai dengan ijk bout aktual di mobil tangki dan ditutup kembali.', 'type' => 'form_ukur'],
-    8  => ['text' => 'Pemeriksaan Sampel BBM & view Test Report.', 'type' => 'action'],
+    8  => ['text' => 'Pemeriksaan Sampel BBM & View Test Reports', 'type' => 'test_report'],
     9  => ['text' => 'Pasang selang bongkar pada inlet pipa tangki (filling point), pastikan kesesuaian tangki penerima dengan produk yang akan dibongkar, kemudian pada outlet mobil tangki (gunakan quick coupling).', 'type' => 'action'],
     10 => ['text' => 'Lakukan pembongkaran dengan membuka kerangan sedikit demi sedikit. Pastikan tidak ada kebocoran pada selang maupun sambungan/coupling.', 'type' => 'action'],
-    11 => ['text' => 'Selesai melakukan bongkar, pastikan: Muatan BBM di mobil tangki benar-benar telah habis dan lakukan pengukuran volume BBM di dalam tangki penerima. Pastikan manhole atas tertutup sempurna.', 'type' => 'photo'],
+    11 => ['text' => 'Selesai melakukan bongkar, pastikan: Muatan BBM di mobil tangki benar-benar telah habis dan lakukan pengukuran volume BBM di dalam tangki penerima. Pastikan manhole atas tertutup sempurna.', 'type' => 'dual_verif'],
     12 => ['text' => 'Tutup kerangan, lepas selang bongkar dimulai dari mobil tangki dan tutup kembali lubang pengisian dari mobil tangki serta dipastikan tidak ada genangan BBM.', 'type' => 'photo'],
-    13 => ['text' => 'Lepas kabel arde, kembalikan alat pemadam ke tempat semula dan Pastikan segel bekas dibawa kembali dan diserahkan ke Terminal.', 'type' => 'photo'],
-    14 => ['text' => 'Selesaikan proses administrasi dan dokumen wajib ditandatangani bersama.', 'type' => 'photo'],
+    13 => ['text' => 'Lepas kabel arde, kembalikan alat pemadam ke tempat semula dan Pastikan segel bekas dibawa kembali dan diserahkan ke Terminal.', 'type' => 'dual_verif'],
+    14 => ['text' => 'Selesaikan proses administrasi dan dokumen wajib ditandatangani bersama.', 'type' => 'dual_verif'],
     15 => ['text' => 'Konfirmasi Status LO', 'type' => 'konfirmasi_lo'],
 ];
 
@@ -530,76 +530,71 @@ const CHECKLIST_SOAL6_TOUR_STEPS = [
 // penjelasan mekanismenya).
 const CHECKLIST_SOAL7_TOUR_STEPS = [
     // 0. Perkenalan Daftar LO (layar 'checklist', step 7) -- HANYA tampil
-    //    SATU KALI, tidak pernah diulang lagi walau ada beberapa LO yang
-    //    formnya harus diisi satu per satu (lihat langkah 4 di bawah).
+    //    SATU KALI. 'gotoOnLoad': kalau halaman dimuat dan sudah ada LO yang
+    //    terisi, langsung loncat ke langkah 4 (arahkan ke LO sisanya).
     [
+        'screen' => 'checklist',
         'target' => '[data-tour="ukur-lo-group"]',
         'title'  => 'Soal 7 · Isi Form Metode Pengukuran',
         'text'   => 'Pilih LO dengan status Form Bongkar "Belum Terisi" untuk mengisi data pengukuran pembongkaran BBM-nya.',
         'place'  => 'bottom',
+        'gotoOnLoad' => [
+            ['ifPresent' => '[data-tour="ukur-lo-group"]:not([data-tour-done-count="0"])', 'to' => 4],
+        ],
     ],
-    // 1. Pilih Metode Pengukuran (layar 'claim_loss'). 'target' sengaja
-    //    "menempel" pada SELURUH grup (bukan satu kartu metode saja) --
-    //    sama seperti bagian Produk/Segel di Soal 6 -- supaya sentuhan
-    //    pengguna memilih salah satu kartu metode (IJKBOUT / Flow Meter)
-    //    SEKALIGUS jadi sentuhan untuk melanjutkan tutorial.
-    //    'quietIf': penjelasan ini HANYA ditampilkan untuk LO PERTAMA.
-    //    Begitu ada minimal satu LO lain yang formnya sudah "Sudah
-    //    Terisi", langkah ini tetap melacak sentuhan pengguna secara
-    //    diam-diam, tapi tidak menampilkan sorotan/tooltip-nya lagi.
+    // 1. Pilih Metode Pengukuran (layar 'claim_loss'). Hanya tampil untuk LO
+    //    PERTAMA ('quietIf'); untuk LO berikutnya berjalan diam-diam.
+    //    'alsoAdvanceOn': kalau pengguna langsung mengetik di form (tanpa
+    //    mengetuk kartu metode), tutorial tetap lanjut -- tidak macet.
+    //    'skipIf': kalau pop up Hasil Generate sudah terbuka, langkah lewat.
     [
-        'target'  => '[data-tour="claim-metode-group"]',
-        'title'   => 'Pilih Metode Pengukuran',
-        'text'    => 'Pilih salah satu metode pengukuran pembongkaran BBM: "IJKBOUT" (serah terima custody transfer, diukur dengan dipstick) atau "Flow Meter" (serah terima meter arus pada mobil tangki PTO/portable).',
-        'place'   => 'bottom',
-        'quietIf' => '.claim-pad[data-tour-any-done="1"]',
+        'screen'        => 'claim_loss',
+        'target'        => '[data-tour="claim-metode-group"]',
+        'title'         => 'Pilih Metode Pengukuran',
+        'text'          => 'Pilih salah satu metode pengukuran pembongkaran BBM: "IJKBOUT" (serah terima custody transfer, diukur dengan dipstick) atau "Flow Meter" (serah terima meter arus pada mobil tangki PTO/portable).',
+        'place'         => 'bottom',
+        'quietIf'       => '.claim-pad[data-tour-any-done="1"]',
+        'skipIf'        => '.hasil-generate-sheet',
+        'alsoAdvanceOn' => ['selector' => '.claim-form', 'event' => 'input'],
     ],
-    // 2. Isi seluruh kolom form sesuai metode yang dipilih, lalu ketuk
-    //    "Generate". Sama seperti pop up Produk/Segel: 'highlight'
-    //    menyorot SELURUH kartu form (.claim-form), sementara 'target'
-    //    yang sebenarnya dipakai untuk mendeteksi klik adalah tombol
-    //    "Generate" itu sendiri -- tombol ini otomatis baru aktif (tidak
-    //    "disabled" lagi) setelah SEMUA kolom wajib terisi (lihat skrip
-    //    validasi di views/claim_loss.php), jadi tutorial akan menunggu
-    //    dengan sabar sampai pengguna benar-benar selesai mengisi, baru
-    //    menyorot tombolnya.
+    // 2. Isi seluruh kolom form lalu ketuk "Generate" (tombol baru aktif
+    //    setelah semua kolom wajib terisi).
     [
+        'screen'    => 'claim_loss',
         'target'    => '#btnGenerate',
         'highlight' => '.claim-form',
         'title'     => 'Isi Form Pengukuran',
         'text'      => 'Isi seluruh kolom wajib (Kompartemen, Level BBM di SPP, Level BBM Sebelum Bongkar, dan kolom lain sesuai metode yang dipilih) sesuai kondisi sebenarnya, lalu ketuk "Generate".',
         'place'     => 'top',
         'quietIf'   => '.claim-pad[data-tour-any-done="1"]',
+        'skipIf'    => '.hasil-generate-sheet',
     ],
-    // 3. Pop up "Hasil Generate Claim Losses" yang muncul otomatis
-    //    setelah "Generate" diketuk. 'target' memakai atribut
-    //    data-tour="hasil-primary-action" yang dipasang pada tombol aksi
-    //    utama di KEDUA kemungkinan tampilan pop up ini ("Ajukan Claim
-    //    Losses" kalau ada selisih kurang yang bisa diklaim, atau "Simpan"
-    //    kalau tidak ada selisih) -- jadi satu selector ini tetap bekerja
-    //    untuk keduanya. Sama seperti langkah 1 & 2: diam-diam mulai LO
-    //    kedua dan seterusnya.
+    // 3. Pop up "Hasil Generate Claim Losses". 'gotoOnLoad': kalau pop up
+    //    sudah tidak ada (mis. pengguna menekan "Batal"), kembali ke langkah 2.
     [
+        'screen'    => 'claim_loss',
         'target'    => '[data-tour="hasil-primary-action"]',
         'highlight' => '.hasil-generate-sheet',
         'title'     => 'Hasil Generate Claim Losses',
         'text'      => 'Sistem menampilkan selisih kekurangan (Claim Losses) beserta status generate-nya. Untuk mengetahui apakah kekurangan ini dapat diklaim, baca "Syarat Claim Losses". Kalau sudah sesuai, ketuk tombol simpan/ajukan di bawah.',
         'place'     => 'top',
         'quietIf'   => '.hasil-generate-sheet[data-tour-any-done="1"]',
+        'gotoOnLoad' => [
+            ['ifAbsent' => '.hasil-generate-sheet', 'to' => 2],
+        ],
     ],
-    // 4. Kembali di layar 'checklist' step 7 setelah LO tsb tersimpan.
-    //    Sama seperti langkah "Lengkapi Sisa Segel" di Soal 6: begitu LO
-    //    PERTAMA selesai, langkah ini muncul TEPAT SATU KALI menyorot
-    //    SELURUH Daftar LO ('highlight') supaya pengguna melihat semua LO
-    //    yang masih "Belum Terisi" sekaligus, lalu memintanya melengkapi
-    //    semuanya satu per satu. 'quietIfMin' membuat langkah ini diam
-    //    (tidak menyorot apa pun lagi, tapi tetap melacak klik secara
-    //    diam-diam) begitu SUDAH ADA 2 LO atau lebih yang formnya terisi.
-    //    'requireTarget' membuat langkah ini otomatis dilewati begitu
-    //    SEMUA LO sudah terisi (tidak pernah "nyangkut").
+    // 4. Kembali di layar 'checklist' setelah satu LO tersimpan.
+    //    PERBAIKAN: 'screen' => 'checklist' membuat langkah ini TIDAK dievaluasi
+    //    selagi pengguna masih di layar 'claim_loss' (sebelumnya langkah ini
+    //    keliru dilewati karena kartu LO-nya belum ada di layar itu, sehingga
+    //    tutorial langsung loncat ke tombol "Selanjutnya").
+    //    Yang disorot HANYA kartu LO yang masih "Belum Terisi". Begitu diketuk,
+    //    tutorial kembali ke langkah 1 (isi LO tsb). 'requireTarget': kalau
+    //    SEMUA LO sudah terisi, langkah ini dilewati -> langkah 5.
+    //    'gotoOnLoad': kalau belum ada LO terisi sama sekali -> kembali ke 0.
     [
+        'screen'        => 'checklist',
         'target'        => '[data-tour="ukur-lo-group"] .measure-lo-card:not(.done)',
-        'highlight'     => '[data-tour="ukur-lo-group"]',
         'requireTarget' => '[data-tour="ukur-lo-group"] .measure-lo-card:not(.done)',
         'quietIfMin'    => [
             'selector' => '[data-tour="ukur-lo-group"]',
@@ -607,19 +602,122 @@ const CHECKLIST_SOAL7_TOUR_STEPS = [
             'min'      => 2,
         ],
         'jumpOnClickTo' => 1,
-        'title'         => 'Lengkapi Sisa LO',
-        'text'          => 'Masih ada LO lain dengan Form Bongkar "Belum Terisi". Lengkapi semuanya satu per satu dengan langkah yang sama.',
-        'place'         => 'bottom',
+        'title'         => 'Lanjutkan ke LO Berikutnya',
+        'text'          => 'Satu LO sudah terisi. Masih ada LO lain dengan Form Bongkar "Belum Terisi". Ketuk kartu LO yang menyala ini, lalu isi form pengukurannya dengan langkah yang sama.',
+        'place'         => 'top',
+        'gotoOnLoad'    => [
+            ['ifPresent' => '[data-tour="ukur-lo-group"][data-tour-done-count="0"]', 'to' => 0],
+        ],
     ],
-    // 5. Baru setelah BENAR-BENAR SEMUA LO selesai diisi formnya (tombol
-    //    "Selanjutnya" otomatis aktif -- lihat checklist_step_done() di
-    //    includes/functions.php), tutorial menyorot tombol tsb dan
-    //    meminta pengguna melanjutkan ke soal checklist berikutnya.
+    // 5. Baru setelah SEMUA LO terisi (tombol "Selanjutnya" aktif), tutorial
+    //    menyorot tombol tsb dan meminta pengguna lanjut ke soal berikutnya.
     [
+        'screen' => 'checklist',
         'target' => '[data-tour="wizard-next"]',
         'title'  => 'Lanjutkan Checklist',
         'text'   => 'Semua LO sudah diisi form pengukurannya. Ketuk "Selanjutnya" untuk melanjutkan ke soal checklist berikutnya.',
         'place'  => 'top',
+    ],
+];
+
+// Tutorial terpandu KHUSUS Soal 8 ("Pemeriksaan Sampel BBM & View Test
+// Reports"). Soal ini tidak punya tombol Ya/Tidak -- dokumen Test Report
+// otomatis berstatus "telah dilihat" -- jadi satu-satunya aksi pengguna
+// adalah mengetuk "Selanjutnya". 'showAfter' (milidetik): pengguna diberi
+// waktu membaca halaman dulu tanpa gangguan; baru kalau dalam waktu segitu
+// tombol "Selanjutnya" belum diketuk, tutorial MUNCUL menyorot tombol itu
+// untuk mengarahkan pengguna. Tutorial TIDAK berpindah halaman sendiri
+// (lihat 'showAfter' di Tour.prototype._tryShowCurrent, assets/js/tutorial.js).
+// Dipakai lewat $tourSubKey 'checklist_soal8' di includes/layout_bottom.php.
+const CHECKLIST_SOAL8_TOUR_STEPS = [
+    [
+        'target'    => '[data-tour="wizard-next"]',
+        'title'     => 'Soal 8 · Test Report',
+        'text'      => 'Dokumen Test Report sudah otomatis tercatat "telah dilihat", jadi tidak ada yang perlu dijawab di soal ini. Ketuk "Selanjutnya" untuk melanjutkan.',
+        'place'     => 'top',
+        'showAfter' => 5000,
+    ],
+];
+
+// Tutorial terpandu Soal 15 ("Konfirmasi Status LO") -- layar 'checklist'
+// step 15. Pola sama seperti Soal 7: intro SATU KALI, lalu diarahkan ke LO
+// yang statusnya BELUM dipilih, baru menyorot tombol "Konfirmasi LO" begitu
+// SEMUA LO sudah dipilih statusnya. Dipakai lewat $tourSubKey
+// 'checklist_soal15' di includes/layout_bottom.php.
+const CHECKLIST_SOAL15_TOUR_STEPS = [
+    // 0. Perkenalan. Kalau halaman dimuat dan sudah ada LO yang statusnya
+    //    terpilih, langsung loncat ke langkah 1.
+    [
+        'target'    => '[data-tour="konfirmasi-lo-group"]',
+        // Yang disorot cukup kartu LO pertama (kelompok LO terlalu tinggi
+        // sehingga tooltip terpotong di tepi layar); ketukan pada LO mana
+        // pun di dalam grup tetap melanjutkan tutorial.
+        'highlight' => '.konfirmasi-card',
+        'title'  => 'Soal 15 · Konfirmasi Status LO',
+        'text'   => 'Tentukan status bongkar tiap LO: ketuk "Sudah Dibongkar" kalau BBM untuk LO ini jadi dibongkar, atau "Tidak Jadi" kalau pembongkaran dibatalkan. Mulai dari LO pertama.',
+        'place'  => 'bottom',
+        'gotoOnLoad' => [
+            ['ifPresent' => '.konfirmasi-card.is-set', 'to' => 1],
+        ],
+    ],
+    // 1. Arahkan ke LO yang BELUM dipilih statusnya. Dilewati otomatis
+    //    ('requireTarget') begitu semua LO sudah punya status.
+    [
+        'target'        => '.konfirmasi-card:not(.is-set)',
+        'highlight'     => '.konfirmasi-card:not(.is-set)',
+        'requireTarget' => '.konfirmasi-card:not(.is-set)',
+        'jumpOnClickTo' => 1,
+        'title'         => 'Lanjutkan ke LO Berikutnya',
+        'text'          => 'Masih ada LO yang statusnya belum dipilih. Pilih "Tidak Jadi" atau "Sudah Dibongkar" pada LO yang menyala ini.',
+        'place'         => 'top',
+        'gotoOnLoad'    => [
+            ['ifPresent' => '[data-tour="konfirmasi-lo-group"][data-tour-done-count="0"]', 'to' => 0],
+        ],
+    ],
+    // 2. Semua LO sudah punya status -> sorot "Konfirmasi LO".
+    [
+        'target' => '[data-tour="wizard-next"]',
+        'title'  => 'Konfirmasi LO',
+        'text'   => 'Semua LO sudah ditentukan statusnya. Ketuk "Konfirmasi LO" untuk menyimpan dan kembali ke Daftar LO.',
+        'place'  => 'top',
+    ],
+];
+
+// Tutorial terpandu Daftar LO SETELAH checklist dikonfirmasi (LO berstatus
+// "Draft"): pilih LO -> tombol Kirim -> pop up "Kirim Checklist". Dipisah
+// dari TOUR_STEPS['lo_list'] (tutorial awal "Pilih LO / Mulai Checklist")
+// lewat $tourSubKey 'lo_list_kirim' supaya tetap tampil walau tutorial
+// awal layar ini sudah pernah ditonton.
+const LO_KIRIM_TOUR_STEPS = [
+    // 0. Pilih LO yang mau dikirim. Dilewati kalau tombol Kirim sudah aktif
+    //    (LO Draft sudah tercentang).
+    [
+        'target'  => '[data-tour="daftar-lo"]',
+        'title'   => 'Pilih LO yang Akan Dikirim',
+        'text'    => 'Checklist tiap LO sudah berstatus "Draft". Centang LO yang ingin dikirim, atau ketuk "Pilih Semua". Tombol Kirim baru aktif setelah ada LO Draft yang dicentang.',
+        'place'   => 'bottom',
+        'skipIf'  => '#btnKirimChecklist:not([disabled])',
+    ],
+    // 1. Tombol Kirim (baru disorot saat sudah aktif). Kalau halaman dimuat
+    //    dan Kirim masih nonaktif (mis. centang dilepas), kembali ke langkah 0.
+    [
+        'target' => '#btnKirimChecklist',
+        'title'  => 'Kirim Checklist',
+        'text'   => 'Semua data sudah terisi. Ketuk "Kirim" untuk mengirim checklist ke sistem.',
+        'place'  => 'top',
+        'gotoOnLoad' => [
+            ['ifPresent' => '#btnKirimChecklist[disabled]', 'to' => 0],
+        ],
+    ],
+    // 2. Pop up konfirmasi. 'cancelOn': kalau pengguna menekan "Batal",
+    //    tutorial mundur ke langkah 1 (menyorot tombol Kirim lagi).
+    [
+        'target'    => '#btnYaKirim',
+        'highlight' => '#kirimModal .modal-sheet',
+        'title'     => 'Konfirmasi Pengiriman',
+        'text'      => 'Pastikan data sudah benar -- data yang sudah dikirim tidak dapat diubah lagi. Kalau sudah yakin, ketuk "Ya, Kirim".',
+        'place'     => 'top',
+        'cancelOn'  => ['selector' => '#btnBatalKirim', 'event' => 'click', 'to' => 1],
     ],
 ];
 

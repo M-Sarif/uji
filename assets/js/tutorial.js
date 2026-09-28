@@ -206,9 +206,51 @@
             startPos = dynIdx;
         }
 
-        this.stepIndex = startPos;
+        this.stepIndex = this._normalizeStart(startPos);
         this._buildOverlay();
         this._runStep();
+    };
+
+    // Merapikan posisi langkah SAAT HALAMAN DIMUAT (bukan saat lanjut biasa):
+    //  1. 'screen' (opsional per langkah): langkah hanya boleh tampil di layar
+    //     tsb (mis. 'checklist' / 'claim_loss'). Kalau posisi tersimpan milik
+    //     layar lain, geser ke langkah terdekat (maju dulu, baru mundur)
+    //     yang cocok dengan layar sekarang.
+    //  2. 'gotoOnLoad' (opsional): [{ ifPresent | ifAbsent: selector, to: n }]
+    //     -> kalau kondisinya terpenuhi, loncat ke langkah n. Dipakai supaya
+    //     tutorial selalu sinkron dengan keadaan halaman yang sebenarnya
+    //     (mis. LO kedua belum diisi -> tetap diarahkan ke LO tsb).
+    Tour.prototype._normalizeStart = function (pos) {
+        var steps = this.rawSteps;
+        for (var guard = 0; guard < 8; guard++) {
+            var moved = false;
+            var st = steps[pos];
+            if (!st) { break; }
+
+            if (st.screen && st.screen !== this.screen) {
+                var found = -1, i;
+                for (i = pos + 1; i < steps.length; i++) {
+                    if (!steps[i].screen || steps[i].screen === this.screen) { found = i; break; }
+                }
+                if (found === -1) {
+                    for (i = pos - 1; i >= 0; i--) {
+                        if (!steps[i].screen || steps[i].screen === this.screen) { found = i; break; }
+                    }
+                }
+                if (found !== -1 && found !== pos) { pos = found; moved = true; }
+            }
+
+            st = steps[pos];
+            var rules = (st && st.gotoOnLoad) || [];
+            for (var r = 0; r < rules.length; r++) {
+                var rule = rules[r];
+                var hit = rule.ifPresent ? !!document.querySelector(rule.ifPresent)
+                                         : !document.querySelector(rule.ifAbsent);
+                if (hit && rule.to !== pos) { pos = rule.to; moved = true; break; }
+            }
+            if (!moved) { break; }
+        }
+        return pos;
     };
 
     Tour.prototype.rescan = function () {
@@ -284,6 +326,7 @@
         clearTimeout(this.waitTimer);
         clearTimeout(this.delayTimer);
         this._delayedForTarget = null;
+        this._showAfterAt = null;
         this._waitingTarget = null;
         // Selalu lepas listener klik dari elemen langkah SEBELUMNYA di sini,
         // bukan cuma di _showOn/_showCentered. Kalau tidak, listener lama
@@ -308,6 +351,28 @@
         var step = this.rawSteps[this.stepIndex];
         if (!step) { return; }
 
+        // Langkah milik LAYAR LAIN (mis. langkah "Lengkapi Sisa LO" yang
+        // ada di layar 'checklist', padahal pengguna baru saja mengetuk
+        // "Simpan" di layar 'claim_loss'): JANGAN dievaluasi / dilewati di
+        // sini. Kalau dievaluasi, 'requireTarget'-nya pasti "tidak ditemukan"
+        // (kartunya memang ada di layar lain) sehingga langkah ini keliru
+        // dianggap tidak relevan dan tutorial loncat ke langkah berikutnya
+        // (tombol "Selanjutnya"), padahal LO lain belum diisi. Cukup sembunyikan
+        // sorotan dan tunggu -- posisi langkah sudah tersimpan, jadi begitu
+        // layar yang benar dimuat tutorial melanjutkan dari langkah ini.
+        if (step.screen && step.screen !== this.screen) {
+            this._holdForOtherScreen();
+            return;
+        }
+
+        // 'skipIf': langkah dianggap SUDAH terpenuhi kalau selector ini ada
+        // (mis. pop up Hasil Generate sudah terbuka -> langkah "isi form" lewat).
+        if (step.skipIf && document.querySelector(step.skipIf)) {
+            this.stepIndex++;
+            this._runStep();
+            return;
+        }
+
         // Sebagian langkah (mis. "Lanjutkan ke Produk/Segel Berikutnya")
         // hanya relevan SELAMA syarat 'requireTarget'-nya masih ditemukan
         // di halaman (mis. masih ada kartu Produk/Segel berstatus "Belum
@@ -330,6 +395,33 @@
         }
 
         var el = document.querySelector(step.target);
+
+        // 'showAfter' (opsional, milidetik): beri pengguna waktu membaca /
+        // mengisi halaman DULU tanpa gangguan. Selama jeda ini tidak ada
+        // sorotan maupun tooltip. Begitu jeda habis dan pengguna belum
+        // mengetuk elemen target, barulah tutorial muncul untuk
+        // MENGARAHKAN pengguna mengetuknya -- tutorial TIDAK pernah
+        // mengetuk/berpindah halaman sendiri. Kalau pengguna sudah
+        // mengetuk targetnya sendiri selama jeda, tutorial ini dianggap
+        // selesai (listener diam-diam dari _showQuiet) dan tidak muncul lagi.
+        if (step.showAfter) {
+            if (!this._showAfterAt) { this._showAfterAt = Date.now() + step.showAfter; }
+            var left = this._showAfterAt - Date.now();
+            if (left > 0) {
+                this._waitingTarget = null;
+                this._quiet = true;
+                this._currentEl = null;
+                if (el && !this._elListenerEl) { this._showQuiet(el, step); }
+                var selfDelay = this;
+                clearTimeout(this.waitTimer);
+                this.waitTimer = setTimeout(function () {
+                    if (selfDelay.rawSteps[selfDelay.stepIndex] !== step) { return; }
+                    selfDelay._tryShowCurrent();
+                }, left);
+                return;
+            }
+        }
+
         // Langkah yang punya 'highlight' terpisah dari 'target' (lihat
         // catatan di isVisibleIgnoringDisabled di atas) boleh langsung
         // tampil walau elemen target-nya (tombolnya) masih disabled --
@@ -421,6 +513,22 @@
         }, 400);
     };
 
+    Tour.prototype._holdForOtherScreen = function () {
+        this._waitingTarget = null;
+        this._quiet = true;
+        this._currentEl = null;
+        this._currentHighlightEl = null;
+        if (this.els.backdrop) {
+            this.els.backdrop.classList.remove('is-visible');
+            this.els.backdrop.classList.remove('is-blocking');
+            this.els.tooltip.classList.remove('is-visible');
+            Object.keys(this.els.panels).forEach(function (k) {
+                this.els.panels[k].style.display = 'none';
+            }, this);
+            this.els.ring.style.display = 'none';
+        }
+    };
+
     Tour.prototype._advanceSkippingHidden = function () {
         this.stepIndex++;
         this._runStep();
@@ -438,6 +546,10 @@
         }
         this._elListenerEl   = null;
         this._elClickHandler = null;
+        if (this._extraListeners) {
+            this._extraListeners.forEach(function (x) { x.el.removeEventListener(x.evt, x.fn, true); });
+        }
+        this._extraListeners = [];
         // Lepas juga pengamat "tombol berubah dari disabled -> aktif" (lihat
         // _watchEnableTransition) supaya tidak menempel ke elemen langkah
         // yang sudah tidak relevan lagi.
@@ -606,6 +718,7 @@
         };
         this._elListenerEl   = el;
         el.addEventListener('click', this._elClickHandler, true);
+        this._attachExtra(step);
 
         requestAnimationFrame(function () { tt.classList.add('is-visible'); });
     };
@@ -639,6 +752,43 @@
         };
         this._elListenerEl = el;
         el.addEventListener('click', this._elClickHandler, true);
+        this._attachExtra(step);
+    };
+
+    // 'alsoAdvanceOn' (opsional): { selector, event } -- pemicu tambahan
+    // selain klik pada elemen target (mis. pengguna langsung mengetik di
+    // form tanpa mengetuk kartu metode dulu), supaya tutorial tidak macet.
+    Tour.prototype._attachExtra = function (step) {
+        this._extraListeners = this._extraListeners || [];
+        var self = this;
+
+        var cfg = step.alsoAdvanceOn;
+        if (cfg && this._elClickHandler) {
+            var node = document.querySelector(cfg.selector);
+            if (node) {
+                var fn = this._elClickHandler;
+                node.addEventListener(cfg.event, fn, true);
+                this._extraListeners.push({ el: node, evt: cfg.event, fn: fn });
+            }
+        }
+
+        // 'cancelOn' (opsional): { selector, event, to } -- kalau pengguna
+        // membatalkan (mis. menekan "Batal" pada pop up konfirmasi Kirim),
+        // tutorial MUNDUR ke langkah 'to' supaya tidak macet menunggu
+        // pop up yang sudah tertutup.
+        var cc = step.cancelOn;
+        if (cc && typeof cc.to === 'number') {
+            var cnode = document.querySelector(cc.selector);
+            if (cnode) {
+                var cfn = function () {
+                    self._detachElListener();
+                    self.stepIndex = cc.to;
+                    self._runStep();
+                };
+                cnode.addEventListener(cc.event || 'click', cfn, true);
+                this._extraListeners.push({ el: cnode, evt: cc.event || 'click', fn: cfn });
+            }
+        }
     };
 
     Tour.prototype._fillTooltip = function (step, el) {

@@ -83,6 +83,12 @@ function init_session_state(): void
         // Jawaban tiap langkah checklist: nomor langkah => 'ya' | 'tidak'
         $_SESSION['checklist_answers'] = [];
     }
+    if (!isset($_SESSION['checklist_answers_lawan'])) {
+        // Jawaban verifikasi TUGAS ROLE LAWAN pada langkah bertipe
+        // 'dual_verif' (11, 13, 14): nomor langkah => 'ya' | 'tidak'.
+        // Dipisah dari checklist_answers (verifikasi mandiri).
+        $_SESSION['checklist_answers_lawan'] = [];
+    }
     if (!isset($_SESSION['spp_produk'])) {
         // Langkah 6 - kesesuaian produk per Nomor LO (id => true bila sudah terisi)
         $_SESSION['spp_produk'] = [];
@@ -165,6 +171,7 @@ function reset_flow_state(): void
         $_SESSION['lo_done'],
         $_SESSION['checklist_step'],
         $_SESSION['checklist_answers'],
+        $_SESSION['checklist_answers_lawan'],
         $_SESSION['spp_produk'],
         $_SESSION['spp_segel'],
         $_SESSION['lo_form'],
@@ -188,6 +195,12 @@ function checklist_answer(int $step): ?string
     return $_SESSION['checklist_answers'][$step] ?? null;
 }
 
+/** Jawaban verifikasi Tugas Role Lawan untuk satu langkah ('ya' | 'tidak' | null) */
+function checklist_answer_lawan(int $step): ?string
+{
+    return $_SESSION['checklist_answers_lawan'][$step] ?? null;
+}
+
 /**
  * Apakah langkah checklist ke-$step sudah lengkap diisi?
  * Dipakai untuk mengaktifkan/menonaktifkan tombol "Selanjutnya",
@@ -202,6 +215,12 @@ function checklist_step_done(int $step, array $activeLoIds): bool
         case 'action':
         case 'photo':
             return checklist_answer($step) !== null;
+
+        // Langkah dengan DUA verifikasi (mandiri + role lawan): tombol
+        // "Selanjutnya" baru aktif kalau keduanya sudah dijawab. Foto opsional.
+        case 'dual_verif':
+            return checklist_answer($step) !== null
+                && checklist_answer_lawan($step) !== null;
 
         case 'form_spp':
             foreach ($activeLoIds as $loId) {
@@ -222,6 +241,11 @@ function checklist_step_done(int $step, array $activeLoIds): bool
                     return false;
                 }
             }
+            return true;
+
+        // Langkah 8 (Test Report): tidak ada pilihan Ya/Tidak. Dokumen otomatis
+        // dianggap sudah dilihat, jadi tombol "Selanjutnya" langsung aktif.
+        case 'test_report':
             return true;
 
         case 'konfirmasi_lo':
