@@ -37,8 +37,18 @@
     // (langkah 1-15 lainnya), supaya tetap tampil pertama kali soal ini
     // dicapai walau tutorial umum sudah pernah ditonton.
     $isChecklistSoal6 = $screen === 'checklist' && ($_SESSION['checklist_step'] ?? null) === 6;
-    $tourSteps  = $isChecklistSoal6 ? CHECKLIST_SOAL6_TOUR_STEPS : (TOUR_STEPS[$screen] ?? []);
-    $tourSubKey = $isChecklistSoal6 ? 'checklist_soal6' : null;
+    // Soal 7 ("Isi form Metode Pengukuran...") mencakup DUA layar: daftar
+    // LO di 'checklist' (step 7) dan form pengukurannya sendiri di layar
+    // terpisah 'claim_loss' -- makanya subKey-nya sama ('checklist_soal7')
+    // untuk KEDUANYA, supaya progres tutorialnya tetap nyambung dan
+    // dilacak sebagai SATU rangkaian tutorial yang sama walau berpindah
+    // layar (lihat catatan panjang di includes/data.php).
+    $isChecklistSoal7 = ($screen === 'checklist' && ($_SESSION['checklist_step'] ?? null) === 7)
+        || $screen === 'claim_loss';
+    $tourSteps  = $isChecklistSoal6 ? CHECKLIST_SOAL6_TOUR_STEPS
+        : ($isChecklistSoal7 ? CHECKLIST_SOAL7_TOUR_STEPS
+        : (TOUR_STEPS[$screen] ?? []));
+    $tourSubKey = $isChecklistSoal6 ? 'checklist_soal6' : ($isChecklistSoal7 ? 'checklist_soal7' : null);
     ?>
     var steps        = <?php echo json_encode($tourSteps); ?>;
     var idx          = screenOrder.indexOf(<?php echo json_encode($screen); ?>);

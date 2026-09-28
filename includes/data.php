@@ -512,6 +512,117 @@ const CHECKLIST_SOAL6_TOUR_STEPS = [
     ],
 ];
 
+// Tutorial terpandu KHUSUS Soal 7 ("user perlu mengisi form data LO
+// berdasarkan Metode Pengukuran yang dipilih") pada wizard Checklist
+// Pra-Pembongkaran. Sama seperti CHECKLIST_SOAL6_TOUR_STEPS di atas,
+// dipakai lewat $tourSubKey ('checklist_soal7') di includes/layout_bottom.php
+// supaya statusnya "sudah ditonton" + posisi langkahnya dilacak sebagai
+// SATU rangkaian tutorial yang sama, walau langkah-langkahnya sendiri
+// tersebar di DUA layar berbeda: daftar LO ada di layar 'checklist'
+// (step 7), sedangkan pemilihan metode + pengisian form + hasil generate
+// ada di layar terpisah 'claim_loss' (lihat views/claim_loss.php).
+//
+// Pola "tampil lengkap SATU KALI untuk LO pertama, lalu diam-diam untuk LO
+// kedua dan seterusnya, baru menyorot lagi begitu SEMUA LO selesai" persis
+// mengikuti pola yang sudah dipakai pada Produk & Segel di
+// CHECKLIST_SOAL6_TOUR_STEPS ('quietIf' / 'quietIfMin' / 'requireTarget' /
+// 'jumpOnClickTo' -- lihat catatan di masing-masing langkah situ untuk
+// penjelasan mekanismenya).
+const CHECKLIST_SOAL7_TOUR_STEPS = [
+    // 0. Perkenalan Daftar LO (layar 'checklist', step 7) -- HANYA tampil
+    //    SATU KALI, tidak pernah diulang lagi walau ada beberapa LO yang
+    //    formnya harus diisi satu per satu (lihat langkah 4 di bawah).
+    [
+        'target' => '[data-tour="ukur-lo-group"]',
+        'title'  => 'Soal 7 · Isi Form Metode Pengukuran',
+        'text'   => 'Pilih LO dengan status Form Bongkar "Belum Terisi" untuk mengisi data pengukuran pembongkaran BBM-nya.',
+        'place'  => 'bottom',
+    ],
+    // 1. Pilih Metode Pengukuran (layar 'claim_loss'). 'target' sengaja
+    //    "menempel" pada SELURUH grup (bukan satu kartu metode saja) --
+    //    sama seperti bagian Produk/Segel di Soal 6 -- supaya sentuhan
+    //    pengguna memilih salah satu kartu metode (IJKBOUT / Flow Meter)
+    //    SEKALIGUS jadi sentuhan untuk melanjutkan tutorial.
+    //    'quietIf': penjelasan ini HANYA ditampilkan untuk LO PERTAMA.
+    //    Begitu ada minimal satu LO lain yang formnya sudah "Sudah
+    //    Terisi", langkah ini tetap melacak sentuhan pengguna secara
+    //    diam-diam, tapi tidak menampilkan sorotan/tooltip-nya lagi.
+    [
+        'target'  => '[data-tour="claim-metode-group"]',
+        'title'   => 'Pilih Metode Pengukuran',
+        'text'    => 'Pilih salah satu metode pengukuran pembongkaran BBM: "IJKBOUT" (serah terima custody transfer, diukur dengan dipstick) atau "Flow Meter" (serah terima meter arus pada mobil tangki PTO/portable).',
+        'place'   => 'bottom',
+        'quietIf' => '.claim-pad[data-tour-any-done="1"]',
+    ],
+    // 2. Isi seluruh kolom form sesuai metode yang dipilih, lalu ketuk
+    //    "Generate". Sama seperti pop up Produk/Segel: 'highlight'
+    //    menyorot SELURUH kartu form (.claim-form), sementara 'target'
+    //    yang sebenarnya dipakai untuk mendeteksi klik adalah tombol
+    //    "Generate" itu sendiri -- tombol ini otomatis baru aktif (tidak
+    //    "disabled" lagi) setelah SEMUA kolom wajib terisi (lihat skrip
+    //    validasi di views/claim_loss.php), jadi tutorial akan menunggu
+    //    dengan sabar sampai pengguna benar-benar selesai mengisi, baru
+    //    menyorot tombolnya.
+    [
+        'target'    => '#btnGenerate',
+        'highlight' => '.claim-form',
+        'title'     => 'Isi Form Pengukuran',
+        'text'      => 'Isi seluruh kolom wajib (Kompartemen, Level BBM di SPP, Level BBM Sebelum Bongkar, dan kolom lain sesuai metode yang dipilih) sesuai kondisi sebenarnya, lalu ketuk "Generate".',
+        'place'     => 'top',
+        'quietIf'   => '.claim-pad[data-tour-any-done="1"]',
+    ],
+    // 3. Pop up "Hasil Generate Claim Losses" yang muncul otomatis
+    //    setelah "Generate" diketuk. 'target' memakai atribut
+    //    data-tour="hasil-primary-action" yang dipasang pada tombol aksi
+    //    utama di KEDUA kemungkinan tampilan pop up ini ("Ajukan Claim
+    //    Losses" kalau ada selisih kurang yang bisa diklaim, atau "Simpan"
+    //    kalau tidak ada selisih) -- jadi satu selector ini tetap bekerja
+    //    untuk keduanya. Sama seperti langkah 1 & 2: diam-diam mulai LO
+    //    kedua dan seterusnya.
+    [
+        'target'    => '[data-tour="hasil-primary-action"]',
+        'highlight' => '.hasil-generate-sheet',
+        'title'     => 'Hasil Generate Claim Losses',
+        'text'      => 'Sistem menampilkan selisih kekurangan (Claim Losses) beserta status generate-nya. Untuk mengetahui apakah kekurangan ini dapat diklaim, baca "Syarat Claim Losses". Kalau sudah sesuai, ketuk tombol simpan/ajukan di bawah.',
+        'place'     => 'top',
+        'quietIf'   => '.hasil-generate-sheet[data-tour-any-done="1"]',
+    ],
+    // 4. Kembali di layar 'checklist' step 7 setelah LO tsb tersimpan.
+    //    Sama seperti langkah "Lengkapi Sisa Segel" di Soal 6: begitu LO
+    //    PERTAMA selesai, langkah ini muncul TEPAT SATU KALI menyorot
+    //    SELURUH Daftar LO ('highlight') supaya pengguna melihat semua LO
+    //    yang masih "Belum Terisi" sekaligus, lalu memintanya melengkapi
+    //    semuanya satu per satu. 'quietIfMin' membuat langkah ini diam
+    //    (tidak menyorot apa pun lagi, tapi tetap melacak klik secara
+    //    diam-diam) begitu SUDAH ADA 2 LO atau lebih yang formnya terisi.
+    //    'requireTarget' membuat langkah ini otomatis dilewati begitu
+    //    SEMUA LO sudah terisi (tidak pernah "nyangkut").
+    [
+        'target'        => '[data-tour="ukur-lo-group"] .measure-lo-card:not(.done)',
+        'highlight'     => '[data-tour="ukur-lo-group"]',
+        'requireTarget' => '[data-tour="ukur-lo-group"] .measure-lo-card:not(.done)',
+        'quietIfMin'    => [
+            'selector' => '[data-tour="ukur-lo-group"]',
+            'attr'     => 'data-tour-done-count',
+            'min'      => 2,
+        ],
+        'jumpOnClickTo' => 1,
+        'title'         => 'Lengkapi Sisa LO',
+        'text'          => 'Masih ada LO lain dengan Form Bongkar "Belum Terisi". Lengkapi semuanya satu per satu dengan langkah yang sama.',
+        'place'         => 'bottom',
+    ],
+    // 5. Baru setelah BENAR-BENAR SEMUA LO selesai diisi formnya (tombol
+    //    "Selanjutnya" otomatis aktif -- lihat checklist_step_done() di
+    //    includes/functions.php), tutorial menyorot tombol tsb dan
+    //    meminta pengguna melanjutkan ke soal checklist berikutnya.
+    [
+        'target' => '[data-tour="wizard-next"]',
+        'title'  => 'Lanjutkan Checklist',
+        'text'   => 'Semua LO sudah diisi form pengukurannya. Ketuk "Selanjutnya" untuk melanjutkan ke soal checklist berikutnya.',
+        'place'  => 'top',
+    ],
+];
+
 // Judul singkat tiap layar untuk indikator "Bagian X dari Y" pada
 // tutorial terpandu (hanya layar yang memang dilalui alur SPBU).
 const TOUR_SCREEN_ORDER = [

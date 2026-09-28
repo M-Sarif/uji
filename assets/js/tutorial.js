@@ -99,6 +99,30 @@
         return rect.width > 0 && rect.height > 0;
     }
 
+    // Sama seperti isVisible(), TAPI TIDAK peduli apakah 'el' sedang
+    // "disabled" atau tidak. Dipakai KHUSUS untuk langkah yang punya
+    // 'highlight' terpisah dari 'target' (mis. "Isi Form Pengukuran" pada
+    // Soal 7: 'target'-nya tombol "Generate" yang MEMANG sengaja disabled
+    // sampai semua kolom form terisi, sementara 'highlight'-nya adalah
+    // SELURUH kartu form/.claim-form). Untuk langkah semacam ini, kotak
+    // sorotan hijaunya harus tetap muncul SEJAK AWAL (menyorot form yang
+    // masih kosong, mengarahkan pengguna mengisinya) -- bukan baru muncul
+    // di akhir setelah tombolnya aktif. Klik tetap tidak akan pernah benar-
+    // benar terjadi selama tombolnya disabled (browser menahannya sendiri),
+    // jadi tutorial tetap baru lanjut begitu pengguna benar-benar menekan
+    // tombolnya setelah aktif.
+    function isVisibleIgnoringDisabled(el) {
+        if (!el) { return false; }
+        if (el.hidden) { return false; }
+        var anc = el;
+        while (anc) {
+            if (anc.hidden) { return false; }
+            anc = anc.parentElement;
+        }
+        var rect = el.getBoundingClientRect();
+        return rect.width > 0 && rect.height > 0;
+    }
+
     // Menentukan apakah suatu langkah harus ditampilkan "diam-diam" (lihat
     // _showQuiet): entah lewat 'quietIf' (selector sederhana - diam kalau
     // DITEMUKAN), atau 'quietIfMin' (diam kalau suatu atribut data- pada
@@ -306,7 +330,13 @@
         }
 
         var el = document.querySelector(step.target);
-        if (el && isVisible(el)) {
+        // Langkah yang punya 'highlight' terpisah dari 'target' (lihat
+        // catatan di isVisibleIgnoringDisabled di atas) boleh langsung
+        // tampil walau elemen target-nya (tombolnya) masih disabled --
+        // supaya kotak sorotan pada form yang masih kosong tetap muncul
+        // sejak awal, bukan baru muncul di akhir setelah tombolnya aktif.
+        var canShow = el && (step.highlight ? isVisibleIgnoringDisabled(el) : isVisible(el));
+        if (canShow) {
             this._waitingTarget = null;
 
             // Beberapa elemen target sengaja diberi atribut
@@ -408,6 +438,46 @@
         }
         this._elListenerEl   = null;
         this._elClickHandler = null;
+        // Lepas juga pengamat "tombol berubah dari disabled -> aktif" (lihat
+        // _watchEnableTransition) supaya tidak menempel ke elemen langkah
+        // yang sudah tidak relevan lagi.
+        if (this._enableObserver) {
+            this._enableObserver.disconnect();
+            this._enableObserver = null;
+        }
+    };
+
+    // Mengamati elemen 'el' (tombol yang awalnya disabled, mis. "Generate")
+    // sampai benar-benar aktif, lalu memindahkan sorotan (ring + tooltip)
+    // supaya menyorot LANGSUNG ke tombol itu sendiri -- lihat catatan
+    // panjang di _showOn. Dipanggil sekali per langkah; otomatis berhenti
+    // mengamati begitu tutorial pindah ke langkah lain (lihat
+    // _detachElListener, yang selalu dipanggil di awal _runStep).
+    Tour.prototype._watchEnableTransition = function (el, step) {
+        var self = this;
+        if (this._enableObserver) { this._enableObserver.disconnect(); }
+
+        function promote() {
+            self._enableObserver = null;
+            // Kalau tutorial sudah berpindah dari langkah ini (mis. pengguna
+            // sempat mengetuk sesuatu yang lain lalu balik lagi), jangan
+            // lakukan apa-apa lagi.
+            if (self._currentEl !== el) { return; }
+            self._currentHighlightEl = el;
+            el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+            setTimeout(function () { self._positionOn(el, self._currentPlace); }, 150);
+            var tt = self.els.tooltip;
+            var hint = tt.querySelector('[data-tour-hint]');
+            if (hint) { hint.textContent = '👉 Ketuk elemen yang bersinar untuk melanjutkan'; }
+        }
+
+        if (!el.disabled) { promote(); return; }
+
+        if (typeof MutationObserver === 'undefined') { return; }
+        this._enableObserver = new MutationObserver(function () {
+            if (!el.disabled) { promote(); }
+        });
+        this._enableObserver.observe(el, { attributes: true, attributeFilter: ['disabled'] });
     };
 
     Tour.prototype._showCentered = function (step) {
@@ -468,6 +538,20 @@
         // fallback ke 'el' seperti semula (perilaku lama, tidak berubah).
         var highlightEl = (step.highlight && document.querySelector(step.highlight)) || el;
         this._currentHighlightEl = highlightEl;
+
+        // Kalau langkah ini punya 'highlight' terpisah dan elemen target-nya
+        // (tombolnya sendiri, mis. "Generate") MASIH disabled saat ini
+        // ditampilkan (lihat isVisibleIgnoringDisabled) -- pasang pengamat:
+        // begitu tombol itu benar-benar aktif (pengguna selesai mengisi
+        // semua kolom wajib), sorotan PINDAH dari highlight (seluruh
+        // form) supaya langsung menyorot tombolnya sendiri, dan teks
+        // petunjuknya diperbarui. Jadi begitu pengisian selesai, tutorial
+        // ini kelihatan jelas "melangkah maju" mengarah ke tombol yang
+        // memang harus diketuk -- bukan diam menunjuk area form yang sama
+        // terus sehingga terkesan macet/tidak merespons.
+        if (step.highlight && el !== highlightEl && el.disabled) {
+            this._watchEnableTransition(el, step);
+        }
 
         // JANGAN nyalakan backdrop gelap layar-penuh di sini: kalau dinyalakan,
         // lapisan gelapnya ikut menutupi elemen yang sedang disorot juga,

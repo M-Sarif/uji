@@ -153,6 +153,18 @@ $chevronRight = '<svg class="chevron-icon" viewBox="0 0 24 24"><path stroke-line
         <?php break;
 
         case 'form_ukur': ?>
+            <?php
+            // Dipakai oleh tutorial Soal 7 (lihat CHECKLIST_SOAL7_TOUR_STEPS
+            // di includes/data.php), sama seperti data-tour-done-count pada
+            // bagian Segel di Soal 6: membedakan "baru 1 LO yang formnya
+            // terisi" (hint "Lengkapi Sisa LO" perlu ditampilkan) dari
+            // "2 atau lebih sudah terisi" (hint itu tidak perlu diulang).
+            $ukurDoneCount = 0;
+            foreach ($activeLoIds as $doneCheckId) {
+                if (!empty($_SESSION['lo_form'][$doneCheckId])) { $ukurDoneCount++; }
+            }
+            ?>
+            <div data-tour="ukur-lo-group" data-tour-done-count="<?php echo $ukurDoneCount; ?>">
             <p class="section-heading">Daftar LO</p>
             <p class="section-sub">Isi satu persatu data LO terlebih dahulu untuk keperluan verifikasi order.</p>
             <?php foreach ($activeLoIds as $loId):
@@ -160,7 +172,7 @@ $chevronRight = '<svg class="chevron-icon" viewBox="0 0 24 24"><path stroke-line
                 $form       = $_SESSION['lo_form'][$loId] ?? null;
                 $claimLoss  = $form ? (float) $form['claim_loss'] : 0.0;
                 $metodeQ    = $form ? '&metode=' . urlencode($form['metode']) : ''; ?>
-            <a href="index.php?screen=claim_loss&lo=<?php echo urlencode($loId); ?><?php echo $metodeQ; ?>" class="measure-lo-card">
+            <a href="index.php?screen=claim_loss&lo=<?php echo urlencode($loId); ?><?php echo $metodeQ; ?>" class="measure-lo-card<?php echo $form ? ' done' : ''; ?>">
                 <div class="lo-detail">
                     <div class="lrow"><span class="label">Nomor LO</span><span class="val"><span class="colon">:</span><?php echo h($loId); ?></span></div>
                     <div class="lrow"><span class="label">Order</span><span class="val"><span class="colon">:</span><span class="order-input"><?php echo h($lo['order']); ?></span></span></div>
@@ -170,6 +182,8 @@ $chevronRight = '<svg class="chevron-icon" viewBox="0 0 24 24"><path stroke-line
                 <?php echo $chevronRight; ?>
             </a>
             <?php endforeach; ?>
+            </div>
+
 
             <?php if (!empty($pendingClaimLoIds)): ?>
             <button type="button" id="btnAjukanClaimList" class="btn-outline hasil-btn-full ajukan-claim-list-btn">

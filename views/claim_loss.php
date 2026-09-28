@@ -25,13 +25,29 @@ $showResult = ($_GET['hasil'] ?? '') === '1' && $draft !== null && $draft['metod
 $claimLossResult = $draft !== null ? (float) $draft['claim_loss'] : 0.0;
 $bisaKlaim        = $claimLossResult > 0;
 $batalHref        = 'index.php?screen=claim_loss&metode=' . urlencode($method) . $loQuery;
+
+// Sama seperti $activeLoIds di views/checklist.php: LO yang sedang
+// dikerjakan pada wizard ini. Dipakai HANYA untuk tutorial Soal 7 (lihat
+// CHECKLIST_SOAL7_TOUR_STEPS di includes/data.php) supaya langkah-langkah
+// di layar claim_loss ini tahu apakah ini LO PERTAMA yang diisi (tampilkan
+// penjelasan lengkap) atau LO kedua dan seterusnya (diam-diam saja,
+// penjelasannya sudah pernah ditampilkan sebelumnya di LO pertama).
+$ukurActiveLoIds = array_keys(array_filter($_SESSION['lo_checked']));
+if (empty($ukurActiveLoIds)) {
+    $ukurActiveLoIds = array_keys(LO_LIST);
+}
+$ukurAnyDone = false;
+foreach ($ukurActiveLoIds as $ukurCheckId) {
+    if (!empty($_SESSION['lo_form'][$ukurCheckId])) { $ukurAnyDone = true; break; }
+}
 ?>
 <form method="post" action="index.php" id="claimForm">
     <input type="hidden" name="action" value="generate_claim_loss">
     <input type="hidden" name="lo" value="<?php echo h((string) $loId); ?>">
     <input type="hidden" name="metode" value="<?php echo h($method); ?>">
 
-    <div class="claim-pad">
+    <div class="claim-pad" data-tour-any-done="<?php echo $ukurAnyDone ? '1' : '0'; ?>">
+        <div data-tour="claim-metode-group">
         <div class="claim-head">
             <h2 class="claim-title">Metode Pengukuran</h2>
             <a href="#" class="claim-loss-link">
@@ -50,9 +66,22 @@ $batalHref        = 'index.php?screen=claim_loss&metode=' . urlencode($method) .
             <span class="radio-dot<?php echo $isSelected ? ' checked' : ''; ?>"></span>
         </a>
         <?php endforeach; ?>
+        </div>
 
         <div class="claim-form">
-            <?php foreach (MEASUREMENT_METHODS[$method]['fields'] as $field): ?>
+            <?php foreach (MEASUREMENT_METHODS[$method]['fields'] as $field):
+                // Kolom desimal seperti "Density Obs" (contoh: 0.989 /
+                // 0.9898) butuh beberapa digit di belakang koma supaya
+                // benar-benar akurat -- kalau tombol "Generate" sudah aktif
+                // begitu baru ketik "0", pengguna keburu ternavigasi keluar
+                // (mis. tersentuh/ter-Enter) SEBELUM selesai mengetik semua
+                // angkanya. 'data-min-length' (dibaca oleh skrip validasi &
+                // tutorial di bawah) menahan tombol tetap nonaktif sampai
+                // panjang isian kolom ini mencapai minimal segini dulu.
+                // Kolom lain (angka bulat seperti Kompartemen/Temperatur)
+                // tetap cukup diisi apa saja (tidak dibatasi panjang).
+                $minLen = ($field['key'] === 'density_obs') ? 5 : 1;
+            ?>
             <div class="claim-form-field">
                 <label for="f_<?php echo h($field['key']); ?>"><?php echo h($field['label']); ?> <span class="req">*</span></label>
                 <div class="claim-input-wrap">
@@ -60,11 +89,15 @@ $batalHref        = 'index.php?screen=claim_loss&metode=' . urlencode($method) .
                            id="f_<?php echo h($field['key']); ?>"
                            name="<?php echo h($field['key']); ?>"
                            value="<?php echo isset($saved[$field['key']]) ? h(rtrim(rtrim(number_format($saved[$field['key']], 3, '.', ''), '0'), '.')) : ''; ?>"
-                           placeholder="<?php echo h($field['placeholder'] ?? '0'); ?>" required>
+                           placeholder="<?php echo h($field['placeholder'] ?? '0'); ?>"
+                           data-min-length="<?php echo (int) $minLen; ?>" required>
                     <?php if (!empty($field['unit'])): ?><span class="unit"><?php echo h($field['unit']); ?></span><?php endif; ?>
                 </div>
                 <?php if (!empty($field['hint'])): ?>
                 <p class="claim-field-hint">*<?php echo h($field['hint']); ?></p>
+                <?php endif; ?>
+                <?php if ($field['key'] === 'density_obs'): ?>
+                <p class="claim-field-hint">*Isi paling sedikit beberapa digit di belakang koma (contoh: 0.989 atau 0.9898) untuk hasil yang akurat.</p>
                 <?php endif; ?>
             </div>
             <?php endforeach; ?>
@@ -82,7 +115,7 @@ $batalHref        = 'index.php?screen=claim_loss&metode=' . urlencode($method) .
 
 <?php if ($showResult): ?>
 <div class="modal-backdrop" id="hasilModal">
-    <div class="modal-sheet hasil-generate-sheet" role="dialog" aria-modal="true" aria-labelledby="hasilJudul">
+    <div class="modal-sheet hasil-generate-sheet" role="dialog" aria-modal="true" aria-labelledby="hasilJudul" data-tour-any-done="<?php echo $ukurAnyDone ? '1' : '0'; ?>">
         <h2 id="hasilJudul">Hasil Generate Claim Losses</h2>
 
         <div class="hasil-row">
@@ -116,7 +149,7 @@ $batalHref        = 'index.php?screen=claim_loss&metode=' . urlencode($method) .
                 <input type="hidden" name="lo" value="<?php echo h((string) $loId); ?>">
                 <input type="hidden" name="metode" value="<?php echo h($method); ?>">
                 <input type="hidden" name="klaim" value="ajukan">
-                <button type="submit" class="btn-primary">Ajukan Claim Losses</button>
+                <button type="submit" class="btn-primary" data-tour="hasil-primary-action">Ajukan Claim Losses</button>
             </form>
             <form method="post" action="index.php">
                 <input type="hidden" name="action" value="save_claim_loss">
@@ -131,7 +164,7 @@ $batalHref        = 'index.php?screen=claim_loss&metode=' . urlencode($method) .
                 <input type="hidden" name="lo" value="<?php echo h((string) $loId); ?>">
                 <input type="hidden" name="metode" value="<?php echo h($method); ?>">
                 <input type="hidden" name="klaim" value="">
-                <button type="submit" class="btn-primary">Simpan</button>
+                <button type="submit" class="btn-primary" data-tour="hasil-primary-action">Simpan</button>
             </form>
         <?php endif; ?>
 
@@ -156,7 +189,10 @@ $batalHref        = 'index.php?screen=claim_loss&metode=' . urlencode($method) .
 <?php endif; ?>
 
 <script>
-/* Tombol "Generate" baru aktif setelah semua isian wajib diisi. */
+/* Tombol "Generate" baru aktif setelah semua isian wajib diisi -- dan
+   khusus kolom yang punya 'data-min-length' (mis. "Density Obs"), baru
+   dianggap terisi kalau panjang isiannya sudah mencapai minimal segitu,
+   supaya tidak dianggap "selesai" begitu baru ketik satu digit saja. */
 (function () {
     var form = document.getElementById('claimForm');
     if (!form) { return; }
@@ -164,15 +200,32 @@ $batalHref        = 'index.php?screen=claim_loss&metode=' . urlencode($method) .
     var btn    = document.getElementById('btnGenerate');
     var inputs = form.querySelectorAll('input[type="text"][required]');
 
+    function fieldFilled(el) {
+        var val    = el.value.trim();
+        var minLen = parseInt(el.getAttribute('data-min-length') || '1', 10) || 1;
+        return val !== '' && val.length >= minLen;
+    }
+
     function refresh() {
         var lengkap = true;
         inputs.forEach(function (el) {
-            if (el.value.trim() === '') { lengkap = false; }
+            if (!fieldFilled(el)) { lengkap = false; }
         });
         btn.disabled = !lengkap;
     }
 
     inputs.forEach(function (el) { el.addEventListener('input', refresh); });
     refresh();
+
+    /* Jaga-jaga: tombol "Enter"/"Done" di keyboard (terutama keyboard
+       angka di HP) bisa langsung men-submit form walau tombol "Generate"
+       kelihatannya belum sempat berubah nonaktif -> aktif dengan benar.
+       Kalau ini terjadi SELAGI ada kolom yang belum memenuhi syarat
+       (termasuk syarat panjang minimal), batalkan submit-nya. */
+    form.addEventListener('submit', function (e) {
+        var lengkap = true;
+        inputs.forEach(function (el) { if (!fieldFilled(el)) { lengkap = false; } });
+        if (!lengkap) { e.preventDefault(); }
+    });
 })();
 </script>
