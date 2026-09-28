@@ -166,6 +166,11 @@ function render_stars(string $amtKey, string $catKey, int $selected): void
             btnLanjut.disabled = !complete;
         }
 
+        // Penanda untuk tutorial: langkah "nilai semua kategori" dilewati
+        // begitu semuanya lengkap, lalu tutorial menyorot tombol lanjut/kirim.
+        if (complete) { form.setAttribute('data-complete', '1'); }
+        else { form.removeAttribute('data-complete'); }
+
         // Kalau tutorial sedang menunggu tombol ini aktif/tampil, langsung
         // coba tampilkan sekarang juga (tidak menunggu polling 400ms).
         if (window.OneFISTour) { window.OneFISTour.rescan(); }

@@ -37,6 +37,12 @@
             title: 'Langkah 8 · Verifikasi Order',
             text: 'Checklist Pra-Pembongkaran sudah selesai. Ketuk "Verifikasi Order" untuk membuka notifikasi permintaan verifikasi dari AMT.',
         },
+        'Semua Selesai': {
+            title: 'Selesai! 🎉',
+            text: 'Semua aktifitas di SPBU sudah selesai: Tiba di Lokasi, Isi Checklist, Verifikasi Order, dan Rating Petugas AMT. Serah terima order BBM tuntas — tidak ada langkah yang tersisa.',
+            // Tutorial terakhir: tertutup sendiri setelah 7 detik.
+            autoDismissMs: 7000,
+        },
         'Rating Petugas AMT': {
             title: 'Langkah 10 · Rating Petugas AMT',
             text: 'Verifikasi order sudah selesai. Ketuk "Rating Petugas AMT" untuk menilai pelayanan AMT yang bertugas.',
@@ -159,6 +165,12 @@
         this.screenLabels = config.screenLabels || {};
         this.screenIndex  = config.screenIndex || 0;
         this.stepIndex    = 0;
+        // true = tutorial layar ini SELALU mulai dari langkah pertama tiap kali
+        // layar dibuka (abaikan posisi tersimpan & status "sudah ditonton").
+        // Dipakai untuk layar simulasi bertimer (Notifikasi, Kode QR) yang
+        // isinya baru muncul beberapa detik setelah dibuka dan dikunjungi
+        // ulang tiap alur dijalankan.
+        this.restartEveryVisit = !!config.restartEveryVisit;
         this.els          = {};
         this.waitTimer    = null;
         this.waitDeadline = 0;
@@ -193,9 +205,9 @@
         this._seenKey = (dynIdx !== -1 && dynLabel) ? (this.posKey + '::' + dynLabel) : this.posKey;
 
         var seen = readSeen();
-        if (!force && seen.indexOf(this._seenKey) !== -1) { return; }
+        if (!force && !this.restartEveryVisit && seen.indexOf(this._seenKey) !== -1) { return; }
 
-        var savedPos = force ? 0 : readStepPos(this.posKey);
+        var savedPos = (force || this.restartEveryVisit) ? 0 : readStepPos(this.posKey);
         var startPos = (savedPos >= 0 && savedPos < this.rawSteps.length) ? savedPos : 0;
 
         // Kalau bagian AWAL/statis layar ini (mis. penjelasan "Tab Aktifitas")
@@ -257,6 +269,15 @@
         // Dipanggil dari halaman saat DOM berubah (mis. "Tiba di Lokasi" terbuka
         // otomatis setelah timer). Kalau tutorial sedang menunggu target ini,
         // langsung coba tampilkan.
+        // Langkah yang SEDANG tampil bisa jadi sudah terpenuhi oleh perubahan
+        // halaman (mis. pop up "Berhasil Melakukan Verifikasi" muncul,
+        // sehingga langkah "Kode QR" tidak relevan lagi): kalau 'skipIf'-nya
+        // kini cocok, langsung lanjut ke langkah berikutnya.
+        var cur = this.rawSteps[this.stepIndex];
+        if (cur && cur.skipIf && document.querySelector(cur.skipIf)) {
+            this._next();
+            return;
+        }
         if (this._waitingTarget) { this._tryShowCurrent(); }
     };
 
@@ -323,6 +344,7 @@
     };
 
     Tour.prototype._runStep = function () {
+        clearTimeout(this._autoTimer);
         clearTimeout(this.waitTimer);
         clearTimeout(this.delayTimer);
         this._delayedForTarget = null;
@@ -498,7 +520,7 @@
         this._waitingTarget = step.target;
 
         var waitingOnDisabled = !!(el && el.disabled);
-        if (!waitingOnDisabled && !this.waitDeadline) {
+        if (!waitingOnDisabled && !step.waitForever && !this.waitDeadline) {
             this.waitDeadline = Date.now() + 20000;
         }
 
@@ -721,6 +743,21 @@
         this._attachExtra(step);
 
         requestAnimationFrame(function () { tt.classList.add('is-visible'); });
+
+        // Langkah penutup yang tertutup otomatis (mis. "Semua Selesai"):
+        // setelah 'autoDismissMs' tutorial dianggap selesai (ditandai sudah
+        // ditonton) dan sorotan + tooltip dihapus.
+        clearTimeout(this._autoTimer);
+        if (this._autoDismissMs > 0) {
+            hint.textContent = 'Tutorial ini akan tertutup otomatis dalam ' + Math.round(this._autoDismissMs / 1000) + ' detik';
+            var autoIdx = this.stepIndex;
+            this._autoTimer = setTimeout(function () {
+                if (self.stepIndex !== autoIdx || !self.els.backdrop) { return; }
+                self._detachElListener();
+                self.stepIndex = self.rawSteps.length; // -> markSeen + _destroy
+                self._runStep();
+            }, this._autoDismissMs);
+        }
     };
 
     // Versi "diam-diam" dari _showOn: TIDAK menampilkan ring, mask gelap,
@@ -793,9 +830,11 @@
 
     Tour.prototype._fillTooltip = function (step, el) {
         var label = step;
+        this._autoDismissMs = step.autoDismissMs || 0;
         if (step.dynamic && el) {
             var key = el.getAttribute('data-tour-label') || '';
             label = DYNAMIC_LABELS[key] || { title: key, text: '' };
+            this._autoDismissMs = label.autoDismissMs || step.autoDismissMs || 0;
             if (!label.text) {
                 // Skip langkah dinamis kalau labelnya tidak dikenali (aman untuk masa depan)
                 this._advanceSkippingHidden();
@@ -853,6 +892,39 @@
             tt.style.transform = 'translate(-50%, 0)';
         }
 
+        // Sorotan yang tinggi (mis. seluruh kartu Konfirmasi Status LO) bisa
+        // membuat tooltip terpotong di tepi layar. Kalau tooltip tidak muat
+        // di sisi yang diminta, pindahkan ke sisi seberang; kalau di kedua
+        // sisi tidak muat, tempelkan di tepi layar (menimpa sedikit sorotan).
+        var arrowHidden = false;
+        if (place2 === 'top' || place2 === 'bottom') {
+            var ttH = tt.offsetHeight || 150;
+            var margin = 8;
+            var fitsBelow = rect.bottom + gap + ttH <= vh - margin;
+            var fitsAbove = rect.top - gap - ttH >= margin;
+            if (place2 === 'bottom' && !fitsBelow) {
+                if (fitsAbove) {
+                    place2 = 'top';
+                    top = rect.top - gap;
+                    tt.style.transform = 'translate(-50%, calc(-100% - ' + gap + 'px))';
+                } else {
+                    top = vh - ttH - margin;
+                    tt.style.transform = 'translate(-50%, 0)';
+                    arrowHidden = true;
+                }
+            } else if (place2 === 'top' && !fitsAbove) {
+                if (fitsBelow) {
+                    place2 = 'bottom';
+                    top = rect.bottom + gap;
+                    tt.style.transform = 'translate(-50%, 0)';
+                } else {
+                    top = margin;
+                    tt.style.transform = 'translate(-50%, 0)';
+                    arrowHidden = true;
+                }
+            }
+        }
+
         // jaga agar tetap di dalam layar secara horizontal
         var estLeft = left;
         if (place2 === 'top' || place2 === 'bottom') {
@@ -862,10 +934,12 @@
 
         tt.style.top  = top + 'px';
         tt.style.left = estLeft + 'px';
+        arrow.style.display = arrowHidden ? 'none' : '';
         arrow.className = 'tour-arrow ' + (place2 === 'top' ? 'bottom' : place2 === 'bottom' ? 'top' : place2 === 'left' ? 'right' : 'left');
     };
 
     Tour.prototype._destroy = function () {
+        clearTimeout(this._autoTimer);
         clearTimeout(this.waitTimer);
         this._detachElListener();
         window.removeEventListener('resize', this._onReflow);
@@ -878,6 +952,17 @@
     };
 
     var activeTour = null;
+
+    // Pesan singkat di bawah layar (mis. halaman tanpa tutorial).
+    function showToast(msg) {
+        var t = document.createElement('div');
+        t.textContent = msg;
+        t.style.cssText = 'position:fixed;left:50%;bottom:6rem;transform:translateX(-50%);' +
+            'z-index:9500;background:#0f172a;color:#fff;font-size:12px;padding:0.6rem 1rem;' +
+            'border-radius:999px;max-width:85vw;text-align:center;box-shadow:0 8px 20px -6px rgba(15,23,42,0.4);';
+        document.body.appendChild(t);
+        setTimeout(function () { if (t.parentNode) { t.parentNode.removeChild(t); } }, 2500);
+    }
 
     window.OneFISTour = {
         init: function (config) {
@@ -894,15 +979,28 @@
                 var fab = document.createElement('button');
                 fab.type = 'button';
                 fab.className = 'tour-help-fab';
-                fab.setAttribute('aria-label', 'Mulai ulang tutorial');
+                fab.setAttribute('aria-label', 'Tampilkan tutorial halaman ini');
                 fab.textContent = '?';
+                // Tombol "?": TETAP di halaman yang sedang dibuka (tidak kembali
+                // ke Beranda dan tidak mengulang dari awal). Tutorial layar ini
+                // dimulai lagi dari langkah pertamanya, walau sebelumnya sudah
+                // selesai, dilewati, atau sedang berjalan.
                 fab.addEventListener('click', function () {
-                    resetAll();
-                    window.location.href = 'index.php?screen=dashboard&tour=restart';
+                    setSkipped(false);
+                    if (activeTour) { activeTour._destroy(); }
+                    activeTour = new Tour(config);
+                    if (!activeTour.rawSteps.length) {
+                        showToast('Belum ada tutorial untuk halaman ini.');
+                        return;
+                    }
+                    activeTour.start(true);
                 });
                 document.body.appendChild(fab);
             }
         },
+        // Hapus progres tutorial (dipakai saat pengguna memilih peran SPBU
+        // di layar awal supaya tutorial otomatis aktif dari Beranda).
+        reset: function () { resetAll(); },
         rescan: function () {
             if (activeTour) { activeTour.rescan(); }
         },

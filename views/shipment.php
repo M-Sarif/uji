@@ -43,7 +43,12 @@ $subtitles = [
 
 <div class="content-pad">
 
-    <div class="card activity-card">
+    <?php
+    // Semua aktifitas selesai: tidak ada langkah "aktif" lagi, jadi kartu
+    // ini yang disorot tutorial (label dinamis 'Semua Selesai').
+    $allDoneAttr = ($done >= $total) ? ' data-tour="activity-active" data-tour-label="Semua Selesai"' : '';
+    ?>
+    <div class="card activity-card"<?php echo $allDoneAttr; ?>>
         <h2 class="section-title">Aktifitas di SPBU</h2>
         <p class="section-sub"><?php echo h($subtitles[$done] ?? $subtitles[0]); ?></p>
 

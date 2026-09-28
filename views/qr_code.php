@@ -84,8 +84,11 @@ $qrMatrix       = generate_qr_matrix($kodeKonfirmasi, $qrSize);
 <script>
 (function () {
     var modal = document.getElementById('verifBerhasilModal');
+    // Simulasi AMT memindai kode: pop up muncul 5 detik setelah halaman
+    // dibuka, lalu tutorial diminta pindah ke langkah "Beri Penilaian".
     setTimeout(function () {
         modal.hidden = false;
+        if (window.OneFISTour) { window.OneFISTour.rescan(); }
     }, 5000);
 })();
 </script>

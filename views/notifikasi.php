@@ -31,8 +31,18 @@ $loIds     = !empty($checked) ? array_keys($checked) : array_keys(LO_LIST);
 
     <p class="notif-date"><?php echo h(date('l, d/m/Y')); ?></p>
 
-    <div class="notif-list" data-type="verifikasi">
-        <a href="index.php?screen=qr_code" class="card notif-card" data-tour="notif-verifikasi" style="display:block;text-decoration:none;">
+    <?php
+    // Saat halaman baru dibuka, belum ada notifikasi Verifikasi Order: AMT
+    // belum meminta barcode/kode konfirmasi, jadi kartunya disembunyikan
+    // (halaman "polosan"). Kartu baru muncul ~5 detik kemudian (simulasi
+    // AMT mengirim permintaan) -- lihat script di bawah. Penanda tutorial
+    // (data-tour="notif-verifikasi") juga baru dipasang saat itu, supaya
+    // tutorial Langkah 8 tidak menyorot kartu yang belum ada.
+    ?>
+    <p class="notif-empty" id="notifKosong" hidden style="font-size:12px;color:#94a3b8;text-align:center;margin:1.5rem 0;">Belum ada notifikasi Verifikasi Order.</p>
+
+    <div class="notif-list" data-type="verifikasi" id="notifVerifikasi" hidden>
+        <a href="index.php?screen=qr_code" class="card notif-card" id="notifVerifikasiCard" style="display:block;text-decoration:none;">
             <div class="notif-row">
                 <span class="notif-title">Verifikasi Order</span>
                 <span class="notif-time">Hari ini, <?php echo h(date('H.i')); ?></span>
@@ -110,32 +120,59 @@ $loIds     = !empty($checked) ? array_keys($checked) : array_keys(LO_LIST);
     /* Filter sederhana untuk tab Semua / Verifikasi Order / Claim Loss */
     var tabs = document.querySelectorAll('.pill-tab');
     var lists = document.querySelectorAll('.notif-list');
+    var notifList  = document.getElementById('notifVerifikasi');
+    var notifCard  = document.getElementById('notifVerifikasiCard');
+    var notifKosong = document.getElementById('notifKosong');
+    var currentFilter = 'semua';
+    var notifArrived = false;
+
+    function applyFilter() {
+        lists.forEach(function (list) {
+            var show = currentFilter === 'semua' || list.getAttribute('data-type') === (currentFilter === 'verifikasi' ? 'verifikasi' : 'claim');
+            list.style.display = show ? '' : 'none';
+        });
+        // Tab "Verifikasi Order" masih kosong sebelum notifikasi dari AMT masuk.
+        notifKosong.hidden = !(currentFilter === 'verifikasi' && !notifArrived);
+    }
     tabs.forEach(function (tab) {
         tab.addEventListener('click', function () {
             tabs.forEach(function (t) { t.classList.remove('active'); });
             tab.classList.add('active');
-            var filter = tab.getAttribute('data-filter');
-            lists.forEach(function (list) {
-                var show = filter === 'semua' || list.getAttribute('data-type') === (filter === 'verifikasi' ? 'verifikasi' : 'claim');
-                list.style.display = show ? '' : 'none';
-            });
+            currentFilter = tab.getAttribute('data-filter');
+            applyFilter();
         });
     });
 
-    /* Pop up "Permintaan Verifikasi Order" muncul otomatis 5 detik setelah halaman dibuka */
     var modal = document.getElementById('verifOrderModal');
-    var timer = setTimeout(function () {
+
+    /* Tutorial Langkah 8 menyorot pop up itu sendiri (lihat TOUR_STEPS
+       'notifikasi' di includes/data.php). Kalau pop up ditutup, tandai
+       data-dismissed supaya tutorial pindah menyorot kartu notifikasinya. */
+    function tutupModal() {
+        modal.hidden = true;
+        modal.setAttribute('data-dismissed', '1');
+        if (window.OneFISTour) { window.OneFISTour.rescan(); }
+    }
+
+    /* Simulasi: ~5 detik setelah halaman dibuka, AMT mengirim permintaan
+       verifikasi -> kartu notifikasi "Aktif" muncul + pop up
+       "Permintaan Verifikasi Order" + tutorial. Sebelum itu halaman
+       kosong dan tutorial menunggu. */
+    setTimeout(function () {
+        notifArrived = true;
+        notifCard.setAttribute('data-tour', 'notif-verifikasi');
+        notifList.hidden = false;
+        applyFilter();
         modal.hidden = false;
+        if (window.OneFISTour) { window.OneFISTour.rescan(); }
     }, 5000);
 
-    document.getElementById('btnTutupVerifOrder').addEventListener('click', function () {
-        modal.hidden = true;
-    });
+    document.getElementById('btnTutupVerifOrder').addEventListener('click', tutupModal);
     modal.addEventListener('click', function (e) {
-        if (e.target === modal) { modal.hidden = true; }
+        if (e.target === modal) { tutupModal(); }
     });
     document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape' && !modal.hidden) { modal.hidden = true; }
+        if (e.key === 'Escape' && !modal.hidden) { tutupModal(); }
     });
 })();
 </script>

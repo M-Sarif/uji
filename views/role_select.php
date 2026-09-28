@@ -46,3 +46,15 @@ $roleIcons = [
     </form>
 
 </div>
+
+<script>
+/* Memilih SPBU -> tutorial otomatis aktif dari Beranda SPBU: progres
+   tutorial (sudah ditonton / dilewati) dihapus dulu sebelum masuk. */
+(function () {
+    var btn = document.querySelector('.role-card[value="spbu"]');
+    if (!btn) { return; }
+    btn.addEventListener('click', function () {
+        if (window.OneFISTour) { window.OneFISTour.reset(); }
+    });
+})();
+</script>

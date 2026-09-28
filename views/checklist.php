@@ -61,7 +61,13 @@ $chevronRight = '<svg class="chevron-icon" viewBox="0 0 24 24"><path stroke-line
     <span class="progress-count"><?php echo str_pad((string) $step, 2, '0', STR_PAD_LEFT); ?>/15</span>
 </div>
 
-<div class="checklist-card">
+<?php
+// Soal 15 (Konfirmasi Status LO): seluruh kartu -- judul, keterangan, dan
+// SEMUA kartu LO -- yang disorot tutorial (lihat CHECKLIST_SOAL15_TOUR_STEPS),
+// bukan hanya satu kartu LO.
+$cardTourAttr = ($stepData['type'] === 'konfirmasi_lo') ? ' data-tour="konfirmasi-lo-card"' : '';
+?>
+<div class="checklist-card"<?php echo $cardTourAttr; ?>>
     <h2><?php echo h($stepData['text']); ?> <span class="req">*</span></h2>
 
     <?php switch ($stepData['type']):

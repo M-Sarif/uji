@@ -263,7 +263,10 @@ const TOUR_STEPS = [
             'place'  => 'top',
         ],
         [
-            'target' => '#btnKirim',
+            'target'    => '#btnKirim',
+            // Sorot SELURUH pop up konfirmasi (judul, keterangan, tombol
+            // Kirim & Tutup), bukan hanya tombol "Kirim"-nya.
+            'highlight' => '#konfirmasiModal .modal-sheet',
             'title'  => 'Langkah 5 · Kirim Verifikasi',
             'text'   => 'Ketuk "Kirim Verifikasi MT dan AMT" untuk mengirimkan hasil verifikasi kedatangan.',
             'place'  => 'top',
@@ -295,41 +298,74 @@ const TOUR_STEPS = [
     ],
 
     'notifikasi' => [
+        // 0. Notifikasi dari AMT masuk (kartu "Aktif" muncul + pop up
+        //    "Permintaan Verifikasi Order"): sorot SELURUH pop up-nya.
+        //    Tutorial baru tampil begitu pop up terbuka (~5 detik setelah
+        //    halaman dibuka) -- sebelum itu halaman polosan dan tutorial
+        //    menunggu tanpa batas waktu ('waitForever'). Kalau pengguna
+        //    menutup pop up ("Tutup"), halaman menandai
+        //    data-dismissed dan langkah ini dilewati ('skipIf').
         [
-            'target' => '[data-tour="notif-verifikasi"]',
-            'title'  => 'Langkah 8 · Verifikasi Order',
-            'text'   => 'Setelah Checklist Pra-Pembongkaran terkirim, tunggu inisiasi dari AMT. Begitu AMT mengirim Verifikasi Order, notifikasi berstatus "Aktif" akan muncul di sini — ketuk untuk membukanya.',
-            'place'  => 'bottom',
+            'target'      => '#btnLihatNotifikasi',
+            'highlight'   => '#verifOrderModal .modal-sheet',
+            'waitForever' => true,
+            'skipIf'      => '#verifOrderModal[data-dismissed]',
+            'title'       => 'Langkah 8 · Verifikasi Order',
+            'text'        => 'AMT sudah mengirim Verifikasi Order. Ketuk "Lihat Notifikasi" untuk membuka Kode QR / Kode Konfirmasi yang harus Anda berikan kepada AMT.',
+            'place'       => 'top',
+        ],
+        // 1. Cadangan kalau pop up ditutup: sorot kartu notifikasi "Aktif".
+        [
+            'target'      => '[data-tour="notif-verifikasi"]',
+            'waitForever' => true,
+            'title'       => 'Langkah 8 · Verifikasi Order',
+            'text'        => 'Notifikasi Verifikasi Order berstatus "Aktif" dari AMT ada di sini — ketuk untuk membukanya.',
+            'place'       => 'bottom',
         ],
     ],
 
     'qr_code' => [
+        // 0. Kode QR / Kode Konfirmasi. Begitu AMT selesai memindai
+        //    (pop up "Berhasil Melakukan Verifikasi" terbuka), langkah ini
+        //    otomatis dilewati lewat 'skipIf' (halaman memanggil
+        //    OneFISTour.rescan() saat pop up muncul).
         [
             'target' => '.qr-box',
-            'title'  => 'Kode QR & Kode Konfirmasi',
-            'text'   => 'Segera berikan Kode QR atau Kode Konfirmasi ini kepada AMT agar Verifikasi Order dapat diselesaikan olehnya — kode ini punya waktu kadaluwarsa, jadi jangan ditunda.',
+            'skipIf' => '#verifBerhasilModal:not([hidden])',
+            'title'  => 'Langkah 9 · Minta AMT Scan Kode QR',
+            'text'   => 'Minta AMT untuk memindai (scan) Kode QR ini. Kalau tidak bisa dipindai, berikan Kode Konfirmasi di bawahnya kepada AMT agar Verifikasi Order dapat diselesaikan — kode ini punya waktu kadaluwarsa, jadi jangan ditunda.',
             'place'  => 'top',
         ],
+        // 1. Setelah verifikasi berhasil: sorot SELURUH pop up.
         [
-            'target' => '#btnBeriPenilaian',
-            'title'  => 'Langkah 9 · Beri Penilaian',
-            'text'   => 'Setelah AMT menyelesaikan verifikasi, ketuk "Beri Penilaian" untuk menilai pelayanan AMT yang bertugas.',
-            'place'  => 'top',
+            'target'      => '#btnBeriPenilaian',
+            'highlight'   => '#verifBerhasilModal .modal-sheet',
+            'waitForever' => true,
+            'title'       => 'Langkah 9 · Beri Penilaian',
+            'text'        => 'Verifikasi sudah berhasil dilakukan AMT. Ketuk "Beri Penilaian" untuk menilai pelayanan AMT yang bertugas.',
+            'place'       => 'top',
         ],
     ],
 
+    // Rating AMT 1 (langkah 1 dari 2). Layar ini dimuat ulang untuk AMT 2,
+    // jadi tutorial AMT 2 ada di RATING_AMT2_TOUR_STEPS (lihat bawah) dan
+    // dipilih lewat $tourSubKey di includes/layout_bottom.php.
+    // Langkah 0 dilewati otomatis ('skipIf') begitu semua kategori sudah
+    // dinilai (halaman menandai #ratingForm[data-complete]).
     'rating' => [
         [
             'target' => '.rating-card',
-            'title'  => 'Langkah 10 · Rating AMT',
-            'text'   => 'Berikan penilaian bintang untuk Safety AMT, Sarfas, Komunikasi, Operasional, dan Aspek Layanan pada tiap AMT yang bertugas. AMT juga menilai pelayanan SPBU dari sisi aplikasinya.',
+            'skipIf' => '#ratingForm[data-complete]',
+            'title'  => 'Langkah 10 · Rating AMT 1',
+            'text'   => 'Berikan penilaian bintang untuk Safety AMT, Sarfas, Komunikasi, Operasional, dan Aspek Layanan pada AMT 1. Semua kategori wajib dinilai.',
             'place'  => 'bottom',
         ],
         [
-            'target' => '#btnRatingLanjut',
-            'title'  => 'Selesai Menilai',
-            'text'   => 'Setelah semua kategori dinilai, tombol akan aktif. Ketuk untuk lanjut / mengirim penilaian.',
-            'place'  => 'top',
+            'target'      => '#btnRatingLanjut',
+            'waitForever' => true,
+            'title'       => 'Lanjut ke AMT 2',
+            'text'        => 'Penilaian AMT 1 sudah lengkap. Ketuk "Selanjutnya" untuk menilai AMT 2.',
+            'place'       => 'top',
         ],
     ],
 
@@ -340,6 +376,25 @@ const TOUR_STEPS = [
             'text'   => 'Seluruh Aktifitas di SPBU — dari Tiba di Lokasi, Checklist Pra-Pembongkaran, Verifikasi Order, hingga Rating AMT — telah selesai dilakukan. Tombol "Selesai" akan aktif setelah rating terkirim, menandakan serah terima order BBM tuntas.',
             'place'  => 'center',
         ],
+    ],
+];
+
+// Tutorial Rating AMT 2 (langkah 2 dari 2, tombol "Kirim"). Dipakai lewat
+// $tourSubKey 'rating_amt2' di includes/layout_bottom.php.
+const RATING_AMT2_TOUR_STEPS = [
+    [
+        'target' => '.rating-card',
+        'skipIf' => '#ratingForm[data-complete]',
+        'title'  => 'Langkah 10 · Rating AMT 2',
+        'text'   => 'Sekarang nilai AMT 2: berikan bintang untuk semua kategori. Kolom "Keterangan Lainnya" di bagian bawah boleh dikosongkan.',
+        'place'  => 'bottom',
+    ],
+    [
+        'target'      => '#btnRatingLanjut',
+        'waitForever' => true,
+        'title'       => 'Kirim Penilaian',
+        'text'        => 'Semua penilaian sudah lengkap. Ketuk "Kirim" untuk mengirim rating AMT dan menyelesaikan seluruh aktifitas di SPBU.',
+        'place'       => 'top',
     ],
 ];
 
@@ -649,10 +704,10 @@ const CHECKLIST_SOAL15_TOUR_STEPS = [
     //    terpilih, langsung loncat ke langkah 1.
     [
         'target'    => '[data-tour="konfirmasi-lo-group"]',
-        // Yang disorot cukup kartu LO pertama (kelompok LO terlalu tinggi
-        // sehingga tooltip terpotong di tepi layar); ketukan pada LO mana
-        // pun di dalam grup tetap melanjutkan tutorial.
-        'highlight' => '.konfirmasi-card',
+        // Yang disorot SELURUH kartu Konfirmasi Status LO (judul, keterangan,
+        // dan semua kartu LO di dalamnya); ketukan pada LO mana pun di dalam
+        // grup tetap melanjutkan tutorial.
+        'highlight' => '[data-tour="konfirmasi-lo-card"]',
         'title'  => 'Soal 15 · Konfirmasi Status LO',
         'text'   => 'Tentukan status bongkar tiap LO: ketuk "Sudah Dibongkar" kalau BBM untuk LO ini jadi dibongkar, atau "Tidak Jadi" kalau pembongkaran dibatalkan. Mulai dari LO pertama.',
         'place'  => 'bottom',
@@ -664,11 +719,11 @@ const CHECKLIST_SOAL15_TOUR_STEPS = [
     //    ('requireTarget') begitu semua LO sudah punya status.
     [
         'target'        => '.konfirmasi-card:not(.is-set)',
-        'highlight'     => '.konfirmasi-card:not(.is-set)',
+        'highlight'     => '[data-tour="konfirmasi-lo-card"]',
         'requireTarget' => '.konfirmasi-card:not(.is-set)',
         'jumpOnClickTo' => 1,
         'title'         => 'Lanjutkan ke LO Berikutnya',
-        'text'          => 'Masih ada LO yang statusnya belum dipilih. Pilih "Tidak Jadi" atau "Sudah Dibongkar" pada LO yang menyala ini.',
+        'text'          => 'Masih ada LO yang statusnya belum dipilih. Pilih "Tidak Jadi" atau "Sudah Dibongkar" untuk setiap LO yang belum ditentukan statusnya.',
         'place'         => 'top',
         'gotoOnLoad'    => [
             ['ifPresent' => '[data-tour="konfirmasi-lo-group"][data-tour-done-count="0"]', 'to' => 0],

@@ -51,18 +51,22 @@
     // Soal 15 (Konfirmasi Status LO) dan Daftar LO berstatus "Draft"
     // (siap dikirim) masing-masing punya tutorial sendiri.
     $isChecklistSoal15 = $screen === 'checklist' && ($_SESSION['checklist_step'] ?? null) === 15;
+    // Rating AMT: langkah 2 (AMT 2, tombol "Kirim") punya tutorial sendiri.
+    $isRatingAmt2 = $screen === 'rating' && (int) ($_SESSION['rating_step'] ?? 1) >= 2;
     $isLoKirim = $screen === 'lo_list' && !empty(array_filter($_SESSION['lo_draft'] ?? []));
     $tourSteps  = $isChecklistSoal6 ? CHECKLIST_SOAL6_TOUR_STEPS
         : ($isChecklistSoal7 ? CHECKLIST_SOAL7_TOUR_STEPS
         : ($isChecklistSoal8 ? CHECKLIST_SOAL8_TOUR_STEPS
         : ($isChecklistSoal15 ? CHECKLIST_SOAL15_TOUR_STEPS
         : ($isLoKirim ? LO_KIRIM_TOUR_STEPS
-        : (TOUR_STEPS[$screen] ?? [])))));
+        : ($isRatingAmt2 ? RATING_AMT2_TOUR_STEPS
+        : (TOUR_STEPS[$screen] ?? []))))));
     $tourSubKey = $isChecklistSoal6 ? 'checklist_soal6'
         : ($isChecklistSoal7 ? 'checklist_soal7'
         : ($isChecklistSoal8 ? 'checklist_soal8'
         : ($isChecklistSoal15 ? 'checklist_soal15'
-        : ($isLoKirim ? 'lo_list_kirim' : null))));
+        : ($isLoKirim ? 'lo_list_kirim'
+        : ($isRatingAmt2 ? 'rating_amt2' : null)))));
     ?>
     var steps        = <?php echo json_encode($tourSteps); ?>;
     var idx          = screenOrder.indexOf(<?php echo json_encode($screen); ?>);
@@ -80,6 +84,9 @@
         // true persis pada request yang baru saja mereset progres alur
         // (balik ke dashboard/beranda AMT) -- lihat index.php.
         flowWasReset: <?php echo json_encode($flowWasReset); ?>,
+        // Layar simulasi bertimer: tutorial selalu mulai dari langkah pertama
+        // tiap layar dibuka (lihat tutorial.js -> restartEveryVisit).
+        restartEveryVisit: <?php echo json_encode(in_array($screen, ['notifikasi', 'qr_code', 'rating'], true)); ?>,
     });
 })();
 </script>
