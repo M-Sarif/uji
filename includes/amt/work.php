@@ -31,14 +31,24 @@ const WORK_LNG = 114.261573;
 // Pilihan aktivitas saat Start Work
 const WORK_ACTIVITIES = ['Hadir', 'Sakit', 'Izin', 'Cuti', 'Alpa', 'Dinas Luar'];
 
-// Menu yang hanya aktif saat timer berjalan
-const WORK_GATED_SCREENS = ['checkin', 'pti', 'checkout'];
+// Menu yang hanya aktif saat timer berjalan (setelah Start Work).
+// Saat ini hanya Check-In. PTI & Check-Out SENGAJA belum aktif (lihat
+// WORK_LOCKED_MENUS) sampai layarnya dibuat.
+const WORK_GATED_SCREENS = ['checkin'];
+
+// Menu yang masih terkunci walau timer sudah berjalan.
+// Hapus 'pti' / 'checkout' dari daftar ini saat layarnya sudah siap.
+const WORK_LOCKED_MENUS = ['pti', 'checkout'];
+
+// Pilihan aktivitas pada form Check-In (default sama dengan Start Work)
+const CHECKIN_ACTIVITIES = WORK_ACTIVITIES;
 
 // Judul header untuk layar tambahan (tidak ada di data.php)
 const WORK_SCREENS = [
     'start_end'  => 'Start / End Work',
     'start_work' => 'Start Work',
     'end_work'   => 'End Work',
+    'checkin'    => 'Check-In',
 ];
 
 function work_data(): array {
@@ -53,6 +63,13 @@ function work_is_running(): bool {
 /* Timestamp mulai, hanya saat timer berjalan (0 = timer berhenti) */
 function work_started_at(): int {
     return work_is_running() ? (int) $_SESSION['work']['started_at'] : 0;
+}
+
+/* Riwayat Check-In (hari/ritase ini). Tiap item:
+ * ['at' => timestamp, 'activity' => 'Hadir', 'photo' => dataURL|''] */
+function work_checkins(): array {
+    $c = $_SESSION['work']['checkins'] ?? [];
+    return is_array($c) ? array_values($c) : [];
 }
 
 function work_fmt(?int $ts): string {

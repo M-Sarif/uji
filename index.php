@@ -23,7 +23,7 @@ if (!in_array($screen, $validScreens, true)) {
  * - belum memilih peran -> paksa ke layar pilihan peran
  * - layar bukan milik perannya -> arahkan ke beranda perannya sendiri
  * Aksi POST selain "select_role" hanya dipakai alur SPBU,
- * kecuali start_work / end_work yang dipakai peran AMT. */
+ * kecuali start_work / end_work / checkin yang dipakai peran AMT. */
 $role = current_role();
 $isPost = $_SERVER['REQUEST_METHOD'] === 'POST';
 
@@ -39,8 +39,8 @@ if ($isPost) {
     }
 }
 
-/* Penjagaan menu kerja AMT: Check-In / PTI / Check-Out hanya saat timer
- * berjalan; Start Work hanya saat timer belum jalan; End Work sebaliknya. */
+/* Penjagaan menu kerja AMT: Check-In hanya saat timer berjalan (PTI &
+ * Check-Out belum aktif, lihat WORK_LOCKED_MENUS); Start Work hanya saat timer belum jalan; End Work sebaliknya. */
 if (!$isPost) {
     amt_guard_work($screen);
 }
@@ -85,6 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         case 'submit_start_work':
         case 'submit_end_work':
+        case 'submit_checkin':
             amt_handle_post($action); // lihat includes/amt/amt.php
             break;
 

@@ -19,7 +19,7 @@ $arrowOut = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke=
     </div>
     <div><small>Aktivitas</small><strong><?= $hasStart ? htmlspecialchars($activity, ENT_QUOTES) : '-' ?></strong></div>
     <?php if (!$running): ?>
-      <a class="wk-btn" href="?screen=start_work"><?= $arrowIn ?> Start Work</a>
+      <a class="wk-btn" data-tour="btn-start-work" href="?screen=start_work"><?= $arrowIn ?> Start Work</a>
     <?php else: ?>
       <span class="wk-btn is-off"><?= $arrowIn ?> Start Work</span>
     <?php endif; ?>
@@ -35,7 +35,7 @@ $arrowOut = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke=
     </div>
     <div><small>Aktivitas</small><strong><?= $hasEnd ? htmlspecialchars($activity, ENT_QUOTES) : '-' ?></strong></div>
     <?php if ($running): ?>
-      <a class="wk-btn" href="?screen=end_work"><?= $arrowOut ?> End Work</a>
+      <a class="wk-btn" data-tour="btn-end-work" href="?screen=end_work"><?= $arrowOut ?> End Work</a>
     <?php else: ?>
       <span class="wk-btn is-off"><?= $arrowOut ?> End Work</span>
     <?php endif; ?>

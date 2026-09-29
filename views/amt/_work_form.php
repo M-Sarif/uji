@@ -1,24 +1,30 @@
 <?php
-/* Dipakai oleh views/start_work.php dan views/end_work.php.
- * Butuh variabel $mode = 'start' | 'end'. */
+/* Dipakai oleh views/amt/start_work.php, end_work.php, dan checkin.php.
+ * Butuh variabel $mode = 'start' | 'end' | 'checkin'. */
 work_styles();
 
-$isStart   = ($mode === 'start');
-$label     = $isStart ? 'Start' : 'End';
+$isEnd     = ($mode === 'end');
+$isCheckin = ($mode === 'checkin');
+$needAct   = !$isEnd;                       // Start Work & Check-In: aktivitas wajib dipilih
+$label     = $isCheckin ? 'Check-In' : ($isEnd ? 'End Work' : 'Start Work');
+$screenKey = $isCheckin ? 'checkin' : ($isEnd ? 'end_work' : 'start_work');
+$postAct   = $isCheckin ? 'submit_checkin' : ($isEnd ? 'submit_end_work' : 'submit_start_work');
+$actList   = $isCheckin ? CHECKIN_ACTIVITIES : WORK_ACTIVITIES;
 $w         = work_data();
 $activity  = $w['activity'] ?? '';        // End Work: mengikuti pilihan saat Start Work
 $mapSrc    = 'https://maps.google.com/maps?q=' . WORK_LAT . ',' . WORK_LNG . '&hl=id&z=17&output=embed';
 $coordText = WORK_LAT . ', ' . WORK_LNG;
 ?>
 <link rel="stylesheet" href="<?= AMT_URL ?>/css/camera.css?v=<?= (int) @filemtime(AMT_ASSET_DIR . '/css/camera.css') ?>">
-<form method="post" action="?screen=<?= $isStart ? 'start_work' : 'end_work' ?>" id="wk-form" class="wk-wrap">
-  <input type="hidden" name="action" value="<?= $isStart ? 'submit_start_work' : 'submit_end_work' ?>">
+<form method="post" action="?screen=<?= $screenKey ?>" id="wk-form" class="wk-wrap">
+  <input type="hidden" name="action" value="<?= $postAct ?>">
   <input type="hidden" name="photo" id="wk-photo" value="0">
   <input type="hidden" name="photo_data" id="wk-photo-data" value="">
 
-  <p class="wk-title">Form Verifikasi Work <?= $label ?></p>
+  <p class="wk-title">Form Verifikasi <?= $isCheckin ? 'Check-In' : 'Work ' . ($isEnd ? 'End' : 'Start') ?></p>
 
   <!-- Lokasi -->
+  <div id="wk-loc">
   <div class="wk-head">
     <span class="wk-label" style="margin:0">Lokasi Anda</span>
     <a href="#" id="wk-refresh">
@@ -30,13 +36,14 @@ $coordText = WORK_LAT . ', ' . WORK_LNG;
           src="<?= htmlspecialchars($mapSrc, ENT_QUOTES) ?>" loading="lazy" allowfullscreen
           referrerpolicy="no-referrer-when-downgrade" title="Lokasi Anda"></iframe>
   <div class="wk-coord"><?= $coordText ?></div>
+  </div>
 
   <!-- Aktivitas -->
-  <span class="wk-label">Aktivitas</span>
-  <?php if ($isStart): ?>
+  <span class="wk-label">Aktivitas<?php if ($needAct): ?><span style="color:#dc2626">*</span><?php endif; ?></span>
+  <?php if ($needAct): ?>
     <select name="aktivitas" id="wk-akt" class="wk-select" required>
-      <option value="">Pilih Aktivitas</option>
-      <?php foreach (WORK_ACTIVITIES as $a): ?>
+      <option value="">Pilih aktivitas</option>
+      <?php foreach ($actList as $a): ?>
         <option value="<?= htmlspecialchars($a, ENT_QUOTES) ?>"><?= htmlspecialchars($a) ?></option>
       <?php endforeach; ?>
     </select>
@@ -53,7 +60,7 @@ $coordText = WORK_LAT . ', ' . WORK_LNG;
     <!-- Sebelum diambil: ikon AMT + tombol Ambil Foto -->
     <div class="wk-idle">
       <?= work_avatar_html(120) ?>
-      <b>Selfie untuk Verifikasi <?= $label ?> Work</b>
+      <b>Selfie untuk Verifikasi <?= $label ?></b>
       <p>Arahkan wajah anda ke kamera depan handphone</p>
       <button type="button" id="wk-take">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
@@ -81,7 +88,7 @@ $coordText = WORK_LAT . ', ' . WORK_LNG;
 <script src="<?= AMT_URL ?>/js/camera.js?v=<?= (int) @filemtime(AMT_ASSET_DIR . '/js/camera.js') ?>"></script>
 <script>
 (function () {
-  var needActivity = <?= $isStart ? 'true' : 'false' ?>;
+  var needActivity = <?= $needAct ? 'true' : 'false' ?>;
   var sel    = document.getElementById('wk-akt');
   var photo  = document.getElementById('wk-photo');
   var photoData = document.getElementById('wk-photo-data');

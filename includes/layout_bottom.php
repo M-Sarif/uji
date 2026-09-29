@@ -26,8 +26,13 @@
  * tidak berulang, dan bisa dimulai ulang lewat tombol "?" mengambang.
  */
 (function () {
-    var screenOrder  = <?php echo json_encode(TOUR_SCREEN_ORDER); ?>;
-    var screenLabels = <?php echo json_encode(TOUR_SCREEN_LABELS); ?>;
+    <?php
+    // Peran AMT memakai data tutorial sendiri (includes/amt/tutorial.php),
+    // mesin & tampilannya sama persis dengan tutorial SPBU (assets/js/tutorial.js).
+    $amtTour = (current_role() === 'amt') ? amt_tour_config($screen) : null;
+    ?>
+    var screenOrder  = <?php echo json_encode($amtTour['screenOrder']  ?? TOUR_SCREEN_ORDER); ?>;
+    var screenLabels = <?php echo json_encode($amtTour['screenLabels'] ?? TOUR_SCREEN_LABELS); ?>;
     <?php
     // Soal 6 ("Periksa kesesuaian SPP...") pada wizard checklist punya
     // tutorial tersendiri (CHECKLIST_SOAL6_TOUR_STEPS) yang menyorot
@@ -67,6 +72,10 @@
         : ($isChecklistSoal15 ? 'checklist_soal15'
         : ($isLoKirim ? 'lo_list_kirim'
         : ($isRatingAmt2 ? 'rating_amt2' : null)))));
+    if ($amtTour !== null) {
+        $tourSteps  = $amtTour['steps'];
+        $tourSubKey = $amtTour['subKey'];
+    }
     ?>
     var steps        = <?php echo json_encode($tourSteps); ?>;
     var idx          = screenOrder.indexOf(<?php echo json_encode($screen); ?>);

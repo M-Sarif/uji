@@ -3,20 +3,21 @@
  * Beranda peran AMT (Awak Mobil Tangki).
  * Isi: kartu Waktu Kerja, menu cepat (7 menu), dan panel "Pengiriman Aktif".
  *
- * 'gated' => true : menu hanya aktif saat timer Waktu Kerja berjalan
- *                   (dirender langsung oleh PHP, tanpa bergantung JavaScript).
+ * 'key'   : dipakai untuk penguncian (amt_menu_locked) dan penanda tutorial.
+ *           Check-In aktif setelah Start Work (timer berjalan); PTI & Check-Out
+ *           belum aktif (WORK_LOCKED_MENUS di includes/amt/work.php).
  * 'href'  => '#'  : layar tujuan belum tersedia.
  */
 $running = work_is_running();
 
 $amtMenus = [
-    ['label' => 'Start / End',  'icon' => 'assets/start-end.png',            'tone' => 'slate',  'href' => '?screen=start_end', 'gated' => false],
-    ['label' => 'Check-In',     'icon' => 'assets/Check-In.png',             'tone' => 'green',  'href' => '#',                 'gated' => true],
-    ['label' => 'PTI',          'icon' => 'assets/PTI.png',                  'tone' => 'peach',  'href' => '#',                 'gated' => true],
-    ['label' => 'Shipments',    'icon' => 'assets/empty-delivery-truck.png', 'tone' => 'blue',   'href' => '#',                 'gated' => false],
-    ['label' => 'Check-Out',    'icon' => 'assets/Check-Out.png',            'tone' => 'rose',   'href' => '#',                 'gated' => true],
-    ['label' => 'Performance',  'icon' => 'assets/performance.png',          'tone' => 'violet', 'href' => '#',                 'gated' => false],
-    ['label' => 'SAFIRE',       'icon' => 'assets/safire_icon.png',          'tone' => 'sky',    'href' => '#',                 'gated' => false],
+    ['key' => 'start_end',   'label' => 'Start / End',  'icon' => 'assets/start-end.png',            'tone' => 'slate',  'href' => '?screen=start_end'],
+    ['key' => 'checkin',     'label' => 'Check-In',     'icon' => 'assets/Check-In.png',             'tone' => 'green',  'href' => '?screen=checkin'],
+    ['key' => 'pti',         'label' => 'PTI',          'icon' => 'assets/PTI.png',                  'tone' => 'peach',  'href' => '#'],
+    ['key' => 'shipments',   'label' => 'Shipments',    'icon' => 'assets/empty-delivery-truck.png', 'tone' => 'blue',   'href' => '#'],
+    ['key' => 'checkout',    'label' => 'Check-Out',    'icon' => 'assets/Check-Out.png',            'tone' => 'rose',   'href' => '#'],
+    ['key' => 'performance', 'label' => 'Performance',  'icon' => 'assets/performance.png',          'tone' => 'violet', 'href' => '#'],
+    ['key' => 'safire',      'label' => 'SAFIRE',       'icon' => 'assets/safire_icon.png',          'tone' => 'sky',    'href' => '#'],
 ];
 ?>
 <div class="amt-home">
@@ -30,11 +31,11 @@ $amtMenus = [
     <!-- Menu cepat -->
     <nav class="amt-menu" aria-label="Menu AMT">
         <?php foreach ($amtMenus as $m): ?>
-            <?php $locked = $m['gated'] && !$running; ?>
+            <?php $locked = amt_menu_locked($m['key']); ?>
             <?php if ($locked): ?>
-                <span class="amt-menu-item is-disabled" aria-disabled="true">
+                <span class="amt-menu-item is-disabled" aria-disabled="true" data-tour="amt-menu-<?php echo h($m['key']); ?>">
             <?php else: ?>
-                <a href="<?php echo h($m['href']); ?>" class="amt-menu-item">
+                <a href="<?php echo h($m['href']); ?>" class="amt-menu-item" data-tour="amt-menu-<?php echo h($m['key']); ?>">
             <?php endif; ?>
                 <span class="amt-menu-tile tone-<?php echo h($m['tone']); ?>">
                     <img src="<?php echo h($m['icon']); ?>" alt="">

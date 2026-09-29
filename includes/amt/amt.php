@@ -3,21 +3,22 @@
  * OneFIS - AMT - titik masuk semua kode peran AMT.
  *
  * Seluruh kode peran AMT berada di folder "amt":
- *   includes/amt/  amt.php (file ini), work.php, work_ui.php, header.php
- *   views/amt/     amt_home, start_end, start_work, end_work, _work_form
- *   assets/amt/    css/ (amt, work, camera), js/ (camera), Asset/ (gambar)
+ *   includes/amt/  amt.php (file ini), work.php, work_ui.php, header.php, tutorial.php
+ *   views/amt/     amt_home, start_end, start_work, end_work, checkin, _work_form
+ *   assets/amt/    css/ (amt, work, camera, checkin), js/ (camera), Asset/ (gambar)
  *
  * index.php hanya memanggil fungsi-fungsi di bawah ini.
  * Dimuat SETELAH includes/data.php dan includes/functions.php.
  * ============================================================ */
 
 require_once __DIR__ . '/work.php';
+require_once __DIR__ . '/tutorial.php'; // tutorial terpandu (guided tour) peran AMT
 
 // Layar milik AMT yang tidak terdaftar di HEADER_TITLES (data.php)
-const AMT_EXTRA_SCREENS = ['start_end', 'start_work', 'end_work'];
+const AMT_EXTRA_SCREENS = ['start_end', 'start_work', 'end_work', 'checkin'];
 
 // Aksi form (POST) milik AMT
-const AMT_POST_ACTIONS = ['submit_start_work', 'submit_end_work'];
+const AMT_POST_ACTIONS = ['submit_start_work', 'submit_end_work', 'submit_checkin'];
 
 /** Beranda AMT (mis. 'amt_home') */
 function amt_home_screen(): string
@@ -52,7 +53,19 @@ function amt_prev_screen(string $screen): ?string
         'start_end'  => amt_home_screen(),
         'start_work' => 'start_end',
         'end_work'   => 'start_end',
+        'checkin'    => amt_home_screen(),
     ][$screen] ?? null;
+}
+
+/** Apakah menu beranda AMT terkunci? (key = 'checkin' | 'pti' | 'checkout' | ...)
+ *  - menu di WORK_LOCKED_MENUS selalu terkunci (belum tersedia)
+ *  - menu di WORK_GATED_SCREENS terkunci selama timer belum berjalan */
+function amt_menu_locked(string $key): bool
+{
+    if (in_array($key, WORK_LOCKED_MENUS, true)) {
+        return true;
+    }
+    return in_array($key, WORK_GATED_SCREENS, true) && !work_is_running();
 }
 
 /** Penjagaan akses (GET): menu terkunci saat timer belum jalan,
@@ -100,6 +113,35 @@ function amt_handle_post(string $action): void
             }
             $_SESSION['work']['ended_at'] = time();
             $_SESSION['work']['end_photo'] = true;
+            go_to(amt_home_screen());
+            break;
+
+        case 'submit_checkin':
+            // Check-In hanya boleh saat timer berjalan; aktivitas + foto wajib
+            $akt = (string) ($_POST['aktivitas'] ?? '');
+            if (!work_is_running()
+                || !in_array($akt, CHECKIN_ACTIVITIES, true)
+                || ($_POST['photo'] ?? '') !== '1'
+            ) {
+                go_to('checkin');
+            }
+            // Foto disimpan (dataURL) supaya bisa dilihat lagi lewat "Lihat Foto"
+            // di tab Riwayat Check-In. Hanya gambar yang ukurannya wajar.
+            $photo = (string) ($_POST['photo_data'] ?? '');
+            if (!preg_match('#^data:image/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$#', $photo)
+                || strlen($photo) > 3000000
+            ) {
+                $photo = '';
+            }
+            $_SESSION['work']['checkins'][] = [
+                'at'       => time(),
+                'activity' => $akt,
+                'photo'    => $photo,
+            ];
+            $_SESSION['flash_success'] = [
+                'title' => 'Check-In Berhasil',
+                'body'  => 'Check-In ke-' . count($_SESSION['work']['checkins']) . ' tercatat di Riwayat Check-In.',
+            ];
             go_to(amt_home_screen());
             break;
     }
