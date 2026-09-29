@@ -10,9 +10,11 @@ $activity  = $w['activity'] ?? '';        // End Work: mengikuti pilihan saat St
 $mapSrc    = 'https://maps.google.com/maps?q=' . WORK_LAT . ',' . WORK_LNG . '&hl=id&z=17&output=embed';
 $coordText = WORK_LAT . ', ' . WORK_LNG;
 ?>
+<link rel="stylesheet" href="<?= AMT_URL ?>/css/camera.css?v=<?= (int) @filemtime(AMT_ASSET_DIR . '/css/camera.css') ?>">
 <form method="post" action="?screen=<?= $isStart ? 'start_work' : 'end_work' ?>" id="wk-form" class="wk-wrap">
   <input type="hidden" name="action" value="<?= $isStart ? 'submit_start_work' : 'submit_end_work' ?>">
   <input type="hidden" name="photo" id="wk-photo" value="0">
+  <input type="hidden" name="photo_data" id="wk-photo-data" value="">
 
   <p class="wk-title">Form Verifikasi Work <?= $label ?></p>
 
@@ -74,90 +76,39 @@ $coordText = WORK_LAT . ', ' . WORK_LNG;
     Kirim
   </button>
 
-  <!-- Simulasi kamera (tidak membuka kamera sungguhan) -->
-  <div class="wk-cam" id="wk-cam">
-    <div id="wk-cam-loading" style="display:none;flex-direction:column;align-items:center;gap:10px">
-      <div class="wk-spin"></div>
-      <small id="wk-cam-loading-text">Membuka kamera...</small>
-    </div>
-    <div id="wk-cam-live" style="display:none;flex-direction:column;align-items:center;gap:14px">
-      <small>Kamera Depan</small>
-      <div class="wk-cam-view">
-        <?= work_avatar_html(130) ?>
-        <div class="wk-oval"></div>
-        <div class="wk-flash" id="wk-flash"></div>
-      </div>
-      <small>Posisikan wajah di dalam bingkai</small>
-      <button type="button" class="wk-shutter" id="wk-shutter" aria-label="Ambil foto"></button>
-      <button type="button" class="wk-cancel" id="wk-cancel">Batal</button>
-    </div>
-  </div>
 </form>
 
+<script src="<?= AMT_URL ?>/js/camera.js?v=<?= (int) @filemtime(AMT_ASSET_DIR . '/js/camera.js') ?>"></script>
 <script>
 (function () {
   var needActivity = <?= $isStart ? 'true' : 'false' ?>;
-  var wrap   = document.getElementById('wk-form');
   var sel    = document.getElementById('wk-akt');
   var photo  = document.getElementById('wk-photo');
+  var photoData = document.getElementById('wk-photo-data');
   var box    = document.getElementById('wk-box');
   var submit = document.getElementById('wk-submit');
-  var cam    = document.getElementById('wk-cam');
-  var loading = document.getElementById('wk-cam-loading');
-  var loadingText = document.getElementById('wk-cam-loading-text');
-  var live   = document.getElementById('wk-cam-live');
-  var flash  = document.getElementById('wk-flash');
-  var busy   = false;
 
   function refresh() {
     submit.disabled = !(photo.value === '1' && (!needActivity || sel.value !== ''));
   }
   if (needActivity) sel.addEventListener('change', refresh);
 
-  function show(el, on) { el.style.display = on ? 'flex' : 'none'; }
-
-  // Buka "kamera": spinner sebentar, lalu tampilan viewfinder
-  function openCamera() {
-    if (busy) return;
-    busy = true;
-    wrap.scrollIntoView({ block: 'start' });
-    cam.classList.add('open');
-    loadingText.textContent = 'Membuka kamera...';
-    show(loading, true); show(live, false);
-    setTimeout(function () { show(loading, false); show(live, true); busy = false; }, 900);
-  }
-
-  function closeCamera() {
-    cam.classList.remove('open');
-    show(loading, false); show(live, false);
-    busy = false;
-  }
-
-  // Jepret: kilat putih -> "Memverifikasi..." -> ikon hilang, foto terverifikasi
-  function capture() {
-    if (busy) return;
-    busy = true;
-    flash.classList.add('fire');
-    setTimeout(function () { flash.classList.remove('fire'); }, 120);
-    setTimeout(function () {
-      show(live, false);
-      loadingText.textContent = 'Memverifikasi foto...';
-      show(loading, true);
-    }, 350);
-    setTimeout(function () {
-      closeCamera();
+  // Kamera layar penuh "Foto Verifikasi" (assets/amt/js/camera.js)
+  var cam = AmtCamera.create({
+    facing: 'user',
+    title: 'Foto Verifikasi',
+    onSave: function (dataUrl) {
       photo.value = '1';
+      photoData.value = dataUrl;
       box.classList.add('taken');
       document.getElementById('wk-done-time').textContent =
         new Date().toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'medium' });
       refresh();
-    }, 1300);
-  }
+    }
+  });
 
-  document.getElementById('wk-take').addEventListener('click', openCamera);
-  document.getElementById('wk-redo').addEventListener('click', openCamera);
-  document.getElementById('wk-shutter').addEventListener('click', capture);
-  document.getElementById('wk-cancel').addEventListener('click', closeCamera);
+  document.getElementById('wk-take').addEventListener('click', function () { cam.open(); });
+  document.getElementById('wk-redo').addEventListener('click', function () { cam.open(); });
 
   // Lokasi tetap; "Perbarui Lokasi" hanya memuat ulang peta
   document.getElementById('wk-refresh').addEventListener('click', function (e) {

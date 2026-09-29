@@ -1,0 +1,81 @@
+/* ============================================================
+   OneFIS - AMT - camera.css
+   Layar "Foto Verifikasi" (kamera layar penuh) untuk Start Work
+   / End Work. Dipasang di dalam .app-container (bingkai HP),
+   jadi menutupi header aplikasi.
+   ============================================================ */
+
+.amtcam {
+    position: absolute; inset: 0; z-index: 1000;
+    display: none; flex-direction: column;
+    background: #111; color: #fff;
+    font-family: inherit;
+}
+.amtcam.is-open { display: flex; }
+/* Cadangan bila .app-container tidak ditemukan */
+.amtcam.is-fixed { position: fixed; }
+
+/* ---------- Header ---------- */
+.amtcam-header {
+    position: relative; z-index: 3; flex-shrink: 0;
+    display: flex; align-items: center; gap: 0.25rem;
+    height: calc(3.25rem + env(safe-area-inset-top));
+    padding: env(safe-area-inset-top) 0.5rem 0;
+    background: rgba(102, 102, 102, 0.96);
+}
+.amtcam-back {
+    width: 2.5rem; height: 2.5rem; border: 0; border-radius: 50%;
+    background: transparent; color: #fff; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+}
+.amtcam-back:active { background: rgba(255, 255, 255, 0.15); }
+.amtcam-back svg { width: 1.25rem; height: 1.25rem; fill: none; stroke: currentColor; stroke-width: 2; }
+.amtcam-title {
+    flex: 1; text-align: center; font-size: 0.9375rem; font-weight: 700;
+    color: #fff; margin-right: 2.5rem; /* seimbangkan lebar tombol back */
+}
+
+/* ---------- Pratinjau ---------- */
+.amtcam-stage { position: relative; flex: 1 1 auto; min-height: 0; overflow: hidden; background: #000; }
+.amtcam-video, .amtcam-shot {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    object-fit: cover; background: #000;
+}
+.amtcam-video.is-mirror { transform: scaleX(-1); }
+.amtcam-video[hidden], .amtcam-shot[hidden] { display: none; }
+
+.amtcam-msg {
+    position: absolute; left: 1.25rem; right: 1.25rem; top: 50%; transform: translateY(-50%);
+    text-align: center; font-size: 0.8125rem; line-height: 1.5; color: #e5e7eb;
+    display: none; z-index: 2;
+}
+.amtcam-msg.is-on { display: block; }
+.amtcam-spin {
+    width: 1.75rem; height: 1.75rem; margin: 0 auto 0.75rem; border-radius: 50%;
+    border: 3px solid rgba(255, 255, 255, 0.25); border-top-color: #fff;
+    animation: amtcamspin 0.8s linear infinite;
+}
+@keyframes amtcamspin { to { transform: rotate(360deg); } }
+
+.amtcam-flash { position: absolute; inset: 0; z-index: 2; background: #fff; opacity: 0; pointer-events: none; }
+.amtcam-flash.fire { opacity: 1; }
+.amtcam-flash.fade { opacity: 0; transition: opacity 0.25s; }
+
+/* ---------- Tombol bawah ---------- */
+.amtcam-actions {
+    position: absolute; left: 0; right: 0; bottom: 0; z-index: 3;
+    display: flex; gap: 0.5rem;
+    padding: 0.75rem 0.75rem calc(0.75rem + env(safe-area-inset-bottom));
+}
+.amtcam-btn {
+    flex: 1 1 0; min-width: 0; height: 2.5rem; border-radius: 0.5rem;
+    display: flex; align-items: center; justify-content: center; gap: 0.4rem;
+    font-size: 0.75rem; font-weight: 600; cursor: pointer;
+    border: 1px solid #fff; background: #fff; color: #2563eb;
+    font-family: inherit; box-sizing: border-box;
+}
+.amtcam-btn svg { width: 0.875rem; height: 0.875rem; fill: none; stroke: currentColor; stroke-width: 2; flex-shrink: 0; }
+.amtcam-btn:active { filter: brightness(0.92); }
+.amtcam-btn.is-primary { background: #2563eb; border-color: #2563eb; color: #fff; }
+.amtcam-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.amtcam-btn[hidden] { display: none; }

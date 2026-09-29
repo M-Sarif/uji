@@ -15,7 +15,11 @@
 <link rel="stylesheet" href="assets/css/components.css?v=<?php echo (int) @filemtime(__DIR__ . '/../assets/css/components.css'); ?>">
 <link rel="stylesheet" href="assets/css/tutorial.css?v=<?php echo (int) @filemtime(__DIR__ . '/../assets/css/tutorial.css'); ?>">
 <?php foreach (SCREEN_CSS[$screen] ?? [] as $cssFile): ?>
-<link rel="stylesheet" href="assets/css/<?php echo h($cssFile); ?>.css?v=<?php echo (int) @filemtime(__DIR__ . '/../assets/css/' . $cssFile . '.css'); ?>">
+<?php
+// Awalan "amt/" = CSS milik peran AMT di assets/amt/css/, selain itu di assets/css/
+$cssHref = amt_css_href($cssFile) ?? ('assets/css/' . $cssFile . '.css');
+?>
+<link rel="stylesheet" href="<?php echo h($cssHref); ?>?v=<?php echo (int) @filemtime(__DIR__ . '/../' . $cssHref); ?>">
 <?php endforeach; ?>
 </head>
 <body>
@@ -76,19 +80,7 @@ if (is_array($flashSuccess)) {
             </div>
         </div>
     <?php elseif ($screen === 'amt_home'): ?>
-        <!-- Header beranda AMT: logo, notifikasi (titik merah), avatar -->
-        <div class="app-header">
-            <div class="logo">
-                <img src="assets/logo-onefis.svg" alt="OneFIS">
-            </div>
-            <div class="header-right">
-                <div class="bell">
-                    <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.4-1.4A2 2 0 0118 14.2V11a6 6 0 10-12 0v3.2c0 .5-.2 1-.6 1.4L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
-                    <span class="bell-dot"></span>
-                </div>
-                <a class="badge" href="index.php?screen=role_select" aria-label="Ganti peran">S</a>
-            </div>
-        </div>
+        <?php require AMT_INC_DIR . '/header.php'; // header beranda AMT (includes/amt/) ?>
     <?php else: ?>
         <!-- Header layar lain: tombol back + judul -->
         <div class="app-header-simple<?php echo $screen === 'claim_loss' ? ' centered' : ''; ?>">
