@@ -22,6 +22,11 @@
     var LS_SEEN    = 'onefis_tour_seen_screens'; // array layar yang tutorialnya sudah pernah selesai ditonton
     var LS_SKIPPED = 'onefis_tour_skipped';       // '1' kalau user memilih "Lewati Tutorial"
 
+    // Kalimat petunjuk aksi -- dibuat sederhana untuk pengguna awam.
+    var HINT_TAP   = '👉 Ketuk bagian yang menyala biru untuk lanjut';
+    var HINT_READY = '👉 Sudah siap! Sekarang ketuk tombol yang menyala biru';
+    var HINT_ANY   = '👉 Ketuk di mana saja untuk lanjut';
+
     // Label dinamis untuk step { dynamic: true } pada halaman "shipment"
     // (menyorot langkah aktivitas yang sedang aktif di timeline Aktifitas).
     var DYNAMIC_LABELS = {
@@ -301,14 +306,20 @@
 
         var tooltip = document.createElement('div');
         tooltip.className = 'tour-tooltip';
+        tooltip.setAttribute('role', 'dialog');
+        tooltip.setAttribute('aria-live', 'polite');
         tooltip.innerHTML =
             '<div class="tour-arrow bottom" data-tour-arrow></div>' +
-            '<div class="tour-eyebrow"><span data-tour-progress></span></div>' +
+            '<div class="tour-eyebrow">' +
+            '  <span data-tour-progress></span>' +
+            '  <button type="button" class="tour-collapse" data-tour-collapse aria-label="Ciutkan petunjuk">Ciutkan ▴</button>' +
+            '</div>' +
+            '<div class="tour-bar" aria-hidden="true"><span data-tour-bar></span></div>' +
             '<h3 class="tour-title" data-tour-title></h3>' +
             '<p class="tour-text" data-tour-text></p>' +
             '<p class="tour-hint" data-tour-hint hidden></p>' +
             '<div class="tour-footer">' +
-            '  <button type="button" class="tour-skip" data-tour-skip>Lewati Tutorial</button>' +
+            '  <button type="button" class="tour-skip" data-tour-skip>Lewati tutorial</button>' +
             '</div>';
         document.body.appendChild(tooltip);
 
@@ -318,6 +329,23 @@
         tooltip.querySelector('[data-tour-skip]').addEventListener('click', function () {
             setSkipped(true);
             self._destroy();
+        });
+        // Tombol "Ciutkan": kalau petunjuk terasa menghalangi, pengguna bisa
+        // mengecilkannya jadi satu baris judul, lalu membukanya lagi.
+        var colBtn = tooltip.querySelector('[data-tour-collapse]');
+        colBtn.addEventListener('click', function (ev) {
+            ev.stopPropagation();
+            self._collapsed = !self._collapsed;
+            self._applyCollapsed();
+            // Ukuran tooltip berubah (ciut/buka) -> hitung ulang reserve +
+            // posisi supaya dorongan konten & sorotan tetap sinkron. Dibungkus
+            // requestAnimationFrame supaya browser sempat menerapkan class
+            // is-collapsed dulu (ukuran baru) sebelum kita ukur & pindahkan,
+            // jadi tidak ada "lompatan" ganda / flicker saat toggle.
+            requestAnimationFrame(function () {
+                var t = self._currentHighlightEl || self._currentEl;
+                if (t) { self._positionOn(t, self._currentPlace); }
+            });
         });
         // Langkah pembuka/penutup (tanpa target elemen) tidak punya tombol
         // biru sama sekali - ketuk di mana saja pada layar gelap untuk lanjut.
@@ -341,6 +369,17 @@
         // untuk lanjut ke langkah berikutnya), lihat catatan di _showOn.
         var target = this._currentHighlightEl || this._currentEl;
         if (target) { this._positionOn(target, this._currentPlace); }
+    };
+
+    Tour.prototype._applyCollapsed = function () {
+        var tt = this.els.tooltip;
+        if (!tt) { return; }
+        tt.classList.toggle('is-collapsed', !!this._collapsed);
+        var b = tt.querySelector('[data-tour-collapse]');
+        if (b) {
+            b.textContent = this._collapsed ? 'Buka ▾' : 'Ciutkan ▴';
+            b.setAttribute('aria-label', this._collapsed ? 'Buka petunjuk' : 'Ciutkan petunjuk');
+        }
     };
 
     Tour.prototype._runStep = function () {
@@ -517,6 +556,8 @@
                 this.els.panels[k].style.display = 'none';
             }, this);
             this.els.ring.style.display = 'none';
+            this._clearDock();
+            document.body.classList.remove('tour-active');
         }
         this._waitingTarget = step.target;
 
@@ -550,6 +591,8 @@
             }, this);
             this.els.ring.style.display = 'none';
         }
+        this._clearDock();
+        document.body.classList.remove('tour-active');
     };
 
     Tour.prototype._advanceSkippingHidden = function () {
@@ -599,13 +642,12 @@
             // lakukan apa-apa lagi.
             if (self._currentEl !== el) { return; }
             self._currentHighlightEl = el;
-            if (!self._docked) {
-                el.scrollIntoView({ block: 'center', behavior: 'smooth' });
-            }
-            setTimeout(function () { self._positionOn(el, self._currentPlace); }, self._docked ? 30 : 150);
+            self._clearDock();
+            self._ensureVisible(el, self._currentPlace);
+            self._positionOn(el, self._currentPlace);
             var tt = self.els.tooltip;
             var hint = tt.querySelector('[data-tour-hint]');
-            if (hint) { hint.textContent = '👉 Ketuk elemen yang bersinar untuk melanjutkan'; }
+            if (hint) { hint.textContent = HINT_READY; }
         }
 
         if (!el.disabled) { promote(); return; }
@@ -631,14 +673,19 @@
         this.els.backdrop.classList.add('is-blocking');
 
         var tt = this.els.tooltip;
+        this._clearDock();
         tt.className = 'tour-tooltip place-center';
+        tt.style.width = '';
+        tt.style.left = '';
+        tt.style.top = '';
         this._fillTooltip(step);
 
         var hint = tt.querySelector('[data-tour-hint]');
-        hint.textContent = 'Ketuk di mana saja untuk melanjutkan';
+        hint.textContent = HINT_ANY;
         hint.hidden = false;
 
         requestAnimationFrame(function () { tt.classList.add('is-visible'); });
+        document.body.classList.add('tour-active');
     };
 
     Tour.prototype._showOn = function (el, step) {
@@ -698,21 +745,8 @@
         // persis di atas elemen yang disorot, sehingga warna aslinya tampil.
         this.els.backdrop.classList.remove('is-visible');
         this.els.backdrop.classList.remove('is-blocking'); // elemen lain di layar tetap bisa dipencet
-        // 'dock' => 'top' (opsional): dipakai untuk sorotan yang lebih tinggi
-        // dari layar (mis. seluruh .claim-form pada "Isi Form Pengukuran").
-        // Untuk langkah ini halaman TIDAK di-scroll otomatis, dan tooltip
-        // ditaruh di pita khusus tepat di bawah header (konten didorong
-        // turun setinggi tooltip) sehingga TIDAK PERNAH menutupi kolom
-        // input. Pengguna bebas men-scroll form sendiri.
-        this._docked = (step.dock === 'top') && !!document.querySelector('.content');
-        if (!this._docked) {
-            highlightEl.scrollIntoView({ block: 'center', behavior: 'smooth' });
-        }
-
         var self = this;
         var startStepIndex = this.stepIndex;
-        // beri sedikit waktu untuk smooth-scroll sebelum menghitung posisi
-        setTimeout(function () { self._positionOn(highlightEl, self._currentPlace); }, this._docked ? 30 : 220);
 
         this._fillTooltip(step, el);
         // Step dinamis bisa membatalkan diri sendiri & lompat ke step
@@ -720,12 +754,27 @@
         if (this.stepIndex !== startStepIndex) { return; }
 
         var tt = this.els.tooltip;
-        tt.className = 'tour-tooltip place-' + (step.place || 'bottom');
+        tt.className = 'tour-tooltip place-' + (step.place || 'bottom') +
+            (this._collapsed ? ' is-collapsed' : '');
+        this._customHint = step.hint || null;
+
+        // Susun ulang tata letak SETIAP langkah dari nol: lepas dock lama,
+        // gulir halaman seperlunya SAJA (bukan selalu ke tengah), lalu
+        // tempatkan tooltip di sisi yang muat (atau dock kalau tidak muat).
+        this._clearDock();
+        this._ensureVisible(highlightEl, this._currentPlace);
+        this._positionOn(highlightEl, this._currentPlace);
+        // Pop up punya animasi masuk singkat -- hitung ulang setelah selesai.
+        setTimeout(function () {
+            if (self._currentHighlightEl === highlightEl && self.els.tooltip) {
+                self._positionOn(highlightEl, self._currentPlace);
+            }
+        }, 260);
 
         // Tidak ada tombol biru sama sekali di sini: petunjuk hilang begitu
         // pengguna benar-benar mengetuk elemen asli yang disorot.
         var hint = tt.querySelector('[data-tour-hint]');
-        hint.textContent = '👉 Ketuk elemen yang bersinar untuk melanjutkan';
+        hint.textContent = this._customHint || HINT_TAP;
         hint.hidden = false;
 
         // Detach dulu SEBELUM lanjut: sebuah tap pada <label> radio memicu
@@ -788,6 +837,8 @@
         }, this);
         this.els.ring.style.display = 'none';
         this._currentHighlightEl = null;
+        this._clearDock();
+        document.body.classList.remove('tour-active');
 
         var self = this;
         this._elClickHandler = function () {
@@ -855,147 +906,282 @@
         }
         var tt = this.els.tooltip;
         var screenLabel = this.screenLabels[this.screen] || '';
-        var progress = (this.screenIndex ? 'Bagian ' + this.screenIndex + '/' + this.screenOrder.length + ' · ' + screenLabel : screenLabel);
+        var progress = (this.screenIndex ? 'Bagian ' + this.screenIndex + ' dari ' + this.screenOrder.length + ' · ' + screenLabel : screenLabel);
         tt.querySelector('[data-tour-progress]').textContent = progress;
+        var bar = tt.querySelector('[data-tour-bar]');
+        if (bar) {
+            var total = this.screenOrder.length || 1;
+            var pct = this.screenIndex ? Math.round(this.screenIndex / total * 100) : 0;
+            bar.style.width = pct + '%';
+            bar.parentNode.style.display = pct ? '' : 'none';
+        }
+        this._applyCollapsed();
         tt.querySelector('[data-tour-title]').textContent = label.title || '';
         tt.querySelector('[data-tour-text]').textContent = label.text || '';
     };
 
-    // Mode "dock": tooltip menempati pita sendiri tepat di bawah header dan
-    // .content didorong turun setinggi tooltip (margin-top), jadi area
-    // scroll form otomatis mengecil & tidak ada input yang tertimpa.
-    Tour.prototype._layoutDock = function () {
+    // ==================================================================
+    //  MESIN PENEMPATAN TOOLTIP
+    //  Aturan utama: tooltip TIDAK BOLEH keluar layar dan TIDAK BOLEH
+    //  menutupi elemen yang disorot (mis. kolom form yang harus diisi).
+    //  1. Coba sisi yang diminta ('place'), lalu sisi seberangnya. Sisi
+    //     yang menutupi paling sedikit tombol/kolom lain dipilih.
+    //  2. Kalau di kedua sisi tidak muat (sorotan tinggi, mis. seluruh
+    //     form atau pop up), tooltip \"DOCK\": dipasang di pita sendiri di
+    //     bagian atas, lalu isi halaman / pop up didorong turun setinggi
+    //     pita itu. Jadi tidak ada yang tertimpa dan tidak ada yang
+    //     terpotong -- pengguna tetap bebas men-scroll.
+    // ==================================================================
+    var GAP = 14, EDGE = 8;
+
+    // Batas area yang boleh dipakai tooltip untuk elemen 'el':
+    // lebar = kartu aplikasi, tinggi = area .content (di bawah header) untuk
+    // elemen halaman biasa, atau seluruh layar untuk pop up (fixed).
+    Tour.prototype._region = function (el) {
+        var vw = window.innerWidth, vh = window.innerHeight;
+        var app = document.querySelector('.app-container');
+        var ab = app ? app.getBoundingClientRect() : { left: 0, right: vw };
+        var reg = {
+            left:   Math.max(0, ab.left),
+            right:  Math.min(vw, ab.right),
+            top:    0,
+            bottom: vh,
+            inContent: false,
+            content: null
+        };
         var content = document.querySelector('.content');
+        // Pop up bersifat position:fixed (menutupi seluruh layar) walau secara
+        // DOM berada di dalam .content -> perlakukan sebagai layar penuh.
+        var isModal = !!(el && el.closest && el.closest('.modal-backdrop, .spp-modal-backdrop'));
+        if (el && content && !isModal && content.contains(el)) {
+            var cb = content.getBoundingClientRect();
+            reg.inContent = true;
+            reg.content   = content;
+            reg.top       = Math.max(0, cb.top);
+            reg.bottom    = Math.min(vh, cb.bottom);
+        }
+        return reg;
+    };
+
+    // Atur lebar tooltip sesuai kartu aplikasi (HP kecil maupun desktop).
+    Tour.prototype._sizeTooltip = function (reg) {
         var tt = this.els.tooltip;
-        if (!content || !tt) { this._docked = false; return; }
-        var gap  = 8;
-        var prev = parseFloat(content.style.marginTop) || 0;
-        var top  = content.getBoundingClientRect().top - prev; // tepi atas tanpa margin kita
-        var box  = (content.parentElement || content).getBoundingClientRect();
+        var w = Math.min(340, Math.max(220, reg.right - reg.left - 24));
+        if (this._docked) { w = Math.max(220, reg.right - reg.left - 24); }
+        tt.style.width = w + 'px';
+        return w;
+    };
 
+    // Potong rect sorotan ke area yang terlihat (supaya sorotan yang lebih
+    // tinggi dari layar tidak menabrak tooltip / header).
+    Tour.prototype._clipRect = function (rect, reg) {
+        var top = Math.max(rect.top, reg.top + 2);
+        var bot = Math.max(top, Math.min(rect.bottom, reg.bottom - 2));
+        return { top: top, bottom: bot, left: rect.left, right: rect.right,
+                 width: rect.width, height: bot - top };
+    };
+
+    // Hitung berapa kolom isian / pilihan jawaban (selain sorotan) yang
+    // tertutup kotak 'box'. Kolom form TIDAK BOLEH tertutup tooltip -- kalau
+    // di sisi manapun ada yang tertutup, tooltip akan di-dock (lihat _positionOn).
+    // Elemen di balik pop up yang sedang terbuka tidak dihitung (memang
+    // sudah tidak bisa disentuh).
+    var PROTECTED_SEL = 'input:not([type=hidden]), textarea, select, .btn-choice, .spp-opt, ' +
+                        '.method-card, .measure-lo-card, .nav-item-card, .lo-card, .konfirmasi-card, ' +
+                        '.photo-drop, .rating-stars label, .star';
+    Tour.prototype._countCovered = function (box, hl) {
+        var n = 0, tt = this.els.tooltip;
+        var modal = hl && hl.closest ? hl.closest('.modal-backdrop, .spp-modal-backdrop') : null;
+        var list = document.querySelectorAll(PROTECTED_SEL);
+        var content = document.querySelector('.content');
+        var cb = content ? content.getBoundingClientRect() : null;
+        for (var i = 0; i < list.length; i++) {
+            var e = list[i];
+            if (tt.contains(e) || (hl && hl.contains(e))) { continue; }
+            var em = e.closest ? e.closest('.modal-backdrop, .spp-modal-backdrop') : null;
+            if (modal ? em !== modal : !!em) { continue; }
+            var r = e.getBoundingClientRect();
+            if (r.width <= 0 || r.height <= 0) { continue; }
+            // Bagian yang sudah tergulir keluar dari area .content tidak terlihat
+            var top = r.top, bot = r.bottom;
+            if (cb && !em && content.contains(e)) { top = Math.max(top, cb.top); bot = Math.min(bot, cb.bottom); }
+            if (bot <= top) { continue; }
+            if (r.right > box.left + 1 && r.left < box.right - 1 &&
+                bot > box.top + 1 && top < box.bottom - 1) { n++; }
+        }
+        return n;
+    };
+
+    // Pastikan sorotan + tooltip sama-sama muat di layar. Halaman HANYA
+    // digulir seperlunya (paling sedikit), dan TIDAK digulir sama sekali
+    // kalau sudah muat atau kalau sorotannya terlalu tinggi (-> dock).
+    Tour.prototype._ensureVisible = function (el, place) {
+        var reg = this._region(el);
+        if (!reg.inContent) { return; }
+        this._sizeTooltip(reg);
+        var tt = this.els.tooltip;
+        var H = tt.offsetHeight || 170;
+        var rect = el.getBoundingClientRect();
+        var top = reg.top + EDGE, bottom = reg.bottom - EDGE;
+        var inside = rect.top >= top && rect.bottom <= bottom;
+        var fitsTop = rect.top - GAP - H >= top;
+        var fitsBot = rect.bottom + GAP + H <= bottom;
+        if (inside && (fitsTop || fitsBot)) { return; }
+
+        var Hh = rect.height;
+        if (Hh + GAP + H > bottom - top) { return; } // terlalu tinggi -> dock (lihat _positionOn)
+
+        var want;
+        if (place === 'top') {
+            want = Math.min(Math.max(rect.top, top + H + GAP), bottom - Hh);
+        } else {
+            want = Math.min(Math.max(rect.top, top), bottom - Hh - GAP - H);
+        }
+        var prev = reg.content.style.scrollBehavior;
+        reg.content.style.scrollBehavior = 'auto';
+        reg.content.scrollTop += (rect.top - want);
+        reg.content.style.scrollBehavior = prev;
+    };
+
+    // DOCK: tooltip di pita atas + isi halaman/pop up didorong turun.
+    Tour.prototype._enterDock = function (reg) {
+        var tt = this.els.tooltip;
+        var root = document.documentElement;
+        this._docked = true;
+        // TIDAK ADA ciut otomatis -- tutorial selalu tampil PENUH & konsisten
+        // di semua langkah (pengguna sendiri yang memutuskan lewat tombol
+        // "Ciutkan" kalau mau). Supaya konten asli di baliknya tetap tidak
+        // terdorong terlalu jauh, tinggi kartu di mode dock DIBATASI lewat
+        // CSS (.is-docked { max-height: ... }) dengan teksnya sendiri yang
+        // bisa di-scroll kalau panjang -- bukan kartunya yang menciut.
+        this._sizeTooltip(reg);
         tt.classList.add('is-docked');
-        tt.style.left  = (box.left + 12) + 'px';
-        tt.style.width = Math.max(0, box.width - 24) + 'px';
-        tt.style.top   = (top + gap) + 'px';
+        tt.style.transform = '';
 
-        var want = (tt.offsetHeight + gap * 2) + 'px';
-        if (content.style.marginTop !== want) { content.style.marginTop = want; }
+        var content = reg.content;
+        var top;
+        if (reg.inContent && content) {
+            var prev = parseFloat(content.style.marginTop) || 0;
+            top = content.getBoundingClientRect().top - prev;
+        } else {
+            top = EDGE;
+        }
+        tt.style.left = (reg.left + 12) + 'px';
+        tt.style.top  = (top + EDGE) + 'px';
+
+        var reserve = Math.ceil(tt.offsetHeight + EDGE * 2);
+        if (reg.inContent && content) {
+            if (content.style.marginTop !== reserve + 'px') {
+                content.style.marginTop = reserve + 'px';
+            }
+        } else {
+            root.style.setProperty('--tour-reserve', (tt.offsetHeight + EDGE * 2 + EDGE) + 'px');
+            root.classList.add('tour-reserve-modal');
+        }
+        this._dockContent = reg.inContent ? content : null;
     };
 
     Tour.prototype._clearDock = function () {
         this._docked = false;
+        var root = document.documentElement;
+        root.classList.remove('tour-reserve-modal');
+        root.style.removeProperty('--tour-reserve');
         var content = document.querySelector('.content');
-        if (content) { content.style.marginTop = ''; }
+        if (content && content.style.marginTop) { content.style.marginTop = ''; }
         var tt = this.els && this.els.tooltip;
-        if (tt) {
-            tt.classList.remove('is-docked');
-            tt.style.width = '';
-        }
+        if (tt) { tt.classList.remove('is-docked'); }
     };
 
-    Tour.prototype._positionOn = function (el, place) {
-        if (this._docked) { this._layoutDock(); }
-        var rect = el.getBoundingClientRect();
-        var pad  = 8;
-        var vw   = window.innerWidth;
-        var vh   = window.innerHeight;
+    Tour.prototype._drawSpotlight = function (rect) {
+        var pad = 8, vw = window.innerWidth, vh = window.innerHeight;
         var panels = this.els.panels;
-
-        // Sorotan yang lebih tinggi dari area scroll dipotong sebatas area
-        // .content yang terlihat, supaya ring tidak menabrak tooltip/header.
-        if (this._docked) {
-            var vis = document.querySelector('.content').getBoundingClientRect();
-            var cTop = Math.max(rect.top, vis.top + pad);
-            var cBot = Math.max(cTop, Math.min(rect.bottom, vis.bottom - pad));
-            rect = { top: cTop, bottom: cBot, left: rect.left, right: rect.right,
-                     width: rect.width, height: cBot - cTop };
-        }
-
         panels.top.style.cssText    = 'display:block;left:0;top:0;width:' + vw + 'px;height:' + Math.max(0, rect.top - pad) + 'px;';
         panels.bottom.style.cssText = 'display:block;left:0;top:' + (rect.bottom + pad) + 'px;width:' + vw + 'px;height:' + Math.max(0, vh - rect.bottom - pad) + 'px;';
         panels.left.style.cssText   = 'display:block;left:0;top:' + (rect.top - pad) + 'px;width:' + Math.max(0, rect.left - pad) + 'px;height:' + (rect.height + pad * 2) + 'px;';
         panels.right.style.cssText  = 'display:block;left:' + (rect.right + pad) + 'px;top:' + (rect.top - pad) + 'px;width:' + Math.max(0, vw - rect.right - pad) + 'px;height:' + (rect.height + pad * 2) + 'px;';
-
         var ring = this.els.ring;
         ring.style.display = 'block';
         ring.style.left   = (rect.left - pad) + 'px';
         ring.style.top    = (rect.top - pad) + 'px';
         ring.style.width  = (rect.width + pad * 2) + 'px';
         ring.style.height = (rect.height + pad * 2) + 'px';
+    };
 
+    Tour.prototype._positionOn = function (el, place) {
         var tt = this.els.tooltip;
+        if (!tt || !el) { return; }
         var arrow = tt.querySelector('[data-tour-arrow]');
-        if (this._docked) {
-            // posisi tooltip sudah diatur oleh _layoutDock (lihat CSS .is-docked)
+        var reg = this._region(el);
+        this._sizeTooltip(reg);
+        var H = tt.offsetHeight || 170;
+        var W = tt.offsetWidth || 300;
+
+        // ---- pilih sisi (kecuali sudah/harus dock) ----
+        var side = null;
+        if (!this._docked) {
+            var rect0 = el.getBoundingClientRect();
+            var top = reg.top + EDGE, bottom = reg.bottom - EDGE;
+            var order = (place === 'top') ? ['top', 'bottom'] : ['bottom', 'top'];
+            var best = null;
+            for (var i = 0; i < order.length; i++) {
+                var sd = order[i];
+                var fits = sd === 'top' ? (rect0.top - GAP - H >= top)
+                                        : (rect0.bottom + GAP + H <= bottom);
+                if (!fits) { continue; }
+                var bx = sd === 'top'
+                    ? { top: rect0.top - GAP - H, bottom: rect0.top - GAP }
+                    : { top: rect0.bottom + GAP,  bottom: rect0.bottom + GAP + H };
+                bx.left = reg.left; bx.right = reg.right;
+                var cov = this._countCovered(bx, el);
+                if (best === null || cov < best.cov) { best = { side: sd, cov: cov }; }
+            }
+            // Kalau di sisi terbaik pun masih ada kolom form yang tertutup -> dock.
+            side = (best && best.cov === 0) ? best.side : null;
+            // sorotan sama sekali di luar area yang terlihat -> dock juga
+            var offscreen = rect0.bottom < reg.top || rect0.top > reg.bottom;
+            if (side === null || offscreen) { this._enterDock(reg); }
+        }
+        if (this._docked) { this._enterDock(reg); side = 'dock'; }
+
+        // ---- gambar sorotan (setelah dock, karena dock menggeser isi) ----
+        var rect = this._clipRect(el.getBoundingClientRect(), reg);
+        if (this._docked && reg.inContent) {
+            // pastikan tepi atas sorotan terlihat tepat di bawah pita
+            var cb = reg.content.getBoundingClientRect();
+            var raw = el.getBoundingClientRect();
+            if (raw.top < cb.top - 1 && raw.bottom > cb.top) { /* sebagian terlihat: biarkan */ }
+        }
+        this._drawSpotlight(rect);
+
+        if (side === 'dock') {
             arrow.style.display = 'none';
+            this._syncFab();
             return;
         }
-        var ttW = 320;
-        var gap = 14;
-        var top, left, place2 = place;
 
-        if (place2 === 'top') {
-            top  = rect.top - gap;
-            left = rect.left + rect.width / 2;
-            tt.style.transform = 'translate(-50%, calc(-100% - ' + gap + 'px))';
-        } else if (place2 === 'left') {
-            top  = rect.top + rect.height / 2;
-            left = rect.left - gap;
-            tt.style.transform = 'translate(calc(-100% - ' + gap + 'px), -50%)';
-        } else if (place2 === 'right') {
-            top  = rect.top + rect.height / 2;
-            left = rect.right + gap;
-            tt.style.transform = 'translate(0, -50%)';
-        } else { // bottom (default)
-            top  = rect.bottom + gap;
-            left = rect.left + rect.width / 2;
-            tt.style.transform = 'translate(-50%, 0)';
-        }
+        // ---- tempel tooltip di sisi terpilih ----
+        var left = rect.left + rect.width / 2 - W / 2;
+        left = Math.min(Math.max(left, reg.left + 12), reg.right - 12 - W);
+        var tTop = side === 'top' ? rect.top - GAP - H : rect.bottom + GAP;
+        tTop = Math.min(Math.max(tTop, EDGE), window.innerHeight - H - EDGE);
+        tt.style.transform = '';
+        tt.style.left = left + 'px';
+        tt.style.top  = tTop + 'px';
 
-        // Sorotan yang tinggi (mis. seluruh kartu Konfirmasi Status LO) bisa
-        // membuat tooltip terpotong di tepi layar. Kalau tooltip tidak muat
-        // di sisi yang diminta, pindahkan ke sisi seberang; kalau di kedua
-        // sisi tidak muat, tempelkan di tepi layar (menimpa sedikit sorotan).
-        var arrowHidden = false;
-        if (place2 === 'top' || place2 === 'bottom') {
-            var ttH = tt.offsetHeight || 150;
-            var margin = 8;
-            var fitsBelow = rect.bottom + gap + ttH <= vh - margin;
-            var fitsAbove = rect.top - gap - ttH >= margin;
-            if (place2 === 'bottom' && !fitsBelow) {
-                if (fitsAbove) {
-                    place2 = 'top';
-                    top = rect.top - gap;
-                    tt.style.transform = 'translate(-50%, calc(-100% - ' + gap + 'px))';
-                } else {
-                    top = vh - ttH - margin;
-                    tt.style.transform = 'translate(-50%, 0)';
-                    arrowHidden = true;
-                }
-            } else if (place2 === 'top' && !fitsAbove) {
-                if (fitsBelow) {
-                    place2 = 'bottom';
-                    top = rect.bottom + gap;
-                    tt.style.transform = 'translate(-50%, 0)';
-                } else {
-                    top = margin;
-                    tt.style.transform = 'translate(-50%, 0)';
-                    arrowHidden = true;
-                }
-            }
-        }
+        // panah menunjuk ke tengah sorotan
+        var ax = rect.left + rect.width / 2 - left - 7;
+        ax = Math.min(Math.max(ax, 18), W - 32);
+        arrow.style.display = '';
+        arrow.style.left = ax + 'px';
+        arrow.className = 'tour-arrow ' + (side === 'top' ? 'bottom' : 'top');
+        this._syncFab();
+    };
 
-        // jaga agar tetap di dalam layar secara horizontal
-        var estLeft = left;
-        if (place2 === 'top' || place2 === 'bottom') {
-            var half = Math.min(ttW, vw - 32) / 2;
-            estLeft = Math.min(Math.max(left, half + 16), vw - half - 16);
-        }
-
-        tt.style.top  = top + 'px';
-        tt.style.left = estLeft + 'px';
-        arrow.style.display = arrowHidden ? 'none' : '';
-        arrow.className = 'tour-arrow ' + (place2 === 'top' ? 'bottom' : place2 === 'bottom' ? 'top' : place2 === 'left' ? 'right' : 'left');
+    // Tombol "?" mengambang disembunyikan selama tutorial tampil supaya
+    // tidak menutupi kolom form.
+    Tour.prototype._syncFab = function () {
+        var on = !!(this.els.tooltip && this.els.tooltip.classList.contains('is-visible')) || !!this._active;
+        document.body.classList.toggle('tour-active', on);
     };
 
     Tour.prototype._destroy = function () {
@@ -1003,6 +1189,7 @@
         clearTimeout(this.waitTimer);
         this._detachElListener();
         this._clearDock();
+        document.body.classList.remove('tour-active');
         window.removeEventListener('resize', this._onReflow);
         window.removeEventListener('scroll', this._onReflow, true);
         var els = this.els;

@@ -31,6 +31,9 @@ unset($_SESSION['arrival_error']);
         </div>
 
         <!-- Kartu verifikasi: mobil tangki, AMT 1, AMT 2 -->
+        <!-- Dibungkus satu wadah (data-tour) supaya tutorial menyorot KETIGA
+             kartu sekaligus dan tooltip tidak menutupi tombol "Ya, sesuai". -->
+        <div data-tour="verif-subjects" style="display:flex;flex-direction:column;gap:0.875rem;">
         <?php foreach (ARRIVAL_SUBJECTS as $name => $subject): ?>
             <?php $answer = $_SESSION[$name] ?? null; ?>
             <div class="card subject-card">
@@ -62,6 +65,7 @@ unset($_SESSION['arrival_error']);
                 </div>
             </div>
         <?php endforeach; ?>
+        </div>
 
         <?php if ($arrivalError !== ''): ?>
             <p class="error-text"><?php echo h($arrivalError); ?></p>

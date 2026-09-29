@@ -251,7 +251,7 @@ const TOUR_STEPS = [
 
     'verification' => [
         [
-            'target' => '.subject-card',
+            'target' => '[data-tour="verif-subjects"]',
             'title'  => 'Langkah 3 · Verifikasi Kedatangan',
             'text'   => 'Verifikasi kesesuaian data Mobil Tangki, AMT 1, dan AMT 2 dengan kondisi sebenarnya di lapangan sesuai tampilan pada aplikasi. Pilih "Ya, sesuai" atau "Tidak sesuai" untuk tiap kartu.',
             'place'  => 'bottom',
