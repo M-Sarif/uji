@@ -2,10 +2,11 @@
 /* ============================================================
  * OneFIS - AMT - Tutorial terpandu (guided tour)
  *
- * Tampilan & cara kerjanya SAMA PERSIS dengan tutorial peran SPBU:
- * menyorot (spotlight) elemen asli di halaman, satu langkah setiap saat.
- * Mesinnya dipakai bersama (assets/js/tutorial.js + assets/css/tutorial.css);
- * yang khusus AMT hanya DATA langkahnya, yaitu file ini.
+ * Tampilan sama dengan tutorial peran SPBU (spotlight pada elemen asli),
+ * tetapi MESIN-nya terpisah: assets/amt/js/tutorial-amt.js (salinan khusus AMT),
+ * jadi mengubah tutorial AMT tidak pernah menyentuh tutorial SPBU.
+ * Gaya visual masih memakai assets/css/tutorial.css (tidak diubah).
+ * Data langkah AMT ada di file ini.
  *
  * Isi langkah mengikuti dokumen "User Guide Aplikasi OneFIS Role AMT":
  *   A. Absen Kehadiran (Start Work)   B. Check-In   G. Absen Selesai Bekerja
@@ -85,25 +86,31 @@ const AMT_TOUR_STEPS = [
     // ---- Form Start Work ----
     'start_work' => [
         [
-            'target'    => '#wk-loc .wk-head',
+            'target'    => '#wk-loc-title',
             'highlight' => '#wk-loc',
             'title'     => 'Langkah 3 · Pastikan Lokasi Anda',
-            'text'      => 'Titik biru pada peta adalah lokasi Anda. Pastikan berada di wilayah terminal, jika perlu ketuk "Perbarui Lokasi".',
+            'text'      => 'Peta Google Maps menampilkan lokasi Anda. Absen hanya bisa di dalam radius 500 meter dari titik kerja. Jika di luar jangkauan, ketuk "Perbarui Lokasi".',
             'place'     => 'bottom',
             'hint'      => '👉 Ketuk tulisan "Lokasi Anda" yang menyala untuk lanjut',
         ],
         [
-            'target' => '#wk-akt',
-            'title'  => 'Langkah 4 · Pilih Aktivitas',
-            'text'   => 'Pilih aktivitas Anda hari ini, misalnya "Hadir". Kolom ini wajib diisi.',
-            'place'  => 'bottom',
-            'alsoAdvanceOn' => ['selector' => '#wk-akt', 'event' => 'change'],
+            'target'    => '#wk-akt',
+            'highlight' => '#wk-act-box',
+            'title'     => 'Langkah 4 · Pilih Aktivitas',
+            'text'      => 'Pilih aktivitas Anda hari ini, misalnya "Hadir". Kolom ini wajib diisi.',
+            'place'     => 'bottom',
+            'hint'      => '👉 Buka kolom yang menyala dan pilih salah satu aktivitas',
+            'skipIf'    => '#wk-akt:valid',
+            'noClickAdvance' => true,
+            'alsoAdvanceOn'  => ['selector' => '#wk-akt', 'event' => 'change'],
         ],
         [
-            'target' => '#wk-take',
-            'title'  => 'Langkah 5 · Foto Selfie Verifikasi',
-            'text'   => 'Ketuk "Ambil Foto", arahkan wajah ke kamera depan handphone, lalu ambil selfie sebagai verifikasi.',
-            'place'  => 'top',
+            'target'    => '#wk-take',
+            'highlight' => '#wk-photo-box',
+            'title'     => 'Langkah 5 · Foto Selfie Verifikasi',
+            'text'      => 'Ketuk "Ambil Foto", arahkan wajah ke kamera depan handphone, lalu ambil selfie sebagai verifikasi.',
+            'place'     => 'top',
+            'skipIf'    => '#wk-box.taken',
         ],
         [
             'target' => '#wk-submit',
@@ -123,22 +130,36 @@ const AMT_TOUR_STEPS = [
             'place'  => 'bottom',
             'hint'   => '👉 Ketuk tab "Verifikasi" yang menyala untuk lanjut',
         ],
-        [
-            'target' => '#wk-akt',
-            'title'  => 'Langkah 9 · Pilih Aktivitas',
-            'text'   => 'Pilih aktivitas Anda. Pengisiannya hampir sama dengan Start Work.',
-            'place'  => 'bottom',
-            'alsoAdvanceOn' => ['selector' => '#wk-akt', 'event' => 'change'],
+        [   // kotak hijau: peta
+            'target'    => '#wk-loc-title',
+            'highlight' => '#wk-loc',
+            'title'     => 'Langkah 9 · Peta Lokasi Anda',
+            'text'      => 'Peta Google Maps menampilkan lokasi Anda. Check-In hanya bisa di dalam radius 500 meter dari titik kerja. Jika di luar jangkauan, ketuk "Perbarui Lokasi".',
+            'place'     => 'bottom',
+            'hint'      => '👉 Ketuk tulisan "Lokasi Anda" yang menyala untuk lanjut',
         ],
-        [
-            'target' => '#wk-take',
-            'title'  => 'Langkah 10 · Foto Selfie Verifikasi',
-            'text'   => 'Ketuk "Ambil Foto" lalu ambil selfie dengan kamera depan sebagai verifikasi Check-In.',
-            'place'  => 'top',
+        [   // kotak kuning: aktivitas (Tugas Rutin / Tugas Lembur)
+            'target'    => '#wk-akt',
+            'highlight' => '#wk-act-box',
+            'title'     => 'Langkah 10 · Pilih Aktivitas',
+            'text'      => 'Pilih "Tugas Rutin" atau "Tugas Lembur" sesuai tugas Anda saat ini.',
+            'place'     => 'bottom',
+            'hint'      => '👉 Buka kolom yang menyala dan pilih Tugas Rutin atau Tugas Lembur',
+            'skipIf'    => '#wk-akt:valid',
+            'noClickAdvance' => true,
+            'alsoAdvanceOn'  => ['selector' => '#wk-akt', 'event' => 'change'],
         ],
-        [
+        [   // kotak biru: selfie
+            'target'    => '#wk-take',
+            'highlight' => '#wk-photo-box',
+            'title'     => 'Langkah 11 · Foto Selfie Verifikasi',
+            'text'      => 'Ketuk "Ambil Foto" lalu ambil selfie dengan kamera depan sebagai verifikasi Check-In.',
+            'place'     => 'top',
+            'skipIf'    => '#wk-box.taken',
+        ],
+        [   // kotak ungu: tombol kirim
             'target' => '#wk-submit',
-            'title'  => 'Langkah 11 · Kirim Check-In',
+            'title'  => 'Langkah 12 · Kirim Check-In',
             'text'   => 'Ketuk "Kirim". Check-In akan tercatat di tab "Riwayat Check-In".',
             'place'  => 'top',
             'hint'   => HINT_READY_AMT,

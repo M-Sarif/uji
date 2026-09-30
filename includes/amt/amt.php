@@ -1,164 +1,215 @@
 <?php
 /* ============================================================
- * OneFIS - AMT - titik masuk semua kode peran AMT.
+ * OneFIS - AMT - Tutorial terpandu (guided tour)
  *
- * Seluruh kode peran AMT berada di folder "amt":
- *   includes/amt/  amt.php (file ini), work.php, work_ui.php, header.php, tutorial.php
- *   views/amt/     amt_home, start_end, start_work, end_work, checkin, _work_form
- *   assets/amt/    css/ (amt, work, camera, checkin), js/ (camera), Asset/ (gambar)
+ * Tampilan sama dengan tutorial peran SPBU (spotlight pada elemen asli),
+ * tetapi MESIN-nya terpisah: assets/amt/js/tutorial-amt.js (salinan khusus AMT),
+ * jadi mengubah tutorial AMT tidak pernah menyentuh tutorial SPBU.
+ * Gaya visual masih memakai assets/css/tutorial.css (tidak diubah).
+ * Data langkah AMT ada di file ini.
  *
- * index.php hanya memanggil fungsi-fungsi di bawah ini.
- * Dimuat SETELAH includes/data.php dan includes/functions.php.
+ * Isi langkah mengikuti dokumen "User Guide Aplikasi OneFIS Role AMT":
+ *   A. Absen Kehadiran (Start Work)   B. Check-In   G. Absen Selesai Bekerja
+ *
+ * Tiap langkah:
+ *   'target'    => selector CSS elemen yang HARUS diketuk pengguna untuk lanjut
+ *   'highlight' => (opsional) elemen lain yang disorot sebagai gantinya
+ *   'title'/'text' => isi balon petunjuk
+ *   'place'     => top | bottom (null target = balon di tengah layar)
+ *   'hint'      => (opsional) kalimat aksi pengganti bawaan
+ *
+ * Dipanggil dari includes/layout_bottom.php lewat amt_tour_config($screen).
+ * Dimuat dari includes/amt/amt.php.
  * ============================================================ */
 
-require_once __DIR__ . '/work.php';
-require_once __DIR__ . '/tutorial.php'; // tutorial terpandu (guided tour) peran AMT
+// Urutan bagian (indikator "Bagian X dari Y" + garis kemajuan)
+const AMT_TOUR_SCREEN_ORDER = ['amt_home', 'start_end', 'start_work', 'checkin'];
 
-// Layar milik AMT yang tidak terdaftar di HEADER_TITLES (data.php)
-const AMT_EXTRA_SCREENS = ['start_end', 'start_work', 'end_work', 'checkin'];
+const AMT_TOUR_SCREEN_LABELS = [
+    'amt_home'   => 'Beranda AMT',
+    'start_end'  => 'Start / End Work',
+    'start_work' => 'Start Work',
+    'checkin'    => 'Check-In',
+    'end_work'   => 'End Work',
+];
 
-// Aksi form (POST) milik AMT
-const AMT_POST_ACTIONS = ['submit_start_work', 'submit_end_work', 'submit_checkin'];
+// Kalimat petunjuk untuk tombol "Kirim" yang baru aktif setelah form lengkap
+const HINT_READY_AMT = '👉 Sudah siap! Sekarang ketuk tombol yang menyala biru';
 
-/** Beranda AMT (mis. 'amt_home') */
-function amt_home_screen(): string
+const AMT_TOUR_STEPS = [
+
+    // ---- Beranda AMT, SEBELUM Start Work ----
+    'amt_home' => [
+        [
+            'target' => null,
+            'title'  => 'Selamat Datang di OneFIS 👋',
+            'text'   => 'Tutorial singkat ini memandu AMT dari absen kehadiran (Start Work) sampai Check-In, sesuai Panduan Aplikasi OneFIS Role AMT.',
+            'place'  => 'center',
+        ],
+        [
+            'target' => '[data-tour="amt-menu-start_end"]',
+            'title'  => 'Langkah 1 · Buka Menu Start / End',
+            'text'   => 'Setiap hari kerja diawali dengan absen. Ketuk menu "Start / End". Menu lain seperti Check-In masih terkunci sampai Anda Start Work.',
+            'place'  => 'bottom',
+        ],
+    ],
+
+    // ---- Beranda AMT, SETELAH Start Work (timer berjalan) ----
+    'amt_home_running' => [
+        [
+            'target' => '[data-tour="amt-menu-checkin"]',
+            'title'  => 'Langkah 7 · Buka Menu Check-In',
+            'text'   => 'Waktu kerja sudah berjalan. Sekarang menu Check-In aktif: lakukan Check-In jika sudah mendapat tugas pengiriman BBM. Menu PTI dan Check-Out belum aktif.',
+            'place'  => 'bottom',
+        ],
+    ],
+
+    // ---- Start / End Work ----
+    'start_end' => [
+        [
+            'target' => '[data-tour="btn-start-work"]',
+            'title'  => 'Langkah 2 · Pilih Start Work',
+            'text'   => 'Sebelum absen, pastikan AMT sudah berada di wilayah terminal agar absensi valid. Lalu ketuk "Start Work".',
+            'place'  => 'bottom',
+        ],
+    ],
+    // Dibuka lagi SETELAH Start Work (tombol Start Work sudah nonaktif)
+    'start_end_running' => [
+        [
+            'target' => '[data-tour="btn-end-work"]',
+            'title'  => 'Selesai Bekerja · End Work',
+            'text'   => 'Setelah waktu kerja berakhir, AMT wajib absen selesai bekerja: ketuk "End Work", lalu foto selfie di lokasi dan kirim.',
+            'place'  => 'bottom',
+        ],
+    ],
+
+    // ---- Form Start Work ----
+    'start_work' => [
+        [   // kotak hijau: peta - lanjut otomatis begitu lokasi sesuai titik kerja
+            'target'    => '#wk-refresh',
+            'highlight' => '#wk-loc',
+            'title'     => 'Langkah 3 · Pastikan Lokasi Anda',
+            'text'      => 'Peta Google Maps menampilkan lokasi Anda. Pastikan pin berada di titik kerja sebelum absen. Jika belum sesuai, ketuk "Perbarui Lokasi". Tutorial lanjut otomatis begitu lokasi sudah sesuai.',
+            'place'     => 'bottom',
+            'hint'      => '👉 Ketuk "Perbarui Lokasi" sampai lokasi sesuai',
+            'noClickAdvance' => true,
+            'advanceIf'      => '#wk-loc[data-inrange="1"]',
+            'alsoAdvanceOn'  => ['selector' => '#wk-loc', 'event' => 'wk-inrange'],
+        ],
+        [
+            'target'    => '#wk-akt',
+            'highlight' => '#wk-act-box',
+            'title'     => 'Langkah 4 · Pilih Aktivitas',
+            'text'      => 'Pilih aktivitas Anda hari ini, misalnya "Hadir". Kolom ini wajib diisi.',
+            'place'     => 'bottom',
+            'hint'      => '👉 Buka kolom yang menyala dan pilih salah satu aktivitas',
+            'skipIf'    => '#wk-akt:valid',
+            'noClickAdvance' => true,
+            'alsoAdvanceOn'  => ['selector' => '#wk-akt', 'event' => 'change'],
+        ],
+        [
+            'target'    => '#wk-take',
+            'highlight' => '#wk-photo-box',
+            'title'     => 'Langkah 5 · Foto Selfie Verifikasi',
+            'text'      => 'Ketuk "Ambil Foto", arahkan wajah ke kamera depan handphone, lalu ambil selfie sebagai verifikasi.',
+            'place'     => 'top',
+            'skipIf'    => '#wk-box.taken',
+        ],
+        [
+            'target' => '#wk-submit',
+            'title'  => 'Langkah 6 · Kirim',
+            'text'   => 'Form sudah terisi. Ketuk "Kirim". Setelah berhasil, Anda kembali ke halaman utama dan waktu kerja mulai berjalan.',
+            'place'  => 'top',
+            'hint'   => HINT_READY_AMT,
+        ],
+    ],
+
+    // ---- Form Check-In ----
+    'checkin' => [
+        [   // kotak hijau: peta - lanjut otomatis begitu lokasi sesuai titik kerja
+            'target'    => '#wk-refresh',
+            'highlight' => '#wk-loc',
+            'title'     => 'Langkah 8 · Pastikan Lokasi Anda',
+            'text'      => 'Peta Google Maps menampilkan lokasi Anda. Pastikan pin berada di titik kerja sebelum Check-In. Jika belum sesuai, ketuk "Perbarui Lokasi". Tutorial lanjut otomatis begitu lokasi sudah sesuai.',
+            'place'     => 'bottom',
+            'hint'      => '👉 Ketuk "Perbarui Lokasi" sampai lokasi sesuai',
+            'noClickAdvance' => true,
+            'advanceIf'      => '#wk-loc[data-inrange="1"]',
+            'alsoAdvanceOn'  => ['selector' => '#wk-loc', 'event' => 'wk-inrange'],
+        ],
+        [   // kotak kuning: aktivitas (Tugas Rutin / Tugas Lembur)
+            'target'    => '#wk-akt',
+            'highlight' => '#wk-act-box',
+            'title'     => 'Langkah 9 · Pilih Aktivitas',
+            'text'      => 'Pilih "Tugas Rutin" atau "Tugas Lembur" sesuai tugas Anda saat ini.',
+            'place'     => 'bottom',
+            'hint'      => '👉 Buka kolom yang menyala dan pilih Tugas Rutin atau Tugas Lembur',
+            'skipIf'    => '#wk-akt:valid',
+            'noClickAdvance' => true,
+            'alsoAdvanceOn'  => ['selector' => '#wk-akt', 'event' => 'change'],
+        ],
+        [   // kotak biru: selfie
+            'target'    => '#wk-take',
+            'highlight' => '#wk-photo-box',
+            'title'     => 'Langkah 10 · Foto Selfie Verifikasi',
+            'text'      => 'Ketuk "Ambil Foto" lalu ambil selfie dengan kamera depan sebagai verifikasi Check-In.',
+            'place'     => 'top',
+            'skipIf'    => '#wk-box.taken',
+        ],
+        [   // kotak ungu: tombol kirim
+            'target' => '#wk-submit',
+            'title'  => 'Langkah 11 · Kirim Check-In',
+            'text'   => 'Ketuk "Kirim". Check-In akan tercatat di tab "Riwayat Check-In".',
+            'place'  => 'top',
+            'hint'   => HINT_READY_AMT,
+        ],
+    ],
+
+    // ---- Form End Work ----
+    'end_work' => [
+        [
+            'target' => '#wk-take',
+            'title'  => 'End Work · Foto Selfie Verifikasi',
+            'text'   => 'Aktivitas mengikuti pilihan saat Start Work. Ketuk "Ambil Foto" lalu foto selfie di lokasi sebagai verifikasi.',
+            'place'  => 'top',
+        ],
+        [
+            'target' => '#wk-submit',
+            'title'  => 'End Work · Kirim',
+            'text'   => 'Ketuk "Kirim" untuk mengakhiri waktu kerja hari ini.',
+            'place'  => 'top',
+            'hint'   => HINT_READY_AMT,
+        ],
+    ],
+];
+
+/**
+ * Konfigurasi tutorial AMT untuk sebuah layar.
+ * Dipilih sesuai keadaan (timer berjalan atau belum) supaya tiap keadaan
+ * mendapat tutorialnya sendiri, dan tercatat "sudah ditonton" terpisah
+ * lewat 'subKey' (lihat assets/js/tutorial.js -> posKey).
+ *
+ * @return array{steps:array, subKey:?string, screenOrder:array, screenLabels:array}
+ */
+function amt_tour_config(string $screen): array
 {
-    return ROLES['amt']['home'] ?? 'dashboard';
-}
+    $steps  = AMT_TOUR_STEPS[$screen] ?? [];
+    $subKey = null;
 
-/** Apakah $screen dirender dari folder AMT? */
-function amt_owns_screen(string $screen): bool
-{
-    return in_array($screen, AMT_SCREENS, true) || in_array($screen, AMT_EXTRA_SCREENS, true);
-}
+    if (work_is_running()) {
+        if ($screen === amt_home_screen()) {
+            $steps  = AMT_TOUR_STEPS['amt_home_running'];
+            $subKey = 'amt_home_running';
+        } elseif ($screen === 'start_end') {
+            $steps  = AMT_TOUR_STEPS['start_end_running'];
+            $subKey = 'start_end_running';
+        }
+    }
 
-/** Path file view untuk sebuah layar (folder AMT atau views/ bawaan) */
-function amt_view_file(string $screen): string
-{
-    return amt_owns_screen($screen)
-        ? AMT_VIEW_DIR . '/' . $screen . '.php'
-        : AMT_APP_ROOT . '/views/' . $screen . '.php';
-}
-
-/** Judul header untuk layar Start/End Work */
-function amt_screen_title(string $screen): string
-{
-    return WORK_SCREENS[$screen] ?? '';
-}
-
-/** Tujuan tombol back untuk layar Start/End Work */
-function amt_prev_screen(string $screen): ?string
-{
     return [
-        'start_end'  => amt_home_screen(),
-        'start_work' => 'start_end',
-        'end_work'   => 'start_end',
-        'checkin'    => amt_home_screen(),
-    ][$screen] ?? null;
-}
-
-/** Apakah menu beranda AMT terkunci? (key = 'checkin' | 'pti' | 'checkout' | ...)
- *  - menu di WORK_LOCKED_MENUS selalu terkunci (belum tersedia)
- *  - menu di WORK_GATED_SCREENS terkunci selama timer belum berjalan */
-function amt_menu_locked(string $key): bool
-{
-    if (in_array($key, WORK_LOCKED_MENUS, true)) {
-        return true;
-    }
-    return in_array($key, WORK_GATED_SCREENS, true) && !work_is_running();
-}
-
-/** Penjagaan akses (GET): menu terkunci saat timer belum jalan,
- *  Start Work hanya saat timer belum jalan, End Work hanya saat jalan. */
-function amt_guard_work(string $screen): void
-{
-    if (in_array($screen, WORK_GATED_SCREENS, true) && !work_is_running()) {
-        go_to(amt_home_screen());
-    }
-    if ($screen === 'start_work' && work_is_running()) {
-        go_to('start_end');
-    }
-    if ($screen === 'end_work' && !work_is_running()) {
-        go_to('start_end');
-    }
-}
-
-/** Proses form Start Work / End Work (pola Post/Redirect/Get) */
-function amt_handle_post(string $action): void
-{
-    switch ($action) {
-        case 'submit_start_work':
-            // Aktivitas + foto wajib, lalu timer berjalan
-            $akt = (string) ($_POST['aktivitas'] ?? '');
-            if (work_is_running()
-                || !in_array($akt, WORK_ACTIVITIES, true)
-                || ($_POST['photo'] ?? '') !== '1'
-            ) {
-                go_to('start_work');
-            }
-            $_SESSION['work'] = [
-                'started_at'  => time(),
-                'ended_at'    => null,
-                'activity'    => $akt,
-                'start_photo' => true,
-                'end_photo'   => false,
-            ];
-            go_to(amt_home_screen());
-            break;
-
-        case 'submit_end_work':
-            // Aktivitas mengikuti Start Work (tidak bisa diubah)
-            if (!work_is_running() || ($_POST['photo'] ?? '') !== '1') {
-                go_to('end_work');
-            }
-            $_SESSION['work']['ended_at'] = time();
-            $_SESSION['work']['end_photo'] = true;
-            go_to(amt_home_screen());
-            break;
-
-        case 'submit_checkin':
-            // Check-In hanya boleh saat timer berjalan; aktivitas + foto wajib
-            $akt = (string) ($_POST['aktivitas'] ?? '');
-            if (!work_is_running()
-                || !in_array($akt, CHECKIN_ACTIVITIES, true)
-                || ($_POST['photo'] ?? '') !== '1'
-            ) {
-                go_to('checkin');
-            }
-            // Foto disimpan (dataURL) supaya bisa dilihat lagi lewat "Lihat Foto"
-            // di tab Riwayat Check-In. Hanya gambar yang ukurannya wajar.
-            $photo = (string) ($_POST['photo_data'] ?? '');
-            if (!preg_match('#^data:image/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$#', $photo)
-                || strlen($photo) > 3000000
-            ) {
-                $photo = '';
-            }
-            $_SESSION['work']['checkins'][] = [
-                'at'       => time(),
-                'activity' => $akt,
-                'photo'    => $photo,
-            ];
-            $_SESSION['flash_success'] = [
-                'title' => 'Check-In Berhasil',
-                'body'  => 'Check-In ke-' . count($_SESSION['work']['checkins']) . ' tercatat di Riwayat Check-In.',
-            ];
-            go_to(amt_home_screen());
-            break;
-    }
-}
-
-/** Nama file CSS AMT -> path/URL. SCREEN_CSS memakai awalan "amt/" untuk CSS di folder ini. */
-function amt_css_href(string $cssFile): ?string
-{
-    return strpos($cssFile, 'amt/') === 0 ? AMT_URL . '/css/' . substr($cssFile, 4) . '.css' : null;
-}
-
-/** Skrip beranda AMT (menu Start/End, kunci menu, timer) - dipanggil setelah view dirender */
-function amt_after_view(string $screen): void
-{
-    // Peran dibaca dari session (bukan variabel $role di index.php, yang bisa
-    // tertimpa oleh perulangan di view role_select).
-    if (current_role() === 'amt' && $screen === amt_home_screen()) {
-        require AMT_INC_DIR . '/work_ui.php';
-    }
+        'steps'        => $steps,
+        'subKey'       => $subKey,
+        'screenOrder'  => AMT_TOUR_SCREEN_ORDER,
+        'screenLabels' => AMT_TOUR_SCREEN_LABELS,
+    ];
 }

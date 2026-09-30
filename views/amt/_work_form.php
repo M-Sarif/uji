@@ -12,33 +12,33 @@ $postAct   = $isCheckin ? 'submit_checkin' : ($isEnd ? 'submit_end_work' : 'subm
 $actList   = $isCheckin ? CHECKIN_ACTIVITIES : WORK_ACTIVITIES;
 $w         = work_data();
 $activity  = $w['activity'] ?? '';        // End Work: mengikuti pilihan saat Start Work
-$mapSrc    = 'https://maps.google.com/maps?q=' . WORK_LAT . ',' . WORK_LNG . '&hl=id&z=17&output=embed';
-$coordText = WORK_LAT . ', ' . WORK_LNG;
 ?>
 <link rel="stylesheet" href="<?= AMT_URL ?>/css/camera.css?v=<?= (int) @filemtime(AMT_ASSET_DIR . '/css/camera.css') ?>">
 <form method="post" action="?screen=<?= $screenKey ?>" id="wk-form" class="wk-wrap">
   <input type="hidden" name="action" value="<?= $postAct ?>">
   <input type="hidden" name="photo" id="wk-photo" value="0">
   <input type="hidden" name="photo_data" id="wk-photo-data" value="">
+  <input type="hidden" name="lat" id="wk-lat" value="">
+  <input type="hidden" name="lng" id="wk-lng" value="">
 
   <p class="wk-title">Form Verifikasi <?= $isCheckin ? 'Check-In' : 'Work ' . ($isEnd ? 'End' : 'Start') ?></p>
 
-  <!-- Lokasi -->
-  <div id="wk-loc">
+  <!-- Lokasi: peta Google Maps + status jangkauan -->
+  <div id="wk-loc" data-inrange="0">
   <div class="wk-head">
-    <span class="wk-label" style="margin:0">Lokasi Anda</span>
+    <span class="wk-label" id="wk-loc-title" style="margin:0">Lokasi Anda</span>
     <a href="#" id="wk-refresh">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-3-6.7L21 8M21 3v5h-5"/></svg>
       Perbarui Lokasi
     </a>
   </div>
-  <iframe id="wk-map" class="wk-map" data-src="<?= htmlspecialchars($mapSrc, ENT_QUOTES) ?>"
-          src="<?= htmlspecialchars($mapSrc, ENT_QUOTES) ?>" loading="lazy" allowfullscreen
-          referrerpolicy="no-referrer-when-downgrade" title="Lokasi Anda"></iframe>
-  <div class="wk-coord"><?= $coordText ?></div>
+  <iframe id="wk-map" class="wk-map" allowfullscreen referrerpolicy="no-referrer-when-downgrade" title="Lokasi Anda"></iframe>
+  <div class="wk-geo" id="wk-geo" role="status">Mencari lokasi...</div>
+  <div class="wk-coord" id="wk-coord"></div>
   </div>
 
   <!-- Aktivitas -->
+  <div id="wk-act-box">
   <span class="wk-label">Aktivitas<?php if ($needAct): ?><span style="color:#dc2626">*</span><?php endif; ?></span>
   <?php if ($needAct): ?>
     <select name="aktivitas" id="wk-akt" class="wk-select" required>
@@ -53,8 +53,10 @@ $coordText = WORK_LAT . ', ' . WORK_LNG;
     </select>
     <div class="wk-hint">Mengikuti aktivitas yang dipilih saat Start Work.</div>
   <?php endif; ?>
+  </div>
 
   <!-- Foto verifikasi -->
+  <div id="wk-photo-box">
   <span class="wk-label">Foto Verifikasi<span style="color:#dc2626"> *</span> <span style="color:#2563eb">&#9432;</span></span>
   <div class="wk-photo" id="wk-box">
     <!-- Sebelum diambil: ikon AMT + tombol Ambil Foto -->
@@ -77,6 +79,7 @@ $coordText = WORK_LAT . ', ' . WORK_LNG;
       <button type="button" class="wk-redo" id="wk-redo">Ambil Ulang</button>
     </div>
   </div>
+  </div>
 
   <button type="submit" class="wk-submit" id="wk-submit" disabled>
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></svg>
@@ -95,8 +98,9 @@ $coordText = WORK_LAT . ', ' . WORK_LNG;
   var box    = document.getElementById('wk-box');
   var submit = document.getElementById('wk-submit');
 
+  var inRange = false;
   function refresh() {
-    submit.disabled = !(photo.value === '1' && (!needActivity || sel.value !== ''));
+    submit.disabled = !(inRange && photo.value === '1' && (!needActivity || sel.value !== ''));
   }
   if (needActivity) sel.addEventListener('change', refresh);
 
@@ -117,12 +121,54 @@ $coordText = WORK_LAT . ', ' . WORK_LNG;
   document.getElementById('wk-take').addEventListener('click', function () { cam.open(); });
   document.getElementById('wk-redo').addEventListener('click', function () { cam.open(); });
 
-  // Lokasi tetap; "Perbarui Lokasi" hanya memuat ulang peta
+  // ---- Lokasi (simulasi) + peta Google Maps + batas jangkauan ----
+  var BASE = { lat: <?= WORK_LAT ?>, lng: <?= WORK_LNG ?> }, RADIUS = <?= WORK_RADIUS_M ?>;
+  var OUT_CHANCE = <?= (float) WORK_SIM_OUTSIDE_CHANCE ?>;
+  var mapEl = document.getElementById('wk-map'), geo = document.getElementById('wk-geo');
+  var latEl = document.getElementById('wk-lat'), lngEl = document.getElementById('wk-lng');
+
+  function distance(a, b) {               // haversine, meter
+    var R = 6371000, rad = Math.PI / 180;
+    var dLat = (b.lat - a.lat) * rad, dLng = (b.lng - a.lng) * rad;
+    var h = Math.pow(Math.sin(dLat / 2), 2) +
+            Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.pow(Math.sin(dLng / 2), 2);
+    return 2 * R * Math.asin(Math.sqrt(h));
+  }
+  function pointAt(meters) {              // titik acak pada jarak tertentu dari titik kerja
+    var ang = Math.random() * 2 * Math.PI;
+    return {
+      lat: BASE.lat + (meters * Math.cos(ang)) / 111320,
+      lng: BASE.lng + (meters * Math.sin(ang)) / (111320 * Math.cos(BASE.lat * Math.PI / 180))
+    };
+  }
+  function setPos(p) {
+    var d = Math.round(distance(p, BASE));
+    inRange = d <= RADIUS;
+    latEl.value = p.lat.toFixed(6);
+    lngEl.value = p.lng.toFixed(6);
+    // Pin Google Maps selalu berada tepat di koordinat posisi user saat ini
+    mapEl.src = 'https://maps.google.com/maps?q=' + p.lat.toFixed(6) + ',' + p.lng.toFixed(6) +
+                '&hl=id&z=17&output=embed&t=' + Date.now();
+    document.getElementById('wk-coord').textContent = p.lat.toFixed(6) + ', ' + p.lng.toFixed(6);
+    geo.className = 'wk-geo ' + (inRange ? 'ok' : 'bad');
+    geo.textContent = inRange
+      ? 'Lokasi sesuai titik kerja'
+      : 'Lokasi belum sesuai titik kerja (' + d + ' m). Ketuk "Perbarui Lokasi".';
+    var loc = document.getElementById('wk-loc');
+    loc.setAttribute('data-inrange', inRange ? '1' : '0');
+    if (inRange) { loc.dispatchEvent(new CustomEvent('wk-inrange')); }   // dipakai tutorial AMT
+    refresh();
+  }
+  function simulate(forceInside) {
+    // Perbarui Lokasi -> pin tepat di titik kerja. Posisi awal bisa "melenceng" (simulasi).
+    var outside = !forceInside && Math.random() < OUT_CHANCE;
+    setPos(outside ? pointAt(650 + Math.random() * 850) : { lat: BASE.lat, lng: BASE.lng });
+  }
   document.getElementById('wk-refresh').addEventListener('click', function (e) {
     e.preventDefault();
-    var f = document.getElementById('wk-map');
-    f.src = f.getAttribute('data-src') + '&t=' + Date.now();
+    simulate(true);                       // Perbarui Lokasi -> selalu masuk radius
   });
+  simulate(false);
 
   refresh();
 })();

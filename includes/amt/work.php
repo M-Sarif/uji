@@ -25,8 +25,12 @@ if (date_default_timezone_get() === 'UTC') {
 }
 
 // Lokasi tetap untuk verifikasi
-const WORK_LAT = -2.723962;
-const WORK_LNG = 114.261573;
+const WORK_LAT = -2.723788;
+const WORK_LNG = 114.261609;
+const WORK_RADIUS_M = 500;          // batas jarak absen dari titik kerja (meter)
+// Simulasi lokasi: peluang posisi awal user "melenceng" di luar radius (0 = selalu
+// di dalam, 1 = selalu di luar). "Perbarui Lokasi" selalu memindahkan ke dalam radius.
+const WORK_SIM_OUTSIDE_CHANCE = 0.5;
 
 // Pilihan aktivitas saat Start Work
 const WORK_ACTIVITIES = ['Hadir', 'Sakit', 'Izin', 'Cuti', 'Alpa', 'Dinas Luar'];
@@ -41,7 +45,7 @@ const WORK_GATED_SCREENS = ['checkin'];
 const WORK_LOCKED_MENUS = ['pti', 'checkout'];
 
 // Pilihan aktivitas pada form Check-In (default sama dengan Start Work)
-const CHECKIN_ACTIVITIES = WORK_ACTIVITIES;
+const CHECKIN_ACTIVITIES = ['Tugas Rutin', 'Tugas Lembur'];
 
 // Judul header untuk layar tambahan (tidak ada di data.php)
 const WORK_SCREENS = [
@@ -50,6 +54,22 @@ const WORK_SCREENS = [
     'end_work'   => 'End Work',
     'checkin'    => 'Check-In',
 ];
+
+/* Jarak (meter) antara dua koordinat - rumus haversine */
+function work_distance_m(float $lat1, float $lng1, float $lat2, float $lng2): float {
+    $r = 6371000;
+    $a = sin(deg2rad($lat2 - $lat1) / 2) ** 2
+       + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin(deg2rad($lng2 - $lng1) / 2) ** 2;
+    return 2 * $r * asin(min(1, sqrt($a)));
+}
+
+/* Apakah lokasi dari form (POST lat/lng) berada dalam radius titik kerja? */
+function work_post_in_range(): bool {
+    if (!isset($_POST['lat'], $_POST['lng']) || !is_numeric($_POST['lat']) || !is_numeric($_POST['lng'])) {
+        return false;
+    }
+    return work_distance_m((float) $_POST['lat'], (float) $_POST['lng'], WORK_LAT, WORK_LNG) <= WORK_RADIUS_M;
+}
 
 function work_data(): array {
     return $_SESSION['work'] ?? [];

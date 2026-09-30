@@ -76,6 +76,7 @@
 .ci-page .wk-head a { font-size: 12px; font-weight: 500; }
 .ci-page .wk-map { height: 190px; border: 1px solid #e2e8f0; border-radius: 10px; }
 .ci-page .wk-coord { display: none; }
+.ci-page .wk-geo { font-size: 11px; }
 #wk-loc { margin-bottom: 14px; }
 .ci-page .wk-select {
   height: 44px; padding: 0 36px 0 12px; border: 1px solid #d1d5db; border-radius: 8px;

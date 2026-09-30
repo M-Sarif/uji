@@ -64,3 +64,8 @@
 }
 .wk-done b { color: #15803d; }
 .wk-redo { background: none; border: 0; color: #2563eb; font-size: 11px; cursor: pointer; margin-top: 4px; }
+
+/* Status jangkauan lokasi (di bawah peta) */
+.wk-geo { margin-top: 6px; padding: 6px 8px; border-radius: 6px; font-size: 11px; line-height: 1.35; background: #f3f4f6; color: #374151; }
+.wk-geo.ok  { background: #dcfce7; color: #166534; }
+.wk-geo.bad { background: #fee2e2; color: #991b1b; }

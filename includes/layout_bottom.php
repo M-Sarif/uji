@@ -17,7 +17,11 @@
 })();
 </script>
 
-<script src="assets/js/tutorial.js?v=<?php echo (int) @filemtime(__DIR__ . '/../assets/js/tutorial.js'); ?>"></script>
+<?php
+// AMT memakai mesin tutorial sendiri (terpisah dari SPBU); peran lain tetap tutorial.js.
+$tourEngine = (current_role() === 'amt') ? 'assets/amt/js/tutorial-amt.js' : 'assets/js/tutorial.js';
+?>
+<script src="<?php echo $tourEngine; ?>?v=<?php echo (int) @filemtime(__DIR__ . '/../' . $tourEngine); ?>"></script>
 <script>
 /*
  * Tutorial terpandu (guided tour) — menyorot elemen asli halaman satu per
@@ -27,8 +31,8 @@
  */
 (function () {
     <?php
-    // Peran AMT memakai data tutorial sendiri (includes/amt/tutorial.php),
-    // mesin & tampilannya sama persis dengan tutorial SPBU (assets/js/tutorial.js).
+    // Peran AMT memakai data tutorial (includes/amt/tutorial.php) DAN mesin
+    // sendiri (assets/amt/js/tutorial-amt.js), terpisah dari tutorial SPBU.
     $amtTour = (current_role() === 'amt') ? amt_tour_config($screen) : null;
     ?>
     var screenOrder  = <?php echo json_encode($amtTour['screenOrder']  ?? TOUR_SCREEN_ORDER); ?>;
