@@ -16,7 +16,12 @@
  *  - LANGKAH "KETUK + TUNGGU" (needTap): mis. Perbarui Lokasi. Langkah baru
  *    selesai setelah diketuk DAN keadaannya terpenuhi (pin peta tampil),
  *    lalu pesan "sudah benar" ditahan sesuai 'hold' (2 detik) sebelum lanjut.
- *  - Tersembunyi otomatis saat kamera / pop up foto terbuka.
+ *  - AUTO-HIDE (autoHide): kartu bisa tertutup sendiri setelah sekian ms
+ *    bila pengguna tidak mengetuk tombolnya; sama seperti mengetuk "Mengerti".
+ *  - DAFTAR BERNOMOR (list): kartu boleh memuat tahapan berurutan.
+ *  - INGAT LANGKAH (remember): langkah yang sudah dibaca tidak diulang bila
+ *    pengguna pindah halaman lalu kembali sebelum alur selesai.
+ *  - Tersembunyi otomatis saat kamera / pop up foto / popup konfirmasi terbuka.
  *  - "Lewati" hanya menyembunyikan tutorial halaman ini (sesi ini); tombol
  *    "?" selalu bisa memulai lagi.
  *
@@ -53,6 +58,11 @@
     // Beri tahu halaman (mis. beranda AMT) bahwa sebuah tutorial sudah selesai/ditutup.
     function announce(key) {
         try { document.dispatchEvent(new CustomEvent('amt:tour-done', { detail: { key: key } })); } catch (e) {}
+    }
+    // Hapus catatan langkah-langkah 'remember' milik sebuah tutorial (mulai ulang dari awal).
+    function forgetRemembered(key) {
+        var d = readDone().filter(function (k) { return k.indexOf(key + '#') !== 0; });
+        try { localStorage.setItem(LS_DONE, JSON.stringify(d)); } catch (e) {}
     }
     function isSkipped(key) {
         try { return sessionStorage.getItem(SS_SKIP + key) === '1'; } catch (e) { return false; }
@@ -96,7 +106,7 @@
     }
     // Kamera layar penuh / pop up foto: tutorial disembunyikan supaya tidak menimpa.
     function overlayOpen() {
-        return !!(qs('.amtcam.is-open') || qs('#ci-modal:not([hidden])') || qs('.pti-notif.is-open'));
+        return !!(qs('.amtcam.is-open') || qs('#ci-modal:not([hidden])') || qs('.pti-notif.is-open') || qs('.pti-confirm.is-open'));
     }
     function el(tag, cls, html) {
         var n = document.createElement(tag);
@@ -130,6 +140,7 @@
         this.okMode  = false;   // sedang menampilkan pesan "sudah benar"
         this.baseHint = '';
         this.whenAt  = {};      // kapan syarat 'when' sebuah langkah mulai terpenuhi
+        this.autoTimers = {};   // pewaktu 'autoHide' per langkah (dipasang sekali)
         this.lastInputAt = 0;   // kapan pengguna terakhir mengetik (untuk 'settle')
         this.dom     = null;
         this.timers  = [];
@@ -139,7 +150,7 @@
     Tour.prototype.start = function (force) {
         if (!this.steps.length) { return; }
         if (!force && (isDone(this.key) || isSkipped(this.key))) { return; }
-        if (force) { setSkipped(this.key, false); }
+        if (force) { setSkipped(this.key, false); forgetRemembered(this.key); }
 
         this._build();
         var self = this;
@@ -171,6 +182,7 @@
             '<div class="amtt-bar" aria-hidden="true"><span></span></div>' +
             '<h3 class="amtt-title" data-title></h3>' +
             '<p class="amtt-text" data-text></p>' +
+            '<ol class="amtt-list" data-list hidden></ol>' +
             '<p class="amtt-hint" data-hint></p>' +
             '<div class="amtt-actions">' +
             '  <button type="button" class="amtt-btn" data-primary hidden></button>' +
@@ -227,6 +239,7 @@
     Tour.prototype.isComplete = function (i) {
         var st = this.steps[i];
         if (st.skip && qs(st.skip)) { return true; }
+        if (st.remember && isDone(this.key + '#' + i)) { return true; }   // sudah dibaca sebelumnya
         if (st.done) {
             var cond = !!qs(st.done);
             // Kolom teks: tunggu pengguna berhenti mengetik sebentar (jangan lompat di tengah ketikan).
@@ -253,6 +266,7 @@
     Tour.prototype.ack = function (i) {
         for (var j = 0; j <= i; j++) {
             if (!this.steps[j].done || this.steps[j].needTap) { this.acked[j] = true; }
+            if (this.steps[j].remember && this.persist) { markDone(this.key + '#' + j); }
         }
         // Langkah bertanda 'announce' (mis. "Mengerti" pada pemberitahuan DCU) memberi
         // tahu halaman SEGERA, tanpa menunggu seluruh alur selesai.
@@ -325,6 +339,13 @@
         p.querySelector('[data-title]').textContent = forOk ? st.ok : (st.title || '');
         p.querySelector('[data-text]').textContent  = forOk ? (st.okText || 'Lanjut ke langkah berikutnya…') : (st.text || '');
 
+        // Daftar tahapan bernomor (opsional)
+        var ol = p.querySelector('[data-list]');
+        ol.innerHTML = '';
+        var items = (!forOk && st.list) ? st.list : [];
+        items.forEach(function (t) { ol.appendChild(el('li', '', '')).textContent = t; });
+        ol.hidden = !items.length;
+
         this.baseHint = forOk ? '' : (st.hint || (st.target ? '👆 Ketuk bagian yang menyala biru' : ''));
         this.okMode = !!forOk;
         this.applyHint();
@@ -361,6 +382,15 @@
         // Animasi kartu selesai sebentar lagi -> rapikan sekali lagi.
         var self = this;
         this._later(function () { self.sync(); }, 350);
+
+        // Tertutup sendiri bila tidak diketuk: hitungan dimulai SEKALI saat pertama tampil,
+        // dan hasilnya sama seperti mengetuk tombol kartu ("Mengerti").
+        if (st.autoHide && !this.autoTimers[idx]) {
+            this.autoTimers[idx] = this._later(function () {
+                if (self.dead || self.shown !== idx || self.isComplete(idx)) { return; }
+                self.ack(idx);
+            }, st.autoHide);
+        }
     };
 
     Tour.prototype.showOk = function (idx) {

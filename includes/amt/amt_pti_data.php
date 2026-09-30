@@ -149,6 +149,8 @@ const AMT_PTI_HINT_DELAY         = 1000; // petunjuk "tekan PTI" muncul 1 detik 
 const AMT_PTI_TUTORIAL_DELAY     = 1000; // tutorial PTI muncul 1 detik setelah halaman PTI dibuka
 const AMT_PTI_FAILSAFE_SECONDS   = 30;  // PTI otomatis aktif 30 detik setelah Check-In walau tutorial tidak sempat ditutup
 const AMT_PTI_TUTORIAL_VISIBLE_FOR = 0;  // 0 = tetap tampil sampai ditutup pengguna
+const AMT_PTI_DONE_VISIBLE_FOR   = 20000; // tutorial "PTI selesai" di dashboard hilang sendiri setelah 20 detik
+const AMT_PTI_DONE_SHIPMENT_DELAY = 3000; // 3 detik setelah itu, tutorial yang menyorot ikon Shipments muncul
 
 /** Isi tutorial. Teks 'dcu' dari screenshot; teks 'pti' contoh, sesuaikan dengan user guide. */
 function amt_flow_tutorials()

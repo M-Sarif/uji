@@ -35,6 +35,11 @@
  *   'delay'     => (opsional) jeda (ms) setelah 'when' terpenuhi sebelum kartu muncul
  *   'announce'  => (opsional) true = saat langkah ini selesai halaman langsung diberi
  *                  tahu (event amt:tour-done), tanpa menunggu seluruh alur selesai
+ *   'list'      => (opsional) array teks; tampil sebagai daftar bernomor di bawah 'text'
+ *   'autoHide'  => (opsional) ms; kartu tertutup sendiri bila tidak diketuk (dianggap
+ *                  sama dengan mengetuk tombol kartu, mis. "Mengerti")
+ *   'remember'  => (opsional) true = langkah yang sudah dibaca dicatat, jadi tidak
+ *                  diulang bila pengguna pindah halaman lalu kembali sebelum alur selesai
  *   'okText'    => (opsional) kalimat di bawah pesan 'ok'
  *   'hold'      => (opsional) lama pesan 'ok' tampil sebelum pindah langkah
  *                  (milidetik; bawaan 1000)
@@ -77,7 +82,8 @@ const AMT_TOUR_JOURNEYS = [
 ];
 
 // Jeda (ms) sebelum tutorial DCU muncul di beranda setelah Check-In berhasil
-const AMT_TOUR_DCU_DELAY_MS = 5000;
+// (nilainya diatur di includes/amt/amt_pti_data.php)
+const AMT_TOUR_DCU_DELAY_MS = AMT_DCU_SHOW_DELAY;
 
 /**
  * Langkah-langkah form (lokasi, aktivitas, foto, kirim).
@@ -275,8 +281,73 @@ function amt_tour_pti_steps(string $screen): array
             'no'     => 7,
             'target' => '#ptiForm .pti-btn--send',
             'title'  => 'Ketuk “Kirim”',
-            'text'   => 'Semua sudah lengkap. Ketuk “Kirim” untuk mengirim hasil inspeksi. Setelah terkirim akan muncul pemberitahuan.',
+            'text'   => 'Semua sudah lengkap. Ketuk “Kirim”, lalu pilih “Ya, Kirim” pada pertanyaan konfirmasi. Setelah terkirim, Anda kembali ke Beranda.',
             'hint'   => '👆 Ketuk tombol biru “Kirim”',
+            'done'   => null,
+        ],
+    ]];
+}
+
+/**
+ * Tutorial di BERANDA setelah hasil inspeksi PTI dikirim (popup "Ya, Kirim").
+ *
+ *  1) Kartu tahapan berikutnya; tertutup sendiri setelah AMT_PTI_DONE_VISIBLE_FOR (20 detik)
+ *     bila tidak diketuk "Mengerti".
+ *  2) AMT_PTI_DONE_SHIPMENT_DELAY (3 detik) setelah kartu 1 tertutup: sorotan ke ikon Shipments.
+ *
+ * Hasil NO GO: mobil tangki belum layak jalan, jadi AMT tidak diarahkan ke segel / SPBU;
+ * hanya pemberitahuan untuk melapor ke pengawas.
+ *
+ * @return array{steps:array, journey:string, subKey:string}
+ */
+function amt_tour_pti_done_pack(int $checkins): array
+{
+    $subKey = 'amt_home_ptidone_' . $checkins;
+    $result = amt_pti_state()['result'] ?? null;
+
+    if ($result === 'NO GO') {
+        return ['journey' => 'pti', 'subKey' => $subKey, 'steps' => [[
+            'no'     => null,
+            'label'  => 'PTI Selesai',
+            'target' => null,
+            'title'  => 'Hasil inspeksi: NO GO',
+            'text'   => 'Mobil tangki belum layak beroperasi. Laporkan ke pengawas sebelum berangkat.',
+            'button' => 'Mengerti',
+            'done'   => null,
+        ]]];
+    }
+
+    return ['journey' => 'pti', 'subKey' => $subKey, 'steps' => [
+        [
+            'no'       => null,
+            'label'    => 'PTI Selesai',
+            'target'   => null,
+            'title'    => 'PTI selesai ✅',
+            'text'     => 'PTI sudah selesai. Lanjutkan dengan tahapan berikut:',
+            'list'     => [
+                'Ambil segel.',
+                'Scan segel.',
+                'Lakukan Get In.',
+                'Masuk ke Filling Shed.',
+                'Lakukan Get Out.',
+                'Ambil surat jalan.',
+                'Menuju SPBU tujuan.',
+            ],
+            'button'   => 'Mengerti',
+            'autoHide' => AMT_PTI_DONE_VISIBLE_FOR,      // hilang sendiri setelah 20 detik
+            'remember' => true,                           // tidak diulang bila pengguna pindah halaman lalu kembali
+            'done'     => null,
+        ],
+        [
+            'no'     => null,
+            'label'  => 'Langkah berikutnya',
+            'target' => '[data-tour="amt-menu-shipments"]',
+            'when'   => '[data-tour="amt-menu-shipments"]',
+            'delay'  => AMT_PTI_DONE_SHIPMENT_DELAY,     // muncul 3 detik setelah kartu 1 tertutup
+            'title'  => 'Buka menu “Shipments”',
+            'text'   => 'Setelah sampai di SPBU tujuan, ketuk menu Shipments.',
+            'hint'   => '📍 Menu Shipments ada di kotak yang menyala',
+            'button' => 'Mengerti',
             'done'   => null,
         ],
     ]];
@@ -299,14 +370,19 @@ function amt_tour_steps_for(string $screen, bool $running, int $checkins = 0): a
         // aplikasi, jadi tutorial ini hanya pemberitahuan (kartu di tengah).
         // Muncul AMT_TOUR_DCU_DELAY_MS setelah halaman dibuka.
         if ($running && $checkins > 0) {
+            // Hasil inspeksi PTI baru dikirim -> tahapan berikutnya + arahkan ke Shipments
+            if (amt_flow_get('pti_done') && amt_pti_is_done()) {
+                return amt_tour_pti_done_pack($checkins);
+            }
             $dcuSeen = amt_flow_get('dcu_seen');
             $steps = [[
                 'no'       => null,
                 'label'    => 'Check-In Berhasil',
                 'target'   => null,
                 'title'    => 'Lakukan DCU dulu 🩺',
-                'text'     => 'Check-In berhasil. Sekarang lakukan DCU (cek kesehatan) terlebih dahulu. DCU dilakukan langsung di tempat, bukan lewat aplikasi ini. Setelah Anda ketuk “Mengerti”, menu PTI akan menyala.',
+                'text'     => 'Check-In berhasil. Sekarang lakukan DCU (cek kesehatan) terlebih dahulu. DCU dilakukan langsung di tempat, bukan lewat aplikasi ini. Menu PTI akan menyala setelah kartu ini ditutup.',
                 'button'   => 'Mengerti',
+                'autoHide' => AMT_DCU_VISIBLE_FOR,                    // tertutup sendiri setelah 7 detik
                 'announce' => true,                                   // PTI mulai menyala 2 detik setelah ini
                 'skip'     => '.amt-home[data-dcu-seen="1"]',         // DCU sudah dibaca (halaman dimuat ulang)
                 'done'     => null,
@@ -420,7 +496,10 @@ function amt_tour_config(string $screen): array
     if ($running && $screen === amt_home_screen()) {
         // Tiap Check-In berhasil punya catatan sendiri, jadi DCU diingatkan lagi
         // setelah Check-In berikutnya (bukan hanya sekali seumur hidup).
-        $subKey = $checkins > 0 ? 'amt_home_dcu_' . $checkins : 'amt_home_running';
+        // Kunci dari paket langkah (mis. tutorial "PTI selesai") diutamakan.
+        $subKey = !empty($pack['subKey'])
+            ? $pack['subKey']
+            : ($checkins > 0 ? 'amt_home_dcu_' . $checkins : 'amt_home_running');
     } elseif ($running && $screen === 'start_end') {
         $subKey = 'start_end_running';
     } elseif (!empty($pack['subKey'])) {

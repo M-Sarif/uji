@@ -47,7 +47,7 @@ function amt_pti_shipment()
 
 function amt_flow_defaults()
 {
-    return ['checkin' => false, 'dcu_seen' => false, 'dcu_seen_at' => 0, 'pti_unlocked' => false, 'pti_hint_seen' => false, 'pti_tutorial_seen' => false];
+    return ['checkin' => false, 'dcu_seen' => false, 'dcu_seen_at' => 0, 'pti_unlocked' => false, 'pti_hint_seen' => false, 'pti_tutorial_seen' => false, 'pti_done' => false];
 }
 
 function amt_flow_get($key)
@@ -389,6 +389,14 @@ function amt_pti_bootstrap($screen)
     $_SESSION['amt_pti']['status'] = 'sudah';
     $_SESSION['amt_pti']['done_at'] = date('c');
     $_SESSION['amt_pti']['result'] = amt_pti_result();
-    $_SESSION['amt_pti_flash'] = 'Inspeksi berhasil dikirim. Hasil: ' . $_SESSION['amt_pti']['result'] . '.';
-    amt_pti_redirect('amt_pti');
+
+    // Setelah "Ya, Kirim" pada popup konfirmasi: kembali ke DASHBOARD. Di sana
+    // tutorial "PTI selesai" tampil (lihat amt_tour_pti_done_pack() di tutorial.php).
+    // 'pti_done' hanya berlaku untuk siklus Check-In ini (direset saat Check-In berikutnya).
+    amt_flow_set('pti_done');
+    $_SESSION['flash_success'] = [
+        'title' => 'Inspeksi Berhasil Dikirim',
+        'body'  => 'Hasil Inspeksi: ' . $_SESSION['amt_pti']['result'] . '.',
+    ];
+    amt_pti_redirect(AMT_DASHBOARD_SCREEN);
 }

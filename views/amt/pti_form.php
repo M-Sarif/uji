@@ -145,6 +145,26 @@ $counter  = str_pad((string) $step, 2, '0', STR_PAD_LEFT) . '/' . AMT_PTI_TOTAL;
     </div>
 </form>
 
+<?php if ($isLast): ?>
+<!-- Popup konfirmasi kirim (hanya di langkah terakhir). Dibuka lewat tombol "Kirim". -->
+<div class="pti-confirm" id="ptiConfirm" role="alertdialog" aria-modal="true"
+     aria-labelledby="ptiConfirmTitle" aria-describedby="ptiConfirmText">
+    <div class="pti-confirm__card">
+        <span class="pti-confirm__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.2a2.6 2.6 0 0 1 5 .9c0 1.7-2.5 2.2-2.5 3.9M12 17h.01"/></svg>
+        </span>
+        <h2 class="pti-confirm__title" id="ptiConfirmTitle">Kirim hasil inspeksi?</h2>
+        <p class="pti-confirm__text" id="ptiConfirmText">
+            Apakah Anda yakin ingin mengirim hasil inspeksi ini? Setelah dikirim, jawaban tidak dapat diubah lagi.
+        </p>
+        <div class="pti-confirm__actions">
+            <button type="button" class="pti-btn pti-btn--ghost" id="ptiConfirmNo">Tidak</button>
+            <button type="button" class="pti-btn pti-btn--send" id="ptiConfirmYes">Ya, Kirim</button>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
+
 <script>
 (function () {
     var form = document.getElementById('ptiForm');
@@ -170,6 +190,66 @@ $counter  = str_pad((string) $step, 2, '0', STR_PAD_LEFT) . '/' . AMT_PTI_TOTAL;
             nexts[i].setAttribute('aria-disabled', ok ? 'false' : 'true');
         }
         if (ok && err) err.hidden = true;
+    }
+
+    /* ----- Popup konfirmasi (hanya ada di langkah terakhir) ----- */
+    var box    = document.getElementById('ptiConfirm');
+    var yes    = document.getElementById('ptiConfirmYes');
+    var no     = document.getElementById('ptiConfirmNo');
+    var sendBtn = form.querySelector('.pti-btn--send');
+    var lastNav = 'next';        // tombol yang terakhir ditekan (untuk peramban tanpa e.submitter)
+    var confirmed = false;
+
+    function openConfirm() {
+        if (!box) return;
+        box.classList.add('is-open');
+        document.addEventListener('keydown', onKey);
+        if (no) no.focus();      // fokus ke pilihan aman ("Tidak"), bukan ke "Ya"
+    }
+    function closeConfirm() {
+        if (!box) return;
+        box.classList.remove('is-open');
+        document.removeEventListener('keydown', onKey);
+        if (sendBtn) sendBtn.focus();
+        if (window.OneFISTour && window.OneFISTour.rescan) window.OneFISTour.rescan();
+    }
+    function onKey(e) {
+        if (e.key === 'Escape') { closeConfirm(); return; }
+        if (e.key === 'Tab' && yes && no) {          // fokus tetap di dalam popup
+            var first = no, last = yes;
+            if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+            else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+        }
+    }
+    function sendNow() {
+        if (confirmed) return;                        // cegah kirim ganda
+        confirmed = true;
+        yes.disabled = true; no.disabled = true;
+        yes.textContent = 'Mengirim…';
+        var nav = document.createElement('input');    // form.submit() tidak membawa nama tombol
+        nav.type = 'hidden'; nav.name = 'nav'; nav.value = 'next';
+        form.appendChild(nav);
+        form.submit();
+    }
+
+    if (box) {
+        form.addEventListener('click', function (e) {
+            var b = e.target.closest ? e.target.closest('button[name="nav"]') : null;
+            if (b) lastNav = b.value;
+        }, true);
+
+        // "Kirim" (atau Enter) -> jangan langsung kirim, tanya dulu.
+        form.addEventListener('submit', function (e) {
+            if (confirmed) return;
+            var nav = (e.submitter && e.submitter.value) || lastNav;
+            if (nav === 'prev') return;               // "Sebelumnya" tetap langsung
+            e.preventDefault();
+            if (!allAnswered()) { if (err) err.hidden = false; return; }
+            openConfirm();
+        });
+        if (yes) yes.addEventListener('click', sendNow);
+        if (no)  no.addEventListener('click', closeConfirm);
+        box.addEventListener('click', function (e) { if (e.target === box) closeConfirm(); });
     }
 
     form.addEventListener('change', sync);
