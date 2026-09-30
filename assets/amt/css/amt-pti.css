@@ -1,0 +1,167 @@
+/* PTI + notifikasi DCU - role AMT (CSS murni, tanpa build step) */
+
+:root {
+    --pti-blue: #1d4ed8;
+    --pti-blue-soft: #eff4ff;
+    --pti-ink: #0f172a;
+    --pti-muted: #64748b;
+    --pti-line: #e2e8f0;
+    --pti-red-bg: #fee2e2;
+    --pti-red: #b91c1c;
+    --pti-green-bg: #dcfce7;
+    --pti-green: #15803d;
+}
+
+/* ---------- Halaman PTI ---------- */
+.pti-screen { padding: 16px; color: var(--pti-ink); }
+
+.pti-card {
+    background: #fff;
+    border: 1px solid var(--pti-line);
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, .08);
+}
+.pti-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.pti-label { font-size: 10px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--pti-muted); }
+.pti-value { margin-top: 4px; font-size: 15px; font-weight: 700; }
+.pti-status { margin: 16px 0; display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+
+.pti-badge { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; border: 1px solid transparent; }
+.pti-badge--pending { background: var(--pti-red-bg); color: var(--pti-red); border-color: #fecaca; }
+.pti-badge--done { background: var(--pti-green-bg); color: var(--pti-green); border-color: #bbf7d0; }
+
+.pti-flash {
+    margin: 0 0 12px; padding: 10px 12px; border-radius: 12px;
+    background: var(--pti-green-bg); color: var(--pti-green); font-size: 13px; font-weight: 600;
+}
+
+.pti-empty { text-align: center; padding: 48px 16px; }
+.pti-empty__img { width: 160px; max-width: 60%; height: auto; opacity: .9; }
+.pti-empty__title { margin: 16px 0 4px; font-size: 16px; }
+.pti-empty__text { margin: 0; font-size: 13px; color: var(--pti-muted); }
+
+/* ---------- Tombol ---------- */
+.pti-btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    width: 100%; padding: 12px 16px; border-radius: 12px; border: 1px solid transparent;
+    font: inherit; font-size: 14px; font-weight: 700; cursor: pointer;
+    transition: background-color .15s, opacity .15s, border-color .15s;
+}
+.pti-btn--primary { background: var(--pti-blue); color: #fff; text-transform: uppercase; letter-spacing: .04em; }
+.pti-btn--primary:hover { background: #1e40af; }
+.pti-btn--outline { background: #fff; color: var(--pti-blue); border-color: var(--pti-blue); }
+.pti-btn--ghost { background: #fff; color: var(--pti-muted); border-color: var(--pti-line); }
+.pti-btn:disabled, .pti-btn.is-locked { opacity: .45; cursor: not-allowed; }
+.pti-btn--ghost:not(:disabled) { color: var(--pti-blue); border-color: var(--pti-blue); }
+.pti-btn:focus-visible { outline: 3px solid rgba(29, 78, 216, .35); outline-offset: 2px; }
+
+/* ---------- Form PTI ---------- */
+.pti-form { display: flex; flex-direction: column; min-height: 100%; }
+.pti-hidden-submit { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+.pti-scroll { flex: 1; padding: 14px 16px 8px; }
+
+.pti-top { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.pti-progress { flex: 1; display: flex; gap: 4px; }
+.pti-progress__seg { flex: 1; height: 4px; border-radius: 4px; background: var(--pti-line); }
+.pti-progress__seg.is-on { background: var(--pti-blue); }
+.pti-counter { font-size: 11px; font-weight: 600; color: var(--pti-muted); font-variant-numeric: tabular-nums; }
+
+.pti-title { margin: 0 0 12px; font-size: 15px; font-weight: 800; letter-spacing: .01em; }
+
+.pti-photo { border-radius: 14px; overflow: hidden; background: #e2e8f0; aspect-ratio: 16 / 9; margin-bottom: 14px; }
+.pti-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.pti-photo__empty { height: 100%; display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--pti-muted); }
+
+.pti-item {
+    margin: 0 0 10px; padding: 12px 14px;
+    background: #fff; border: 1px solid var(--pti-line); border-radius: 14px;
+    min-inline-size: 0;
+}
+.pti-item__label { padding: 0; font-size: 14px; font-weight: 700; }
+.pti-req { color: #dc2626; margin-left: 2px; }
+.pti-item__hint { margin: 2px 0 10px; font-size: 11px; color: #6b8bd6; }
+
+.pti-options { display: flex; gap: 28px; }
+.pti-option { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; }
+.pti-option input {
+    appearance: none; -webkit-appearance: none;
+    width: 18px; height: 18px; margin: 0; border-radius: 50%;
+    border: 1.5px solid #94a3b8; background: #fff; cursor: pointer;
+    display: grid; place-content: center;
+}
+.pti-option input::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--pti-blue); transform: scale(0); transition: transform .12s; }
+.pti-option input:checked { border-color: var(--pti-blue); }
+.pti-option input:checked::before { transform: scale(1); }
+.pti-option input:focus-visible { outline: 3px solid rgba(29, 78, 216, .35); outline-offset: 2px; }
+
+.pti-error { margin: 4px 0 0; font-size: 12px; font-weight: 600; color: var(--pti-red); }
+.pti-error[hidden] { display: none; }
+
+.pti-nav {
+    position: sticky; bottom: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+    padding: 12px 16px 16px;
+    background: linear-gradient(to top, rgba(255, 255, 255, .95) 70%, rgba(255, 255, 255, 0));
+}
+
+/* ---------- Modal tutorial (DCU, PTI) ---------- */
+.amt-modal {
+    position: fixed; inset: 0; z-index: 60;
+    display: flex; align-items: center; justify-content: center; padding: 24px;
+    background: rgba(15, 23, 42, .45);
+    visibility: hidden; opacity: 0;
+    transition: opacity .2s ease, visibility 0s linear .2s;
+}
+.amt-modal.is-in { visibility: visible; opacity: 1; transition: opacity .2s ease; }
+.amt-modal__card {
+    width: min(100%, 320px); padding: 20px 18px 16px; text-align: center;
+    background: #fff; border-radius: 20px; box-shadow: 0 20px 50px rgba(15, 23, 42, .3);
+    transform: scale(.96); transition: transform .2s ease;
+}
+.amt-modal.is-in .amt-modal__card { transform: scale(1); }
+.amt-modal__eyebrow { margin: 0 0 6px; font-size: 11px; font-weight: 700; color: var(--pti-blue); }
+.amt-modal__title { margin: 0 0 8px; font-size: 16px; font-weight: 800; color: var(--pti-ink); }
+.amt-modal__body { margin: 0 0 16px; font-size: 13px; line-height: 1.5; color: #334155; }
+.amt-modal__ok {
+    width: 100%; padding: 12px 16px; border: 0; border-radius: 12px;
+    background: var(--pti-blue); color: #fff; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer;
+}
+.amt-modal__ok:hover { background: #1e40af; }
+.amt-modal__skip {
+    display: block; margin: 12px auto 0; padding: 4px 8px; border: 0; background: transparent;
+    font: inherit; font-size: 11px; color: var(--pti-muted); text-decoration: underline; cursor: pointer;
+}
+.amt-modal__ok:focus-visible, .amt-modal__skip:focus-visible { outline: 3px solid rgba(29, 78, 216, .35); outline-offset: 2px; }
+
+/* Tile PTI di dashboard: terkunci sebelum aktif, dan HARUS penuh warna setelah aktif
+   (!important menimpa gaya pudar bawaan tile, mis. opacity/grayscale). */
+[data-amt-pti][data-amt-unlocked="false"] { opacity: .4; filter: grayscale(.6); pointer-events: none; }
+[data-amt-pti][data-amt-unlocked="true"],
+[data-amt-pti][data-amt-unlocked="true"] * { opacity: 1 !important; filter: none !important; }
+[data-amt-pti][data-amt-unlocked="true"] { pointer-events: auto !important; cursor: pointer; }
+
+/* ---------- Petunjuk yang menyorot elemen (arah ke PTI) ---------- */
+.amt-spot {
+    position: fixed; inset: 0; z-index: 60; pointer-events: none;
+    visibility: hidden; opacity: 0;
+    transition: opacity .2s ease, visibility 0s linear .2s;
+}
+.amt-spot.is-in { visibility: visible; opacity: 1; transition: opacity .2s ease; }
+.amt-spot__hole {
+    position: absolute; border-radius: 16px;
+    box-shadow: 0 0 0 9999px rgba(15, 23, 42, .55);
+    outline: 2px solid #fff; outline-offset: 0;
+}
+.amt-spot__card {
+    position: absolute; width: min(260px, calc(100vw - 24px)); padding: 14px 14px 10px;
+    background: #fff; border-radius: 16px; text-align: left; pointer-events: auto;
+    box-shadow: 0 16px 40px rgba(15, 23, 42, .3);
+}
+.amt-spot__card .amt-modal__body { margin-bottom: 12px; }
+.amt-spot__arrow { position: absolute; width: 12px; height: 12px; background: #fff; transform: rotate(45deg); }
+.amt-spot.is-below .amt-spot__arrow { top: -6px; }
+.amt-spot.is-above .amt-spot__arrow { bottom: -6px; }
+
+@media (prefers-reduced-motion: reduce) {
+    .amt-modal, .amt-modal__card, .amt-spot, .pti-btn, .pti-option input::before { transition: none; }
+}
