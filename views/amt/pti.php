@@ -10,7 +10,6 @@ $done     = amt_pti_is_done();
 $flash    = isset($_SESSION['amt_pti_flash']) ? $_SESSION['amt_pti_flash'] : '';
 unset($_SESSION['amt_pti_flash']);
 ?>
-<link rel="stylesheet" href="assets/amt-pti.css">
 
 <section class="pti-screen">
     <?php if ($flash !== ''): ?>

@@ -64,28 +64,62 @@ function amt_flow_set($key)
     $_SESSION['amt_flow'][$key] = true;
 }
 
-/** PANGGIL saat Check-In berhasil (di handler Check-In AMT). Memulai alur dari awal. */
+/** PANGGIL saat Check-In berhasil (di handler Check-In AMT). Memulai alur tutorial DCU.
+ *  Kalau PTI sudah pernah aktif di shift ini, statusnya dipertahankan (tidak terkunci lagi). */
 function amt_flow_checkin_success()
 {
+    $prev = isset($_SESSION['amt_flow']) ? $_SESSION['amt_flow'] : amt_flow_defaults();
     $_SESSION['amt_flow'] = amt_flow_defaults();
     $_SESSION['amt_flow']['checkin'] = true;
+    foreach (['pti_unlocked', 'pti_hint_seen'] as $keep) {
+        if (!empty($prev[$keep])) {
+            $_SESSION['amt_flow'][$keep] = true;
+        }
+    }
+}
+
+/** Waktu (timestamp) Check-In terakhir, 0 bila belum ada. */
+function amt_last_checkin_at()
+{
+    $list = work_checkins();
+    if (!$list) {
+        return 0;
+    }
+    $last = end($list);
+    return (int) (isset($last['at']) ? $last['at'] : 0);
 }
 
 /**
- * PTI aktif kalau sudah Check-In dan tutorial DCU sudah selesai lebih dari
- * (AMT_PTI_UNLOCK_DELAY - 1 detik). Toleransi 1 detik menutup selisih jaringan,
- * jadi klik tepat saat ikon aktif tidak ditolak server.
+ * Sisa detik sampai PTI aktif otomatis (failsafe), 0 bila sudah lewat / belum Check-In.
+ * Dipakai JS supaya tombol PTI menyala tanpa perlu memuat ulang halaman.
+ */
+function amt_pti_failsafe_remaining()
+{
+    $at = amt_last_checkin_at();
+    return $at > 0 ? max(0, $at + AMT_PTI_FAILSAFE_SECONDS - time()) : 0;
+}
+
+/**
+ * PTI aktif kalau (sedang bekerja) DAN sudah Check-In DAN salah satu:
+ *   1. sudah aktif sebelumnya (pti_unlocked), atau
+ *   2. tutorial DCU sudah ditutup (Mengerti/Lewati) lebih dari (AMT_PTI_UNLOCK_DELAY - 1 detik), atau
+ *   3. FAILSAFE: sudah AMT_PTI_FAILSAFE_SECONDS detik sejak Check-In terakhir.
+ * Failsafe ini yang mencegah PTI "menunggu selamanya" bila konfirmasi tutorial
+ * tidak sampai ke server.
  */
 function amt_pti_unlocked()
 {
-    if (!amt_flow_get('checkin')) {
+    if (!work_is_running() || amt_last_checkin_at() === 0) {
         return false;
     }
     if (amt_flow_get('pti_unlocked')) {
         return true;
     }
     $at = isset($_SESSION['amt_flow']['dcu_seen_at']) ? (float) $_SESSION['amt_flow']['dcu_seen_at'] : 0;
-    return $at > 0 && microtime(true) >= $at + (AMT_PTI_UNLOCK_DELAY / 1000) - 1;
+    if ($at > 0 && microtime(true) >= $at + (AMT_PTI_UNLOCK_DELAY / 1000) - 1) {
+        return true;
+    }
+    return amt_pti_failsafe_remaining() === 0;
 }
 
 /**

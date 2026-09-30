@@ -43,7 +43,7 @@ const WORK_GATED_SCREENS = ['checkin'];
 
 // Menu yang masih terkunci walau timer sudah berjalan.
 // Hapus 'pti' / 'checkout' dari daftar ini saat layarnya sudah siap.
-const WORK_LOCKED_MENUS = ['pti', 'checkout'];
+const WORK_LOCKED_MENUS = ['checkout'];
 
 // Pilihan aktivitas pada form Check-In (default sama dengan Start Work)
 const CHECKIN_ACTIVITIES = ['Tugas Rutin', 'Tugas Lembur'];
@@ -54,6 +54,8 @@ const WORK_SCREENS = [
     'start_work' => 'Start Work',
     'end_work'   => 'End Work',
     'checkin'    => 'Check-In',
+    'amt_pti'      => 'Pre-Trip Inspection (PTI)',
+    'amt_pti_form' => 'Inspeksi PTI',
 ];
 
 /* Jarak (meter) antara dua koordinat - rumus haversine */

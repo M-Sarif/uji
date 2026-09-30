@@ -47,6 +47,11 @@
             d.push(key);
             try { localStorage.setItem(LS_DONE, JSON.stringify(d)); } catch (e) {}
         }
+        announce(key);
+    }
+    // Beri tahu halaman (mis. beranda AMT) bahwa sebuah tutorial sudah selesai/ditutup.
+    function announce(key) {
+        try { document.dispatchEvent(new CustomEvent('amt:tour-done', { detail: { key: key } })); } catch (e) {}
     }
     function isSkipped(key) {
         try { return sessionStorage.getItem(SS_SKIP + key) === '1'; } catch (e) { return false; }
@@ -162,6 +167,7 @@
 
         panel.querySelector('[data-skip]').addEventListener('click', function () {
             setSkipped(self.key, true);
+            announce(self.key);
             self.destroy();
             toast('Tutorial disembunyikan. Ketuk tombol “?” untuk membukanya lagi.');
         });

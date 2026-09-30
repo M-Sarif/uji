@@ -183,7 +183,7 @@ function amt_tour_steps_for(string $screen, bool $running, int $checkins = 0): a
                     'no'     => null,
                     'target' => null,
                     'title'  => 'Lakukan DCU dulu 🩺',
-                    'text'   => 'Check-In berhasil. Sekarang lakukan DCU (cek kesehatan) terlebih dahulu. DCU dilakukan langsung di tempat, bukan lewat aplikasi ini.',
+                    'text'   => 'Check-In berhasil. Sekarang lakukan DCU (cek kesehatan) terlebih dahulu. DCU dilakukan langsung di tempat, bukan lewat aplikasi ini. Setelah Anda ketuk “Mengerti”, menu PTI akan menyala.',
                     'button' => 'Mengerti',
                     'done'   => null,
                 ]],
@@ -194,7 +194,7 @@ function amt_tour_steps_for(string $screen, bool $running, int $checkins = 0): a
                 'no'     => 1,
                 'target' => '[data-tour="amt-menu-checkin"]',
                 'title'  => 'Absen masuk berhasil 🎉',
-                'text'   => 'Waktu Kerja sudah berjalan dan menu Check-In sekarang menyala. Ketuk Check-In saat Anda mendapat tugas pengiriman BBM. PTI dan Check-Out belum bisa dipakai.',
+                'text'   => 'Waktu Kerja sudah berjalan dan menu Check-In sekarang menyala. Ketuk Check-In saat Anda mendapat tugas pengiriman BBM. PTI menyala setelah Check-In dan DCU; Check-Out belum bisa dipakai.',
                 'hint'   => '👆 Ketuk menu “Check-In”',
                 'done'   => null,
             ]]];

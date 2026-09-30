@@ -21,7 +21,6 @@ unset($_SESSION['amt_pti_error']);
 $hasImage = is_file(__DIR__ . '/../../' . $data['image']);
 $counter  = str_pad((string) $step, 2, '0', STR_PAD_LEFT) . '/' . AMT_PTI_TOTAL;
 ?>
-<link rel="stylesheet" href="assets/amt-pti.css">
 
 <form method="post" action="<?= amt_e(amt_pti_url('amt_pti_form', ['step' => $step])) ?>"
       class="pti-form" id="ptiForm" data-groups="<?= count($data['items']) ?>" novalidate>

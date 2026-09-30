@@ -845,6 +845,8 @@ const NEXT_SCREEN = [
 const SCREEN_CSS = [
     'role_select'           => ['role'],
     'amt_home'              => ['role', 'amt/amt'],   // 'amt/...' = assets/amt/css/
+    'amt_pti'               => ['amt/amt-pti'],
+    'amt_pti_form'          => ['amt/amt-pti'],
     'dashboard'             => ['dashboard'],
     'shipments_list'        => ['shipments'],
     'create_order_info'     => ['order-form'],

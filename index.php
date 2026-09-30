@@ -29,7 +29,8 @@ $isPost = $_SERVER['REQUEST_METHOD'] === 'POST';
 
 if ($isPost) {
     $allowedPost = array_merge(['select_role'], AMT_POST_ACTIONS);
-    if (!in_array($_POST['action'] ?? '', $allowedPost, true) && $role !== 'spbu') {
+    // pti_action = form PTI & ack tutorial (dikirim tanpa field 'action')
+    if (!in_array($_POST['action'] ?? '', $allowedPost, true) && !isset($_POST['pti_action']) && $role !== 'spbu') {
         go_to(role_home($role));
     }
 } else {
@@ -37,6 +38,12 @@ if ($isPost) {
     if ($needRole !== null && $role !== $needRole) {
         go_to(role_home($role));
     }
+}
+
+/* PTI: catat ack tutorial, jaga akses layar PTI, simpan jawaban inspeksi.
+ * Harus sebelum ada output apa pun. */
+if ($role === 'amt') {
+    amt_pti_bootstrap($screen);
 }
 
 /* Penjagaan menu kerja AMT: Check-In hanya saat timer berjalan (PTI &
