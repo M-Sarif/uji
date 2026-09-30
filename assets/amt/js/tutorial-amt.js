@@ -5,10 +5,17 @@
  *  - BERBASIS KONDISI: mesin selalu menampilkan langkah PERTAMA yang belum
  *    selesai (dibaca dari keadaan halaman), jadi tutorial tidak pernah
  *    "hilang" walau kamera dibatalkan atau form diisi tidak berurutan.
- *  - JEDA SINGKAT: hanya ~0,8 detik sekali saat halaman dibuka. Antar
+ *  - JEDA SINGKAT: hanya ~0,8 detik sekali saat halaman dibuka (atau sesuai
+ *    config.startDelay, mis. 5 detik untuk pemberitahuan DCU). Antar
  *    langkah tidak ada jeda; hanya pesan "sudah benar" 1 detik.
- *  - KARTU DI BAWAH: posisi selalu sama, halaman otomatis digulir supaya
- *    bagian yang disorot tidak tertutup kartu.
+ *  - HALAMAN DIAM: tutorial TIDAK menggulir halaman dan TIDAK menambah
+ *    ruang kosong. Yang menyesuaikan diri adalah kartu tutorialnya: ia
+ *    menempel di bawah, atau pindah ke atas bila akan menutupi bagian
+ *    yang disorot. Bila bagian yang disorot ada di luar layar, kartu
+ *    meminta pengguna menggulir sendiri.
+ *  - LANGKAH "KETUK + TUNGGU" (needTap): mis. Perbarui Lokasi. Langkah baru
+ *    selesai setelah diketuk DAN keadaannya terpenuhi (pin peta tampil),
+ *    lalu pesan "sudah benar" ditahan sesuai 'hold' (2 detik) sebelum lanjut.
  *  - Tersembunyi otomatis saat kamera / pop up foto terbuka.
  *  - "Lewati" hanya menyembunyikan tutorial halaman ini (sesi ini); tombol
  *    "?" selalu bisa memulai lagi.
@@ -23,6 +30,7 @@
     var OK_HOLD_MS     = 1000;   // pesan "✅ sudah benar" sebelum pindah langkah
     var TICK_MS        = 350;    // cek keadaan halaman
     var PAD            = 6;      // ruang di sekeliling sorotan (px)
+    var GAP            = 10;     // jarak kartu ke tepi bingkai / sorotan (px)
 
     var LS_DONE  = 'onefis_amt_tour_v2_done';    // daftar tutorial yang sudah selesai
     var SS_SKIP  = 'onefis_amt_tour_v2_skip:';   // + kunci -> dilewati (sesi ini)
@@ -87,6 +95,7 @@
         this.key     = config.subKey || config.screen;
         this.steps   = config.steps || [];
         this.journey = config.journey || null;
+        this.startDelay = config.startDelay || 0;   // ms; 0 = FIRST_DELAY_MS
         this.labels  = config.screenLabels || {};
 
         this.acked   = {};      // langkah aksi (done = null) yang sudah dilakukan
@@ -96,7 +105,11 @@
         this.ready   = false;
         this.dead    = false;
         this.okUntil = 0;
-        this.hlEl    = null;
+        this.hlEl    = null;    // elemen yang disorot (ring)
+        this.tgtEl   = null;    // elemen yang harus diketuk
+        this.side    = 'bottom';// posisi kartu terakhir: 'bottom' | 'top'
+        this.okMode  = false;   // sedang menampilkan pesan "sudah benar"
+        this.baseHint = '';
         this.dom     = null;
         this.timers  = [];
         this.handlers = [];
@@ -109,7 +122,7 @@
 
         this._build();
         var self = this;
-        this._later(function () { self.ready = true; self.tick(); }, force ? 150 : FIRST_DELAY_MS);
+        this._later(function () { self.ready = true; self.tick(); }, force ? 150 : (this.startDelay || FIRST_DELAY_MS));
         this.tickTimer = setInterval(function () { self.tick(); }, TICK_MS);
     };
 
@@ -162,7 +175,7 @@
             if (!t || !t.closest || panel.contains(t)) { return; }
             for (var i = self.steps.length - 1; i >= 0; i--) {
                 var st = self.steps[i];
-                if (st.done || !st.target) { continue; }
+                if (!st.target || (st.done && !st.needTap)) { continue; }
                 if (t.closest(st.target)) { self.ack(i); break; }
             }
         }, true);
@@ -174,8 +187,12 @@
         this._on(document, 'click', soon, true);
         this._on(document, 'amt:state', soon, false);
 
-        var relayout = function () { self.reposition(); };
-        this._on(window, 'resize', function () { self.layoutPanel(); self.reposition(); });
+        var raf = null;
+        var relayout = function () {
+            if (raf) { return; }
+            raf = requestAnimationFrame(function () { raf = null; self.sync(); });
+        };
+        this._on(window, 'resize', relayout);
         this._on(window, 'scroll', relayout, true);
         this._on(window, 'pagehide', function () { self.destroy(); });
     };
@@ -184,7 +201,10 @@
     Tour.prototype.isComplete = function (i) {
         var st = this.steps[i];
         if (st.skip && qs(st.skip)) { return true; }
-        if (st.done) { return !!qs(st.done); }
+        if (st.done) {
+            var cond = !!qs(st.done);
+            return st.needTap ? (cond && !!this.acked[i]) : cond;
+        }
         return !!this.acked[i];
     };
 
@@ -198,7 +218,7 @@
     // Pengguna melakukan langkah aksi ke-i (ketuk target / tekan tombol kartu).
     Tour.prototype.ack = function (i) {
         for (var j = 0; j <= i; j++) {
-            if (!this.steps[j].done) { this.acked[j] = true; }
+            if (!this.steps[j].done || this.steps[j].needTap) { this.acked[j] = true; }
         }
         // Langkah terakhir dilakukan -> alur ini selesai. Dicatat SEKARANG
         // (sebelum halaman berpindah) supaya tidak muncul lagi.
@@ -224,9 +244,10 @@
             this.steps[prev].ok && !this.okDone[prev]) {
             this.okDone[prev] = true;
             this.showOk(prev);
-            this.okUntil = Date.now() + OK_HOLD_MS;
+            var hold = this.steps[prev].hold || OK_HOLD_MS;   // mis. 2000 ms agar pin sempat terlihat
+            this.okUntil = Date.now() + hold;
             var selfOk = this;
-            this._later(function () { selfOk.tick(); }, OK_HOLD_MS + 20);   // pindah tepat waktu
+            this._later(function () { selfOk.tick(); }, hold + 20);   // pindah tepat waktu
             return;
         }
         this.okUntil = 0;
@@ -237,7 +258,7 @@
             return;
         }
         if (idx !== this.shown || !this.uiOn) { this.show(idx); }
-        else { this.reposition(); }
+        else { this.sync(); }
     };
 
     /* ---------- tampilan ---------- */
@@ -255,11 +276,11 @@
         if (showBar) { barBox.firstChild.style.width = Math.round(st.no / j.total * 100) + '%'; }
 
         p.querySelector('[data-title]').textContent = forOk ? st.ok : (st.title || '');
-        p.querySelector('[data-text]').textContent  = forOk ? 'Lanjut ke langkah berikutnya…' : (st.text || '');
+        p.querySelector('[data-text]').textContent  = forOk ? (st.okText || 'Lanjut ke langkah berikutnya…') : (st.text || '');
 
-        var hint = p.querySelector('[data-hint]');
-        hint.textContent = forOk ? '' : (st.hint || (st.target ? '👆 Ketuk bagian yang menyala biru' : ''));
-        hint.hidden = !hint.textContent;
+        this.baseHint = forOk ? '' : (st.hint || (st.target ? '👆 Ketuk bagian yang menyala biru' : ''));
+        this.okMode = !!forOk;
+        this.applyHint();
 
         var btn = p.querySelector('[data-primary]');
         btn.textContent = st.button || '';
@@ -273,10 +294,13 @@
         this.uiOn = true;
         this.fill(st, false);
 
+        this.okDone[idx] = false;          // langkah tampil lagi -> pesan "sudah benar" boleh muncul lagi
+
         var center = !st.target;
         var tgt = qs(st.target);
         var hl = qs(st.highlight) || tgt;
-        this.hlEl = (!center && isShown(hl)) ? hl : null;
+        this.tgtEl = (!center && isShown(tgt)) ? tgt : null;
+        this.hlEl  = (!center && isShown(hl)) ? hl : null;
 
         d.panel.classList.remove('is-ok');
         d.ring.classList.remove('is-ok');
@@ -285,12 +309,11 @@
         d.panel.classList.add('is-on');
         document.body.classList.add('amtt-on');
 
-        this.layoutPanel();
-        if (this.hlEl) { this.ensureVisible(this.hlEl); }
-        this.reposition();
-        // Gulir halus + animasi kartu selesai sebentar lagi -> rapikan sekali lagi.
+        this.applyHint();
+        this.sync();
+        // Animasi kartu selesai sebentar lagi -> rapikan sekali lagi.
         var self = this;
-        this._later(function () { self.layoutPanel(); self.reposition(); }, 350);
+        this._later(function () { self.sync(); }, 350);
     };
 
     Tour.prototype.showOk = function (idx) {
@@ -301,8 +324,7 @@
         d.panel.classList.add('is-on', 'is-ok');
         d.ring.classList.add('is-ok');
         document.body.classList.add('amtt-on');
-        this.layoutPanel();
-        this.reposition();
+        this.sync();
     };
 
     Tour.prototype.hideUI = function () {
@@ -312,60 +334,14 @@
         this.dom.dim.classList.remove('is-on');
         this.uiOn = false;
         this.hlEl = null;
-        this.reserve(0);
+        this.tgtEl = null;
         document.body.classList.remove('amtt-on');
     };
 
-    // Ruang di bawah isi halaman supaya bagian paling bawah bisa digulir ke
-    // atas kartu (kartu tidak menutupi form).
-    Tour.prototype.reserve = function (px) {
-        var c = qs('.content');
-        if (!c) { return; }
-        c.style.paddingBottom = px ? 'calc(env(safe-area-inset-bottom, 0px) + ' + px + 'px)' : '';
-    };
-
-    // Kartu selalu menempel di bawah bingkai aplikasi (atau di tengah).
-    Tour.prototype.layoutPanel = function () {
-        if (!this.uiOn) { return; }
-        var p = this.dom.panel;
-        if (p.classList.contains('is-center')) {
-            p.style.left = p.style.width = p.style.bottom = '';
-            this.reserve(0);
-            return;
-        }
-        var vw = window.innerWidth, vh = window.innerHeight;
-        var app = qs('.app-container');
-        var ab = app ? app.getBoundingClientRect() : { left: 0, right: vw, bottom: vh };
-        var left = Math.max(0, ab.left), right = Math.min(vw, ab.right);
-        var width = Math.min(380, right - left - 20);
-        p.style.width = width + 'px';
-        p.style.left = (left + (right - left - width) / 2) + 'px';
-        p.style.bottom = 'calc(' + Math.max(0, vh - Math.min(vh, ab.bottom)) + 'px + 10px + env(safe-area-inset-bottom, 0px))';
-        this.reserve(p.offsetHeight + 24);
-    };
-
-    // Gulir halaman seperlunya supaya bagian yang disorot terlihat DI ATAS kartu.
-    Tour.prototype.ensureVisible = function (elm) {
-        var c = qs('.content');
-        if (!c || !c.contains(elm)) { return; }
-        var cr = c.getBoundingClientRect();
-        var panelTop = this.dom.panel.getBoundingClientRect().top;
-        var top = Math.max(cr.top, 0) + 8;
-        var bot = Math.min(cr.bottom, panelTop) - 12;
-        var r = elm.getBoundingClientRect();
-        if (r.top >= top && r.bottom <= bot) { return; }
-        var avail = bot - top, delta;
-        if (r.height >= avail) { delta = r.top - top; }
-        else { delta = (r.top + r.height / 2) - (top + avail / 2); }
-        try { c.scrollBy({ top: delta, behavior: 'smooth' }); } catch (e) { c.scrollTop += delta; }
-    };
-
-    // Kotak sorotan (ring) mengikuti elemen; bagian di luar area isi dipotong.
-    Tour.prototype.reposition = function () {
-        if (!this.uiOn || !this.dom) { return; }
-        var ring = this.dom.ring;
+    // Kotak sorotan (sudah + PAD) yang dipotong ke area isi halaman; null bila tak terlihat.
+    Tour.prototype.hlBox = function () {
         var h = this.hlEl;
-        if (!h || !isShown(h)) { ring.classList.remove('is-on'); return; }
+        if (!h || !isShown(h)) { return null; }
         var r = h.getBoundingClientRect();
         var c = qs('.content');
         var top = r.top, bot = r.bottom;
@@ -374,11 +350,113 @@
             top = Math.max(top, cr.top);
             bot = Math.min(bot, cr.bottom);
         }
-        if (bot - top < 4) { ring.classList.remove('is-on'); return; }
-        ring.style.left   = (r.left - PAD) + 'px';
-        ring.style.top    = (top - PAD) + 'px';
-        ring.style.width  = (r.width + PAD * 2) + 'px';
-        ring.style.height = (bot - top + PAD * 2) + 'px';
+        if (bot - top < 4) { return null; }
+        return { left: r.left - PAD, top: top - PAD, width: r.width + PAD * 2, height: bot - top + PAD * 2, bottom: bot + PAD };
+    };
+
+    // Arah gulir bila bagian yang harus diketuk berada di luar layar ('down' | 'up' | null).
+    Tour.prototype.offscreenDir = function () {
+        var t = this.tgtEl;
+        var c = qs('.content');
+        if (!t || !c || !c.contains(t) || !isShown(t)) { return null; }
+        var cr = c.getBoundingClientRect(), r = t.getBoundingClientRect();
+        var need = Math.min(r.height, 28);
+        var visible = Math.min(r.bottom, cr.bottom) - Math.max(r.top, cr.top);
+        if (visible >= need) { return null; }
+        return r.top >= cr.top ? 'down' : 'up';
+    };
+
+    // Isi kotak biru di kartu: menunggu > ajakan menggulir > petunjuk biasa.
+    Tour.prototype.applyHint = function () {
+        if (!this.dom) { return; }
+        var hint = this.dom.panel.querySelector('[data-hint]');
+        var txt = this.baseHint, waiting = false;
+        if (!this.okMode) {
+            var st = this.steps[this.shown];
+            if (st && st.needTap && this.acked[this.shown] && !this.isComplete(this.shown)) {
+                txt = st.wait || '⏳ Mohon tunggu…';
+                waiting = true;
+            } else {
+                var dir = this.offscreenDir();
+                if (dir === 'down') { txt = '👇 Gulir ke bawah sampai bagian yang menyala terlihat'; }
+                else if (dir === 'up') { txt = '👆 Gulir ke atas sampai bagian yang menyala terlihat'; }
+            }
+        }
+        if (hint.textContent !== txt) { hint.textContent = txt; }
+        hint.hidden = !txt;
+        hint.classList.toggle('is-wait', waiting);
+    };
+
+    // Satu pintu untuk merapikan tampilan: teks, posisi kartu, dan sorotan.
+    Tour.prototype.sync = function () {
+        if (!this.uiOn || !this.dom) { return; }
+        this.applyHint();
+        this.layoutPanel();
+        this.reposition();
+    };
+
+    // Halaman TIDAK digeser. Kartu menempel di bawah bingkai aplikasi, dan
+    // pindah ke atas isi halaman bila di bawah akan menutupi bagian yang disorot.
+    Tour.prototype.layoutPanel = function () {
+        if (!this.uiOn) { return; }
+        var p = this.dom.panel;
+        if (p.classList.contains('is-center')) {
+            p.style.left = p.style.width = p.style.top = p.style.bottom = p.style.maxHeight = '';
+            return;
+        }
+        var vw = window.innerWidth, vh = window.innerHeight;
+        var app = qs('.app-container');
+        var ab = app ? app.getBoundingClientRect() : { left: 0, right: vw, top: 0, bottom: vh };
+        var c = qs('.content');
+        var cr = c ? c.getBoundingClientRect() : ab;
+
+        var left = Math.max(0, ab.left), right = Math.min(vw, ab.right);
+        var width = Math.min(380, right - left - 20);
+        p.style.width = width + 'px';
+        p.style.left = (left + (right - left - width) / 2) + 'px';
+        p.style.maxHeight = '';                       // kembali ke batas bawaan CSS
+
+        var botEdge = Math.min(vh, ab.bottom) - GAP;  // y batas bawah kartu
+        var topEdge = Math.max(0, cr.top) + GAP;      // y batas atas kartu
+        var ph = p.offsetHeight;
+        var box = this.hlBox();
+        var side = 'bottom';
+
+        if (box) {
+            var fitsBottom = botEdge - ph >= box.bottom + 4;
+            var fitsTop    = topEdge + ph <= box.top - 4;
+            if (this.side === 'top' && fitsTop)          { side = 'top'; }      // bertahan agar tidak berkedip
+            else if (this.side === 'bottom' && fitsBottom) { side = 'bottom'; }
+            else if (fitsBottom)                          { side = 'bottom'; }
+            else if (fitsTop)                             { side = 'top'; }
+            else {                                        // tak ada yang muat: pilih sisi lebih lega, kartu diperkecil
+                var roomBottom = botEdge - box.bottom - 4;
+                var roomTop    = box.top - 4 - topEdge;
+                side = roomBottom >= roomTop ? 'bottom' : 'top';
+                p.style.maxHeight = Math.max(110, Math.floor(side === 'bottom' ? roomBottom : roomTop)) + 'px';
+            }
+        }
+        this.side = side;
+
+        if (side === 'bottom') {
+            p.style.top = 'auto';
+            p.style.bottom = 'calc(' + Math.max(0, vh - botEdge) + 'px + env(safe-area-inset-bottom, 0px))';
+        } else {
+            p.style.bottom = 'auto';
+            p.style.top = topEdge + 'px';
+        }
+    };
+
+    // Kotak sorotan (ring) mengikuti elemen; bagian di luar area isi dipotong.
+    Tour.prototype.reposition = function () {
+        if (!this.uiOn || !this.dom) { return; }
+        var ring = this.dom.ring;
+        var b = this.hlBox();
+        if (!b) { ring.classList.remove('is-on'); return; }
+        ring.style.left   = b.left + 'px';
+        ring.style.top    = b.top + 'px';
+        ring.style.width  = b.width + 'px';
+        ring.style.height = b.height + 'px';
         ring.classList.add('is-on');
     };
 
@@ -388,7 +466,6 @@
         this.timers.forEach(clearTimeout);
         this.handlers.forEach(function (h) { h.t.removeEventListener(h.e, h.f, h.c); });
         this.handlers = [];
-        this.reserve(0);
         document.body.classList.remove('amtt-on');
         if (this.dom) {
             [this.dom.dim, this.dom.ring, this.dom.panel].forEach(function (n) {

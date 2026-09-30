@@ -41,7 +41,8 @@
     50%      { opacity: .15; transform: scale(1.03); }
 }
 
-/* Kartu petunjuk: selalu di bawah (atau di tengah untuk sambutan) */
+/* Kartu petunjuk: di bawah bingkai, pindah ke atas bila menutupi sorotan (atau di tengah untuk sambutan).
+   Posisi top/bottom diatur oleh JS (layoutPanel); halaman tidak digeser. */
 .amtt-panel {
     position: fixed; z-index: 902;
     box-sizing: border-box;
@@ -88,6 +89,8 @@
     font-size: 14px; font-weight: 700; line-height: 1.35;
     color: #1d4ed8; background: #eff6ff; border-radius: .65rem;
 }
+/* Menunggu (mis. pin lokasi belum tampil) */
+.amtt-hint.is-wait { color: #b45309; background: #fffbeb; }
 
 .amtt-actions {
     display: flex; align-items: center; justify-content: space-between; gap: .5rem;

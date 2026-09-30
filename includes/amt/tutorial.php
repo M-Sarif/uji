@@ -22,12 +22,23 @@
  *   'hint'      => kalimat aksi di kotak biru
  *   'done'      => selector; langkah SELESAI bila elemen ini ada di halaman
  *                  (null = langkah aksi: selesai saat target diketuk / tombol ditekan)
+ *   'needTap'   => (opsional) true = langkah selesai HANYA bila target sudah
+ *                  diketuk DAN selector 'done' terpenuhi (mis. Perbarui Lokasi)
+ *   'wait'      => (opsional) teks kotak biru saat target sudah diketuk tetapi
+ *                  'done' belum terpenuhi ("menunggu...")
  *   'ok'        => pesan singkat saat langkah baru saja selesai
+ *   'okText'    => (opsional) kalimat di bawah pesan 'ok'
+ *   'hold'      => (opsional) lama pesan 'ok' tampil sebelum pindah langkah
+ *                  (milidetik; bawaan 1000)
  *   'button'    => (opsional) label tombol di kartu (mis. "Mulai")
+ *
+ * Halaman TIDAK digulir otomatis oleh tutorial. Kartu yang menyesuaikan
+ * posisinya (atas / bawah) supaya tidak menutupi bagian yang disorot.
  *
  * Status form dibaca dari atribut data-* pada #wk-form yang diperbarui
  * oleh views/amt/_work_form.php:
  *   data-loc="1"   lokasi sudah sesuai titik kerja
+ *   data-pin="1"   lokasi sesuai DAN peta (pin) sudah selesai dimuat
  *   data-act="1"   aktivitas sudah dipilih (End Work: selalu 1)
  *   data-photo="1" foto verifikasi sudah tersimpan
  *
@@ -45,12 +56,16 @@ const AMT_TOUR_SCREEN_LABELS = [
     'end_work'   => 'End Work',
 ];
 
-// Tiga alur tutorial; 'total' = jumlah langkah bernomor pada alur itu
+// Alur tutorial; 'total' = jumlah langkah bernomor pada alur itu
 const AMT_TOUR_JOURNEYS = [
     'masuk'   => ['label' => 'Absen Masuk',  'total' => 6],
     'checkin' => ['label' => 'Check-In',     'total' => 5],
     'pulang'  => ['label' => 'Absen Pulang', 'total' => 4],
+    'dcu'     => ['label' => 'Check-In Berhasil', 'total' => 1],   // pemberitahuan DCU (tanpa nomor langkah)
 ];
+
+// Jeda (ms) sebelum tutorial DCU muncul di beranda setelah Check-In berhasil
+const AMT_TOUR_DCU_DELAY_MS = 5000;
 
 /**
  * Langkah-langkah form (lokasi, aktivitas, foto, kirim).
@@ -86,10 +101,14 @@ function amt_tour_form_steps(string $mode): array
         'target'    => '#wk-refresh',
         'highlight' => '#wk-loc',
         'title'     => 'Cek lokasi Anda',
-        'text'      => 'Pin di peta harus ada di area kerja. Kalau kotak di bawah peta masih merah, ketuk “Perbarui Lokasi”.',
-        'hint'      => '👆 Ketuk “Perbarui Lokasi” sampai kotaknya hijau',
-        'done'      => '#wk-form[data-loc="1"]',
+        'text'      => 'Pin di peta harus ada di area kerja. Ketuk “Perbarui Lokasi”, lalu tunggu sampai pin muncul dan kotak di bawah peta berwarna hijau.',
+        'hint'      => '👆 Ketuk “Perbarui Lokasi”',
+        'wait'      => '⏳ Menunggu lokasi sesuai… perhatikan pin di peta',
+        'done'      => '#wk-form[data-pin="1"]',
+        'needTap'   => true,
         'ok'        => '✅ Lokasi sudah sesuai',
+        'okText'    => 'Lihat pin di peta: sudah tepat di area kerja.',
+        'hold'      => 2000,
     ];
 
     // 2) Aktivitas (tidak ada di End Work: mengikuti pilihan saat Start Work)
@@ -143,14 +162,33 @@ function amt_tour_form_steps(string $mode): array
 /**
  * Data langkah untuk satu layar.
  *
- * @param string $screen  nama layar
- * @param bool   $running true bila timer Waktu Kerja sedang berjalan
- * @return array{steps:array, journey:string}
+ * @param string $screen   nama layar
+ * @param bool   $running  true bila timer Waktu Kerja sedang berjalan
+ * @param int    $checkins jumlah Check-In yang sudah berhasil (0 = belum ada)
+ * @return array{steps:array, journey:string, startDelay?:int}
  */
-function amt_tour_steps_for(string $screen, bool $running): array
+function amt_tour_steps_for(string $screen, bool $running, int $checkins = 0): array
 {
     // ---- Beranda AMT ----
     if ($screen === amt_home_screen()) {
+        // Check-In sudah berhasil -> AMT diberi tahu untuk melakukan DCU (cek
+        // kesehatan) lebih dulu. DCU dilakukan LANGSUNG di lokasi, bukan lewat
+        // aplikasi, jadi tutorial ini hanya pemberitahuan (kartu di tengah).
+        // Muncul AMT_TOUR_DCU_DELAY_MS setelah halaman dibuka.
+        if ($running && $checkins > 0) {
+            return [
+                'journey'    => 'dcu',
+                'startDelay' => AMT_TOUR_DCU_DELAY_MS,
+                'steps'      => [[
+                    'no'     => null,
+                    'target' => null,
+                    'title'  => 'Lakukan DCU dulu 🩺',
+                    'text'   => 'Check-In berhasil. Sekarang lakukan DCU (cek kesehatan) terlebih dahulu. DCU dilakukan langsung di tempat, bukan lewat aplikasi ini.',
+                    'button' => 'Mengerti',
+                    'done'   => null,
+                ]],
+            ];
+        }
         if ($running) {
             return ['journey' => 'checkin', 'steps' => [[
                 'no'     => 1,
@@ -223,16 +261,19 @@ function amt_tour_steps_for(string $screen, bool $running): array
  * 'subKey' memisahkan catatan "sudah selesai" untuk keadaan berbeda pada
  * layar yang sama (beranda sebelum / sesudah Start Work, dst).
  *
- * @return array{steps:array, subKey:?string, journey:?array, screenOrder:array, screenLabels:array}
+ * @return array{steps:array, subKey:?string, journey:?array, startDelay:int, screenOrder:array, screenLabels:array}
  */
 function amt_tour_config(string $screen): array
 {
-    $running = work_is_running();
-    $pack    = amt_tour_steps_for($screen, $running);
-    $subKey  = null;
+    $running  = work_is_running();
+    $checkins = $running ? count(work_checkins()) : 0;
+    $pack     = amt_tour_steps_for($screen, $running, $checkins);
+    $subKey   = null;
 
     if ($running && $screen === amt_home_screen()) {
-        $subKey = 'amt_home_running';
+        // Tiap Check-In berhasil punya catatan sendiri, jadi DCU diingatkan lagi
+        // setelah Check-In berikutnya (bukan hanya sekali seumur hidup).
+        $subKey = $checkins > 0 ? 'amt_home_dcu_' . $checkins : 'amt_home_running';
     } elseif ($running && $screen === 'start_end') {
         $subKey = 'start_end_running';
     }
@@ -241,6 +282,7 @@ function amt_tour_config(string $screen): array
         'steps'        => $pack['steps'],
         'subKey'       => $subKey,
         'journey'      => AMT_TOUR_JOURNEYS[$pack['journey']] ?? null,
+        'startDelay'   => (int) ($pack['startDelay'] ?? 0),
         'screenOrder'  => AMT_TOUR_SCREEN_ORDER,
         'screenLabels' => AMT_TOUR_SCREEN_LABELS,
     ];

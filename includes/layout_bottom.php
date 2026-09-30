@@ -80,10 +80,12 @@ $tourEngine = (current_role() === 'amt') ? 'assets/amt/js/tutorial-amt.js' : 'as
         : ($isLoKirim ? 'lo_list_kirim'
         : ($isRatingAmt2 ? 'rating_amt2' : null)))));
     $tourJourney = null;   // alur tutorial AMT: ['label' => ..., 'total' => ...]
+    $tourDelay   = 0;      // jeda (ms) sebelum tutorial AMT pertama kali muncul
     if ($amtTour !== null) {
         $tourSteps   = $amtTour['steps'];
         $tourSubKey  = $amtTour['subKey'];
         $tourJourney = $amtTour['journey'] ?? null;
+        $tourDelay   = (int) ($amtTour['startDelay'] ?? 0);
     }
     ?>
     var steps        = <?php echo json_encode($tourSteps); ?>;
@@ -102,6 +104,8 @@ $tourEngine = (current_role() === 'amt') ? 'assets/amt/js/tutorial-amt.js' : 'as
         // Alur tutorial AMT (label + jumlah langkah) untuk teks "Langkah X dari Y".
         // Diabaikan oleh mesin SPBU.
         journey:      <?php echo json_encode($tourJourney); ?>,
+        // Jeda (ms) sebelum tutorial AMT muncul; 0 = jeda bawaan. Diabaikan mesin SPBU.
+        startDelay:   <?php echo json_encode($tourDelay); ?>,
         // true persis pada request yang baru saja mereset progres alur
         // (balik ke dashboard/beranda AMT) -- lihat index.php.
         flowWasReset: <?php echo json_encode($flowWasReset); ?>,

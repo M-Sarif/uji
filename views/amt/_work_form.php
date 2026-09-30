@@ -15,7 +15,7 @@ $activity  = $w['activity'] ?? '';        // End Work: mengikuti pilihan saat St
 ?>
 <link rel="stylesheet" href="<?= AMT_URL ?>/css/camera.css?v=<?= (int) @filemtime(AMT_ASSET_DIR . '/css/camera.css') ?>">
 <form method="post" action="?screen=<?= $screenKey ?>" id="wk-form" class="wk-wrap"
-      data-loc="0" data-act="<?= $needAct ? '0' : '1' ?>" data-photo="0">
+      data-loc="0" data-pin="0" data-act="<?= $needAct ? '0' : '1' ?>" data-photo="0">
   <input type="hidden" name="action" value="<?= $postAct ?>">
   <input type="hidden" name="photo" id="wk-photo" value="0">
   <input type="hidden" name="photo_data" id="wk-photo-data" value="">
@@ -154,11 +154,32 @@ $activity  = $w['activity'] ?? '';        // End Work: mengikuti pilihan saat St
       lng: BASE.lng + (meters * Math.sin(ang)) / (111320 * Math.cos(BASE.lat * Math.PI / 180))
     };
   }
+  // data-pin = "1" hanya bila lokasi SUDAH sesuai DAN peta (pin) selesai dimuat.
+  // Tutorial AMT membaca atribut ini supaya menunggu pin benar-benar tampil
+  // sebelum pindah ke langkah berikutnya. Bila peta gagal memuat, setelah
+  // PIN_FALLBACK_MS tetap dianggap siap agar tutorial tidak macet.
+  var PIN_FALLBACK_MS = 6000;
+  var mapToken = 0, pinTimer = null;
   function setPos(p) {
     var d = Math.round(distance(p, BASE));
     inRange = d <= RADIUS;
     latEl.value = p.lat.toFixed(6);
     lngEl.value = p.lng.toFixed(6);
+
+    // Mulai dari "belum siap"; baru jadi siap saat peta selesai dimuat.
+    var token = ++mapToken;
+    clearTimeout(pinTimer);
+    form.setAttribute('data-pin', '0');
+    function pinReady() {
+      if (token !== mapToken || !inRange) return;   // hasil lama / lokasi belum sesuai
+      clearTimeout(pinTimer);
+      mapEl.onload = null;
+      form.setAttribute('data-pin', '1');
+      document.dispatchEvent(new CustomEvent('amt:state'));
+    }
+    mapEl.onload = inRange ? pinReady : null;
+    if (inRange) pinTimer = setTimeout(pinReady, PIN_FALLBACK_MS);
+
     // Pin Google Maps selalu berada tepat di koordinat posisi user saat ini
     // Sesuai titik kerja -> tampilkan pin bawaan Google Maps untuk terminal (nama + kartu tempat).
     // Belum sesuai -> pin biasa di koordinat user, jadi terlihat jelas berada di tempat lain.
