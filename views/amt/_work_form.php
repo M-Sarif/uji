@@ -123,6 +123,7 @@ $activity  = $w['activity'] ?? '';        // End Work: mengikuti pilihan saat St
 
   // ---- Lokasi (simulasi) + peta Google Maps + batas jangkauan ----
   var BASE = { lat: <?= WORK_LAT ?>, lng: <?= WORK_LNG ?> }, RADIUS = <?= WORK_RADIUS_M ?>;
+  var PLACE = <?= json_encode(WORK_PLACE_NAME) ?>;
   var OUT_CHANCE = <?= (float) WORK_SIM_OUTSIDE_CHANCE ?>;
   var mapEl = document.getElementById('wk-map'), geo = document.getElementById('wk-geo');
   var latEl = document.getElementById('wk-lat'), lngEl = document.getElementById('wk-lng');
@@ -147,12 +148,17 @@ $activity  = $w['activity'] ?? '';        // End Work: mengikuti pilihan saat St
     latEl.value = p.lat.toFixed(6);
     lngEl.value = p.lng.toFixed(6);
     // Pin Google Maps selalu berada tepat di koordinat posisi user saat ini
-    mapEl.src = 'https://maps.google.com/maps?q=' + p.lat.toFixed(6) + ',' + p.lng.toFixed(6) +
-                '&hl=id&z=17&output=embed&t=' + Date.now();
+    // Sesuai titik kerja -> tampilkan pin bawaan Google Maps untuk terminal (nama + kartu tempat).
+    // Belum sesuai -> pin biasa di koordinat user, jadi terlihat jelas berada di tempat lain.
+    mapEl.src = inRange
+      ? 'https://maps.google.com/maps?q=' + encodeURIComponent(PLACE) +
+        '&ll=' + BASE.lat + ',' + BASE.lng + '&hl=id&z=17&output=embed&t=' + Date.now()
+      : 'https://maps.google.com/maps?q=' + p.lat.toFixed(6) + ',' + p.lng.toFixed(6) +
+        '&hl=id&z=16&output=embed&t=' + Date.now();
     document.getElementById('wk-coord').textContent = p.lat.toFixed(6) + ', ' + p.lng.toFixed(6);
     geo.className = 'wk-geo ' + (inRange ? 'ok' : 'bad');
     geo.textContent = inRange
-      ? 'Lokasi sesuai titik kerja'
+      ? 'Lokasi sesuai: ' + PLACE
       : 'Lokasi belum sesuai titik kerja (' + d + ' m). Ketuk "Perbarui Lokasi".';
     var loc = document.getElementById('wk-loc');
     loc.setAttribute('data-inrange', inRange ? '1' : '0');

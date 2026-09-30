@@ -27,6 +27,7 @@
 (function (window, document) {
     'use strict';
 
+    var AMT_STEP_DELAY_MS = 2000;   // jeda sebelum tiap langkah tutorial AMT muncul
     var LS_SEEN    = 'onefis_amt_tour_seen_screens'; // array layar yang tutorialnya sudah pernah selesai ditonton
     var LS_SKIPPED = 'onefis_amt_tour_skipped';       // '1' kalau user memilih "Lewati Tutorial"
 
@@ -173,7 +174,12 @@
         // sama dan tetap tampil pertama kali dicapai walau tutorial umum
         // layar itu sudah pernah ditonton.
         this.posKey       = config.subKey || config.screen;
-        this.rawSteps     = (config.steps || []);
+        // [AMT] Semua langkah muncul setelah jeda AMT_STEP_DELAY_MS (2 detik) supaya
+        // pengguna sempat melihat halamannya dulu -- tutorial yang langsung muncul
+        // membingungkan. Langkah bisa menimpanya lewat 'showAfter' sendiri.
+        this.rawSteps     = (config.steps || []).map(function (st) {
+            return (st.showAfter === undefined) ? Object.assign({}, st, { showAfter: AMT_STEP_DELAY_MS }) : st;
+        });
         this.screenOrder  = config.screenOrder || [];
         this.screenLabels = config.screenLabels || {};
         this.screenIndex  = config.screenIndex || 0;
@@ -464,6 +470,19 @@
         // Langkah pembuka/penutup tanpa target (mis. "Selamat Datang", "Selesai!")
         if (!step.target) {
             this._waitingTarget = null;
+            if (step.showAfter) {                       // [AMT] jeda sebelum tampil
+                if (!this._showAfterAt) { this._showAfterAt = Date.now() + step.showAfter; }
+                var leftC = this._showAfterAt - Date.now();
+                if (leftC > 0) {
+                    var selfC = this;
+                    clearTimeout(this.waitTimer);
+                    this.waitTimer = setTimeout(function () {
+                        if (selfC.rawSteps[selfC.stepIndex] !== step) { return; }
+                        selfC._tryShowCurrent();
+                    }, leftC);
+                    return;
+                }
+            }
             this._showCentered(step);
             return;
         }
@@ -819,20 +838,27 @@
         }
         this._attachExtra(step);
 
-        // [AMT] 'advanceIf' (opsional): kalau selector ini SUDAH cocok (mis. lokasi
-        // sudah sesuai titik kerja), tutorial lanjut otomatis setelah 'advanceDelayMs'
-        // supaya pengguna sempat melihat sorotannya. Kalau belum cocok, tutorial
-        // menunggu pemicu 'alsoAdvanceOn' (mis. event lokasi sesuai setelah "Perbarui Lokasi").
+        // [AMT] 'advanceIf' (opsional): selector kondisi (mis. lokasi sudah sesuai titik
+        // kerja). Tutorial memantau kondisi ini; begitu terpenuhi, langkah tetap tampil
+        // selama 'advanceDelayMs' (default 3 detik) supaya pengguna sempat memahaminya,
+        // baru lanjut otomatis. Selama belum terpenuhi, tutorial menunggu.
         clearTimeout(this._advTimer);
         if (step.advanceIf) {
             var advIdx = this.stepIndex;
-            this._advTimer = setTimeout(function () {
+            var advDelay = step.advanceDelayMs || 3000;
+            var advPoll = function () {
                 if (self.stepIndex !== advIdx || !self.els.backdrop) { return; }
                 if (document.querySelector(step.advanceIf)) {
-                    self._detachElListener();
-                    self._next();
+                    self._advTimer = setTimeout(function () {
+                        if (self.stepIndex !== advIdx || !self.els.backdrop) { return; }
+                        self._detachElListener();
+                        self._next();
+                    }, advDelay);
+                } else {
+                    self._advTimer = setTimeout(advPoll, 400);
                 }
-            }, step.advanceDelayMs || 1800);
+            };
+            advPoll();
         }
 
         requestAnimationFrame(function () { tt.classList.add('is-visible'); });
@@ -883,7 +909,9 @@
             }
         };
         this._elListenerEl = el;
-        el.addEventListener('click', this._elClickHandler, true);
+        if (!step.noClickAdvance) {
+            el.addEventListener('click', this._elClickHandler, true);
+        }
         this._attachExtra(step);
     };
 

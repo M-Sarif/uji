@@ -85,13 +85,16 @@ const AMT_TOUR_STEPS = [
 
     // ---- Form Start Work ----
     'start_work' => [
-        [
-            'target'    => '#wk-loc-title',
+        [   // kotak hijau: peta - lanjut otomatis begitu lokasi sesuai titik kerja
+            'target'    => '#wk-refresh',
             'highlight' => '#wk-loc',
             'title'     => 'Langkah 3 · Pastikan Lokasi Anda',
-            'text'      => 'Peta Google Maps menampilkan lokasi Anda. Absen hanya bisa di dalam radius 500 meter dari titik kerja. Jika di luar jangkauan, ketuk "Perbarui Lokasi".',
+            'text'      => 'Peta Google Maps menampilkan lokasi Anda. Pastikan pin berada di titik kerja sebelum absen. Jika belum sesuai, ketuk "Perbarui Lokasi". Jika pin sudah sesuai, tutorial lanjut otomatis.',
             'place'     => 'bottom',
-            'hint'      => '👉 Ketuk tulisan "Lokasi Anda" yang menyala untuk lanjut',
+            'hint'      => '👉 Ketuk "Perbarui Lokasi" sampai lokasi sesuai',
+            'noClickAdvance' => true,
+            'advanceIf'      => '#wk-loc[data-inrange="1"]',
+            'advanceDelayMs' => 3000,   // tampil 3 detik setelah lokasi sesuai, lalu lanjut
         ],
         [
             'target'    => '#wk-akt',
@@ -123,25 +126,21 @@ const AMT_TOUR_STEPS = [
 
     // ---- Form Check-In ----
     'checkin' => [
-        [
-            'target' => '#ci-tab-verif',
-            'title'  => 'Langkah 8 · Form Verifikasi Check-In',
-            'text'   => 'Tab "Verifikasi" untuk mengisi form Check-In. Tab "Riwayat Check-In" menampilkan Check-In yang sudah dilakukan, karena Check-In dilakukan di setiap cycle/ritase pengiriman BBM.',
-            'place'  => 'bottom',
-            'hint'   => '👉 Ketuk tab "Verifikasi" yang menyala untuk lanjut',
-        ],
-        [   // kotak hijau: peta
-            'target'    => '#wk-loc-title',
+        [   // kotak hijau: peta - lanjut otomatis begitu lokasi sesuai titik kerja
+            'target'    => '#wk-refresh',
             'highlight' => '#wk-loc',
-            'title'     => 'Langkah 9 · Peta Lokasi Anda',
-            'text'      => 'Peta Google Maps menampilkan lokasi Anda. Check-In hanya bisa di dalam radius 500 meter dari titik kerja. Jika di luar jangkauan, ketuk "Perbarui Lokasi".',
+            'title'     => 'Langkah 8 · Pastikan Lokasi Anda',
+            'text'      => 'Peta Google Maps menampilkan lokasi Anda. Pastikan pin berada di titik kerja sebelum Check-In. Jika belum sesuai, ketuk "Perbarui Lokasi". Jika pin sudah sesuai, tutorial lanjut otomatis.',
             'place'     => 'bottom',
-            'hint'      => '👉 Ketuk tulisan "Lokasi Anda" yang menyala untuk lanjut',
+            'hint'      => '👉 Ketuk "Perbarui Lokasi" sampai lokasi sesuai',
+            'noClickAdvance' => true,
+            'advanceIf'      => '#wk-loc[data-inrange="1"]',
+            'advanceDelayMs' => 3000,   // tampil 3 detik setelah lokasi sesuai, lalu lanjut
         ],
         [   // kotak kuning: aktivitas (Tugas Rutin / Tugas Lembur)
             'target'    => '#wk-akt',
             'highlight' => '#wk-act-box',
-            'title'     => 'Langkah 10 · Pilih Aktivitas',
+            'title'     => 'Langkah 9 · Pilih Aktivitas',
             'text'      => 'Pilih "Tugas Rutin" atau "Tugas Lembur" sesuai tugas Anda saat ini.',
             'place'     => 'bottom',
             'hint'      => '👉 Buka kolom yang menyala dan pilih Tugas Rutin atau Tugas Lembur',
@@ -152,14 +151,14 @@ const AMT_TOUR_STEPS = [
         [   // kotak biru: selfie
             'target'    => '#wk-take',
             'highlight' => '#wk-photo-box',
-            'title'     => 'Langkah 11 · Foto Selfie Verifikasi',
+            'title'     => 'Langkah 10 · Foto Selfie Verifikasi',
             'text'      => 'Ketuk "Ambil Foto" lalu ambil selfie dengan kamera depan sebagai verifikasi Check-In.',
             'place'     => 'top',
             'skipIf'    => '#wk-box.taken',
         ],
         [   // kotak ungu: tombol kirim
             'target' => '#wk-submit',
-            'title'  => 'Langkah 12 · Kirim Check-In',
+            'title'  => 'Langkah 11 · Kirim Check-In',
             'text'   => 'Ketuk "Kirim". Check-In akan tercatat di tab "Riwayat Check-In".',
             'place'  => 'top',
             'hint'   => HINT_READY_AMT,
