@@ -18,9 +18,12 @@
 </script>
 
 <?php
-// AMT memakai mesin tutorial sendiri (terpisah dari SPBU); peran lain tetap tutorial.js.
+// AMT memakai mesin tutorial + gaya sendiri (terpisah dari SPBU); peran lain tetap tutorial.js.
 $tourEngine = (current_role() === 'amt') ? 'assets/amt/js/tutorial-amt.js' : 'assets/js/tutorial.js';
 ?>
+<?php if (current_role() === 'amt'): ?>
+<link rel="stylesheet" href="assets/amt/css/tutorial-amt.css?v=<?php echo (int) @filemtime(__DIR__ . '/../assets/amt/css/tutorial-amt.css'); ?>">
+<?php endif; ?>
 <script src="<?php echo $tourEngine; ?>?v=<?php echo (int) @filemtime(__DIR__ . '/../' . $tourEngine); ?>"></script>
 <script>
 /*
@@ -76,9 +79,11 @@ $tourEngine = (current_role() === 'amt') ? 'assets/amt/js/tutorial-amt.js' : 'as
         : ($isChecklistSoal15 ? 'checklist_soal15'
         : ($isLoKirim ? 'lo_list_kirim'
         : ($isRatingAmt2 ? 'rating_amt2' : null)))));
+    $tourJourney = null;   // alur tutorial AMT: ['label' => ..., 'total' => ...]
     if ($amtTour !== null) {
-        $tourSteps  = $amtTour['steps'];
-        $tourSubKey = $amtTour['subKey'];
+        $tourSteps   = $amtTour['steps'];
+        $tourSubKey  = $amtTour['subKey'];
+        $tourJourney = $amtTour['journey'] ?? null;
     }
     ?>
     var steps        = <?php echo json_encode($tourSteps); ?>;
@@ -94,6 +99,9 @@ $tourEngine = (current_role() === 'amt') ? 'assets/amt/js/tutorial-amt.js' : 'as
         // nama layar biasa (lihat tutorial.js -> this.posKey). null berarti
         // pakai nama layar seperti biasa.
         subKey:       <?php echo json_encode($tourSubKey); ?>,
+        // Alur tutorial AMT (label + jumlah langkah) untuk teks "Langkah X dari Y".
+        // Diabaikan oleh mesin SPBU.
+        journey:      <?php echo json_encode($tourJourney); ?>,
         // true persis pada request yang baru saja mereset progres alur
         // (balik ke dashboard/beranda AMT) -- lihat index.php.
         flowWasReset: <?php echo json_encode($flowWasReset); ?>,

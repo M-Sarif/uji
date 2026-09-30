@@ -1,0 +1,142 @@
+/* ============================================================
+   OneFIS - AMT - tutorial-amt.css
+   Gaya tutorial terpandu peran AMT. Semua kelas berawalan "amtt-"
+   sehingga tidak bentrok dengan assets/css/tutorial.css (SPBU).
+   Urutan lapisan: kamera (1000) > tutorial (900-902) > isi halaman.
+   ============================================================ */
+
+/* Pelindung: atribut [hidden] selalu menang */
+.amtt-panel [hidden] { display: none !important; }
+
+/* Latar gelap penuh (hanya untuk kartu di tengah, mis. "Selamat datang") */
+.amtt-dim {
+    position: fixed; inset: 0; z-index: 900;
+    background: rgba(15, 23, 42, .55);
+    opacity: 0; pointer-events: none;
+    transition: opacity .2s ease;
+}
+.amtt-dim.is-on { opacity: 1; pointer-events: auto; }
+
+/* Sorotan: kotak terang di atas elemen, sekelilingnya digelapkan.
+   Tidak memblokir ketukan, jadi elemen yang disorot tetap bisa dipencet. */
+.amtt-ring {
+    position: fixed; z-index: 901;
+    border-radius: 14px;
+    border: 3px solid #2563eb;
+    box-shadow: 0 0 0 100vmax rgba(15, 23, 42, .55);
+    box-sizing: border-box;
+    opacity: 0; pointer-events: none;
+    transition: opacity .2s ease;
+}
+.amtt-ring.is-on { opacity: 1; }
+.amtt-ring::after {                       /* denyut agar mudah terlihat */
+    content: ''; position: absolute; inset: -6px;
+    border-radius: 18px; border: 3px solid #60a5fa;
+    animation: amttPulse 1.4s ease-in-out infinite;
+}
+.amtt-ring.is-ok { border-color: #16a34a; }
+.amtt-ring.is-ok::after { border-color: #4ade80; animation: none; opacity: .5; }
+@keyframes amttPulse {
+    0%, 100% { opacity: .9; transform: scale(1); }
+    50%      { opacity: .15; transform: scale(1.03); }
+}
+
+/* Kartu petunjuk: selalu di bawah (atau di tengah untuk sambutan) */
+.amtt-panel {
+    position: fixed; z-index: 902;
+    box-sizing: border-box;
+    width: calc(100% - 20px); max-width: 380px;
+    left: 10px; bottom: 10px;
+    max-height: 48vh; max-height: 48dvh; overflow-y: auto;
+    background: #fff; border-radius: 1rem;
+    padding: .9rem 1rem .6rem;
+    box-shadow: 0 18px 40px -10px rgba(15, 23, 42, .4), 0 0 0 1px rgba(37, 99, 235, .15);
+    opacity: 0; transform: translateY(14px); pointer-events: none;
+    transition: opacity .18s ease, transform .18s ease;
+    font-family: inherit;
+}
+.amtt-panel.is-on { opacity: 1; transform: none; pointer-events: auto; }
+
+.amtt-panel.is-center {
+    left: 50%; top: 50%; bottom: auto;
+    width: min(340px, calc(100% - 2.5rem));
+    transform: translate(-50%, -46%);
+    text-align: center;
+}
+.amtt-panel.is-center.is-on { transform: translate(-50%, -50%); }
+
+.amtt-eyebrow {
+    font-size: 12px; font-weight: 700; color: #2563eb; margin-bottom: .3rem;
+}
+.amtt-bar {
+    height: 5px; border-radius: 999px; background: #dbeafe;
+    overflow: hidden; margin-bottom: .55rem;
+}
+.amtt-bar > span {
+    display: block; height: 100%; border-radius: 999px;
+    background: #2563eb; transition: width .3s ease;
+}
+.amtt-title {
+    margin: 0 0 .3rem; font-size: 17px; font-weight: 800;
+    line-height: 1.3; color: #0f172a;
+}
+.amtt-text {
+    margin: 0 0 .55rem; font-size: 14.5px; line-height: 1.5; color: #334155;
+}
+.amtt-hint {
+    margin: 0 0 .5rem; padding: .5rem .65rem;
+    font-size: 14px; font-weight: 700; line-height: 1.35;
+    color: #1d4ed8; background: #eff6ff; border-radius: .65rem;
+}
+
+.amtt-actions {
+    display: flex; align-items: center; justify-content: space-between; gap: .5rem;
+}
+.amtt-btn {
+    flex: 1 1 auto; min-height: 44px; border: 0; border-radius: .7rem;
+    background: #2563eb; color: #fff; font-size: 15px; font-weight: 700;
+    cursor: pointer;
+}
+.amtt-btn:active { background: #1d4ed8; }
+.amtt-skip {
+    flex: 0 0 auto; min-height: 36px; padding: .2rem .3rem;
+    background: none; border: 0; cursor: pointer;
+    font-size: 12.5px; font-weight: 600; color: #64748b;
+    text-decoration: underline; text-underline-offset: 2px;
+}
+.amtt-panel.is-center .amtt-actions { flex-direction: column; }
+.amtt-panel.is-center .amtt-btn { width: 100%; }
+
+/* Umpan balik "✅ sudah benar" */
+.amtt-panel.is-ok { box-shadow: 0 18px 40px -10px rgba(22, 163, 74, .45), 0 0 0 2px #16a34a; }
+.amtt-panel.is-ok .amtt-title { color: #15803d; }
+.amtt-panel.is-ok .amtt-eyebrow { color: #16a34a; }
+.amtt-panel.is-ok .amtt-bar > span { background: #16a34a; }
+
+/* Tombol bantuan "?" (sembunyi selagi kartu tampil / saat mengetik) */
+.amtt-fab {
+    position: fixed; right: 1rem; bottom: 5.25rem; z-index: 850;
+    width: 2.75rem; height: 2.75rem; border-radius: 999px; border: 0;
+    background: #0f172a; color: #fff; font-size: 17px; font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 8px 20px -4px rgba(15, 23, 42, .45); cursor: pointer;
+}
+.amtt-fab:active { transform: scale(.94); }
+body.amtt-on .amtt-fab { display: none; }
+body:has(input:focus, textarea:focus, select:focus) .amtt-fab { display: none; }
+
+/* Pesan singkat */
+.amtt-toast {
+    position: fixed; left: 50%; bottom: 6rem; z-index: 903;
+    transform: translate(-50%, 8px); opacity: 0;
+    max-width: 85vw; padding: .65rem 1rem; border-radius: 999px;
+    background: #0f172a; color: #fff; font-size: 13px; text-align: center;
+    box-shadow: 0 8px 20px -6px rgba(15, 23, 42, .4);
+    transition: opacity .2s ease, transform .2s ease; pointer-events: none;
+}
+.amtt-toast.is-on { opacity: 1; transform: translate(-50%, 0); }
+
+@media (prefers-reduced-motion: reduce) {
+    .amtt-ring::after { animation: none; }
+    .amtt-panel, .amtt-ring, .amtt-dim { transition: none; }
+}

@@ -48,13 +48,28 @@ $roleIcons = [
 </div>
 
 <script>
-/* Memilih SPBU -> tutorial otomatis aktif dari Beranda SPBU: progres
-   tutorial (sudah ditonton / dilewati) dihapus dulu sebelum masuk. */
+/* Memilih peran -> tutorial peran itu otomatis aktif dari Beranda:
+   catatan tutorial (sudah selesai / dilewati) dihapus dulu sebelum masuk. */
 (function () {
-    var btn = document.querySelector('.role-card[value="spbu"]');
-    if (!btn) { return; }
-    btn.addEventListener('click', function () {
-        if (window.OneFISTour) { window.OneFISTour.reset(); }
-    });
+    var spbu = document.querySelector('.role-card[value="spbu"]');
+    if (spbu) {
+        spbu.addEventListener('click', function () {
+            if (window.OneFISTour) { window.OneFISTour.reset(); }
+        });
+    }
+
+    // AMT: hapus catatan tutorial AMT langsung dari penyimpanan browser
+    // (tidak bergantung pada mesin tutorial peran yang sedang aktif).
+    var amt = document.querySelector('.role-card[value="amt"]');
+    if (amt) {
+        amt.addEventListener('click', function () {
+            try {
+                localStorage.removeItem('onefis_amt_tour_v2_done');
+                Object.keys(sessionStorage).forEach(function (k) {
+                    if (k.indexOf('onefis_amt_tour_v2_skip:') === 0) { sessionStorage.removeItem(k); }
+                });
+            } catch (e) {}
+        });
+    }
 })();
 </script>

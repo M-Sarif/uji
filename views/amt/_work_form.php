@@ -14,7 +14,8 @@ $w         = work_data();
 $activity  = $w['activity'] ?? '';        // End Work: mengikuti pilihan saat Start Work
 ?>
 <link rel="stylesheet" href="<?= AMT_URL ?>/css/camera.css?v=<?= (int) @filemtime(AMT_ASSET_DIR . '/css/camera.css') ?>">
-<form method="post" action="?screen=<?= $screenKey ?>" id="wk-form" class="wk-wrap">
+<form method="post" action="?screen=<?= $screenKey ?>" id="wk-form" class="wk-wrap"
+      data-loc="0" data-act="<?= $needAct ? '0' : '1' ?>" data-photo="0">
   <input type="hidden" name="action" value="<?= $postAct ?>">
   <input type="hidden" name="photo" id="wk-photo" value="0">
   <input type="hidden" name="photo_data" id="wk-photo-data" value="">
@@ -98,9 +99,20 @@ $activity  = $w['activity'] ?? '';        // End Work: mengikuti pilihan saat St
   var box    = document.getElementById('wk-box');
   var submit = document.getElementById('wk-submit');
 
+  var form = document.getElementById('wk-form');
   var inRange = false;
+  // Tombol Kirim aktif bila lokasi, aktivitas, dan foto sudah lengkap.
+  // Status tiap bagian juga ditulis ke atribut data-* pada form; tutorial AMT
+  // (assets/amt/js/tutorial-amt.js) membaca atribut ini untuk tahu langkah mana
+  // yang sudah selesai.
   function refresh() {
-    submit.disabled = !(inRange && photo.value === '1' && (!needActivity || sel.value !== ''));
+    var actOk   = !needActivity || sel.value !== '';
+    var photoOk = photo.value === '1';
+    submit.disabled = !(inRange && photoOk && actOk);
+    form.setAttribute('data-loc',   inRange ? '1' : '0');
+    form.setAttribute('data-act',   actOk   ? '1' : '0');
+    form.setAttribute('data-photo', photoOk ? '1' : '0');
+    document.dispatchEvent(new CustomEvent('amt:state'));
   }
   if (needActivity) sel.addEventListener('change', refresh);
 
@@ -162,7 +174,6 @@ $activity  = $w['activity'] ?? '';        // End Work: mengikuti pilihan saat St
       : 'Lokasi belum sesuai titik kerja (' + d + ' m). Ketuk "Perbarui Lokasi".';
     var loc = document.getElementById('wk-loc');
     loc.setAttribute('data-inrange', inRange ? '1' : '0');
-    if (inRange) { loc.dispatchEvent(new CustomEvent('wk-inrange')); }   // dipakai tutorial AMT
     refresh();
   }
   function simulate(forceInside) {
