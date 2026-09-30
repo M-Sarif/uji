@@ -261,7 +261,7 @@ function amt_tour_steps_for(string $screen, bool $running, int $checkins = 0): a
  * 'subKey' memisahkan catatan "sudah selesai" untuk keadaan berbeda pada
  * layar yang sama (beranda sebelum / sesudah Start Work, dst).
  *
- * @return array{steps:array, subKey:?string, journey:?array, startDelay:int, screenOrder:array, screenLabels:array}
+ * @return array{steps:array, subKey:?string, journey:?array, startDelay:int, epoch:string, persist:bool, screenOrder:array, screenLabels:array}
  */
 function amt_tour_config(string $screen): array
 {
@@ -283,6 +283,10 @@ function amt_tour_config(string $screen): array
         'subKey'       => $subKey,
         'journey'      => AMT_TOUR_JOURNEYS[$pack['journey']] ?? null,
         'startDelay'   => (int) ($pack['startDelay'] ?? 0),
+        'epoch'        => amt_tour_epoch(),
+        // Layar form/aksi: JANGAN catat "selesai" permanen (Kirim bisa ditolak server
+        // lalu halaman dimuat ulang) -> tutorial tampil lagi otomatis setiap dibuka.
+        'persist'      => !in_array($screen, ['start_work', 'checkin', 'end_work', 'start_end'], true),
         'screenOrder'  => AMT_TOUR_SCREEN_ORDER,
         'screenLabels' => AMT_TOUR_SCREEN_LABELS,
     ];

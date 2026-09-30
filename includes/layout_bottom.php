@@ -81,11 +81,15 @@ $tourEngine = (current_role() === 'amt') ? 'assets/amt/js/tutorial-amt.js' : 'as
         : ($isRatingAmt2 ? 'rating_amt2' : null)))));
     $tourJourney = null;   // alur tutorial AMT: ['label' => ..., 'total' => ...]
     $tourDelay   = 0;      // jeda (ms) sebelum tutorial AMT pertama kali muncul
+    $tourEpoch   = null;   // penanda siklus AMT (lihat amt_tour_epoch())
+    $tourPersist = true;   // false = jangan simpan status "selesai" (layar form)
     if ($amtTour !== null) {
         $tourSteps   = $amtTour['steps'];
         $tourSubKey  = $amtTour['subKey'];
         $tourJourney = $amtTour['journey'] ?? null;
         $tourDelay   = (int) ($amtTour['startDelay'] ?? 0);
+        $tourEpoch   = $amtTour['epoch'] ?? null;
+        $tourPersist = (bool) ($amtTour['persist'] ?? true);
     }
     ?>
     var steps        = <?php echo json_encode($tourSteps); ?>;
@@ -106,6 +110,9 @@ $tourEngine = (current_role() === 'amt') ? 'assets/amt/js/tutorial-amt.js' : 'as
         journey:      <?php echo json_encode($tourJourney); ?>,
         // Jeda (ms) sebelum tutorial AMT muncul; 0 = jeda bawaan. Diabaikan mesin SPBU.
         startDelay:   <?php echo json_encode($tourDelay); ?>,
+        // Penanda siklus + apakah status "selesai" boleh disimpan (khusus mesin AMT).
+        epoch:        <?php echo json_encode($tourEpoch); ?>,
+        persistDone:  <?php echo json_encode($tourPersist); ?>,
         // true persis pada request yang baru saja mereset progres alur
         // (balik ke dashboard/beranda AMT) -- lihat index.php.
         flowWasReset: <?php echo json_encode($flowWasReset); ?>,

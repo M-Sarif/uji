@@ -104,6 +104,41 @@
     background: linear-gradient(to top, rgba(255, 255, 255, .95) 70%, rgba(255, 255, 255, 0));
 }
 
+/* ---------- Langkah 11: Pernyataan Tanggung Jawab ---------- */
+.pti-result {
+    display: flex; gap: 10px; align-items: flex-start; margin: 0 0 12px; padding: 12px 14px;
+    border-radius: 14px; border: 1px solid transparent; font-size: 12px; line-height: 1.4;
+}
+.pti-result svg { flex: none; margin-top: 1px; }
+.pti-result strong { display: block; font-size: 13px; font-weight: 800; }
+.pti-result--go   { background: var(--pti-green-bg); color: var(--pti-green); border-color: #bbf7d0; }
+.pti-result--nogo { background: var(--pti-red-bg);   color: var(--pti-red);   border-color: #fecaca; }
+
+.pti-failed { margin: 0 0 12px; padding: 10px 14px 10px 30px; border-radius: 12px; background: #fff7f7; border: 1px solid #fecaca; font-size: 12px; color: #7f1d1d; }
+.pti-failed li { margin: 2px 0; }
+.pti-failed span { color: #b45353; }
+
+.pti-statement {
+    margin: 0 0 14px; padding: 12px 14px; background: #fff;
+    border: 1px solid var(--pti-line); border-radius: 14px;
+    font-size: 13px; line-height: 1.5; color: #334155;
+}
+.pti-statement p { margin: 0 0 10px; }
+.pti-statement p:last-child { margin-bottom: 0; }
+
+.pti-note { display: block; }
+.pti-note textarea {
+    display: block; width: 100%; margin-top: 8px; padding: 12px 14px; box-sizing: border-box;
+    min-height: 120px; resize: vertical; font: inherit; font-size: 13px; color: var(--pti-ink);
+    background: #fff; border: 1px solid var(--pti-line); border-radius: 14px;
+}
+.pti-note textarea::placeholder { color: #94a3b8; }
+.pti-note textarea:focus { outline: 3px solid rgba(29, 78, 216, .25); border-color: var(--pti-blue); }
+
+.pti-btn--send { background: var(--pti-blue); color: #fff; }
+.pti-btn--send:hover { background: #1e40af; }
+.pti-btn--send.is-locked { background: #94a3b8; opacity: 1; }
+
 /* ---------- Modal tutorial (DCU, PTI) ---------- */
 .amt-modal {
     position: fixed; inset: 0; z-index: 60;

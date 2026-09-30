@@ -18,7 +18,11 @@ $complete = amt_pti_step_complete($step);
 $showError = isset($_SESSION['amt_pti_error']) && (int) $_SESSION['amt_pti_error'] === $step;
 unset($_SESSION['amt_pti_error']);
 
-$hasImage = is_file(__DIR__ . '/../../' . $data['image']);
+$isStatement = $step === AMT_PTI_STATEMENT_STEP;
+$hasImage = !empty($data['image']) && is_file(__DIR__ . '/../../' . $data['image']);
+$result   = amt_pti_result();
+$failed   = amt_pti_failed_items();
+$note     = amt_pti_note();
 $counter  = str_pad((string) $step, 2, '0', STR_PAD_LEFT) . '/' . AMT_PTI_TOTAL;
 ?>
 
@@ -42,6 +46,43 @@ $counter  = str_pad((string) $step, 2, '0', STR_PAD_LEFT) . '/' . AMT_PTI_TOTAL;
 
         <h2 class="pti-title"><?= $step ?>. <?= amt_e($data['title']) ?></h2>
 
+<?php if ($isStatement): ?>
+        <div class="pti-result pti-result--<?= $result === 'GO' ? 'go' : 'nogo' ?>" role="status">
+            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+                <?php if ($result === 'GO'): ?>
+                    <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 12.5l2.7 2.7L16 9.8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <?php else: ?>
+                    <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M9 9l6 6M15 9l-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                <?php endif; ?>
+            </svg>
+            <div>
+                <strong>Hasil Inspeksi adalah <?= amt_e($result) ?></strong>
+                <span><?= $result === 'GO'
+                    ? 'Mobil tangki dalam keadaan layak beroperasi.'
+                    : 'Mobil tangki belum layak beroperasi. Laporkan ke pengawas sebelum berangkat.' ?></span>
+            </div>
+        </div>
+
+        <?php if ($failed): ?>
+            <ul class="pti-failed" aria-label="Item yang tidak layak">
+                <?php foreach ($failed as $f): ?>
+                    <li><b><?= amt_e($f['label']) ?></b> <span>(<?= amt_e($f['title']) ?>)</span></li>
+                <?php endforeach; ?>
+            </ul>
+        <?php endif; ?>
+
+        <div class="pti-statement">
+            <?php foreach (amt_pti_statement_lines() as $line): ?>
+                <p><?= amt_e($line) ?></p>
+            <?php endforeach; ?>
+        </div>
+
+        <label class="pti-note">
+            <span class="pti-item__label">Catatan<span class="pti-req" aria-hidden="true">*</span></span>
+            <textarea name="catatan" id="ptiNote" rows="5" maxlength="<?= AMT_PTI_NOTE_MAX ?>"
+                      placeholder="Masukkan catatan terkait pemeriksaan (Misalnya: MT dalam kondisi baik.)"><?= amt_e($note) ?></textarea>
+        </label>
+<?php else: ?>
         <div class="pti-photo">
             <?php if ($hasImage): ?>
                 <img src="<?= amt_e($data['image']) ?>" alt="Foto acuan <?= amt_e($data['title']) ?>">
@@ -69,9 +110,12 @@ $counter  = str_pad((string) $step, 2, '0', STR_PAD_LEFT) . '/' . AMT_PTI_TOTAL;
                 </div>
             </fieldset>
         <?php endforeach; ?>
+<?php endif; ?>
 
         <p class="pti-error" id="ptiError" <?= $showError ? '' : 'hidden' ?> role="alert">
-            Pilih Layak atau Tidak layak untuk semua item bertanda * sebelum lanjut.
+            <?= $isStatement
+                ? 'Isi Catatan terlebih dahulu sebelum mengirim inspeksi.'
+                : 'Pilih Layak atau Tidak layak untuk semua item bertanda * sebelum lanjut.' ?>
         </p>
     </div>
 
@@ -81,12 +125,21 @@ $counter  = str_pad((string) $step, 2, '0', STR_PAD_LEFT) . '/' . AMT_PTI_TOTAL;
             <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M15 5l-7 7 7 7M8 12h12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             Sebelumnya
         </button>
+        <?php if ($isLast): ?>
+        <button type="submit" name="nav" value="next"
+                class="pti-btn pti-btn--send pti-next<?= $complete ? '' : ' is-locked' ?>"
+                aria-disabled="<?= $complete ? 'false' : 'true' ?>">
+            Kirim
+            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M4 12l16-8-6 16-3-7-7-1z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+        </button>
+        <?php else: ?>
         <button type="submit" name="nav" value="next"
                 class="pti-btn pti-btn--outline pti-next<?= $complete ? '' : ' is-locked' ?>"
                 aria-disabled="<?= $complete ? 'false' : 'true' ?>">
-            <?= $isLast ? 'Kirim Inspeksi' : 'Selanjutnya' ?>
+            Selanjutnya
             <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M9 5l7 7-7 7M4 12h12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
+        <?php endif; ?>
     </div>
 </form>
 
@@ -98,7 +151,10 @@ $counter  = str_pad((string) $step, 2, '0', STR_PAD_LEFT) . '/' . AMT_PTI_TOTAL;
     var nexts = form.querySelectorAll('button[value="next"]');
     var err = document.getElementById('ptiError');
 
+    var note = document.getElementById('ptiNote');
+
     function allAnswered() {
+        if (note) return note.value.trim().length >= <?= (int) AMT_PTI_NOTE_MIN ?>;
         var seen = {};
         var checked = form.querySelectorAll('input[type="radio"]:checked');
         for (var i = 0; i < checked.length; i++) seen[checked[i].name] = true;
@@ -115,6 +171,7 @@ $counter  = str_pad((string) $step, 2, '0', STR_PAD_LEFT) . '/' . AMT_PTI_TOTAL;
     }
 
     form.addEventListener('change', sync);
+    form.addEventListener('input', sync);
     form.addEventListener('click', function (e) {
         var btn = e.target.closest ? e.target.closest('button[value="next"]') : null;
         if (btn && !allAnswered()) {

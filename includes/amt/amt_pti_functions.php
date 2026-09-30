@@ -175,7 +175,7 @@ function amt_tutorial_spot($id, array $t)
 function amt_pti_state()
 {
     if (!isset($_SESSION['amt_pti'])) {
-        $_SESSION['amt_pti'] = ['status' => 'belum', 'answers' => [], 'done_at' => null];
+        $_SESSION['amt_pti'] = ['status' => 'belum', 'answers' => [], 'note' => '', 'result' => null, 'done_at' => null];
     }
     return $_SESSION['amt_pti'];
 }
@@ -192,11 +192,62 @@ function amt_pti_answer($step, $key)
     return isset($state['answers'][$step][$key]) ? $state['answers'][$step][$key] : null;
 }
 
+/** Catatan pemeriksaan (langkah 11), sudah dipangkas. */
+function amt_pti_note()
+{
+    $state = amt_pti_state();
+    return isset($state['note']) ? (string) $state['note'] : '';
+}
+
+/** Bersihkan catatan dari form: buang spasi berlebih, batasi panjang. */
+function amt_pti_clean_note($raw)
+{
+    $note = trim((string) $raw);
+    $note = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F]/', '', $note);
+    if (function_exists('mb_substr')) {
+        return mb_substr($note, 0, AMT_PTI_NOTE_MAX);
+    }
+    return substr($note, 0, AMT_PTI_NOTE_MAX);
+}
+
+function amt_pti_note_ok()
+{
+    $len = function_exists('mb_strlen') ? mb_strlen(amt_pti_note()) : strlen(amt_pti_note());
+    return $len >= AMT_PTI_NOTE_MIN;
+}
+
+/**
+ * Item yang dijawab "Tidak layak" pada langkah 1-10.
+ * @return array<int, array{step:int, title:string, label:string}>
+ */
+function amt_pti_failed_items()
+{
+    $failed = [];
+    foreach (amt_pti_steps() as $no => $data) {
+        foreach ($data['items'] as $item) {
+            if (amt_pti_answer($no, $item['key']) === AMT_PTI_FAIL) {
+                $failed[] = ['step' => $no, 'title' => $data['title'], 'label' => $item['label']];
+            }
+        }
+    }
+    return $failed;
+}
+
+/** Hasil inspeksi: 'GO' bila semua item layak, 'NO GO' bila ada yang tidak layak. */
+function amt_pti_result()
+{
+    return amt_pti_failed_items() ? 'NO GO' : 'GO';
+}
+
 function amt_pti_step_complete($step)
 {
     $steps = amt_pti_steps();
     if (!isset($steps[$step])) {
         return false;
+    }
+    // Langkah terakhir: hanya butuh Catatan (semua checklist sebelumnya sudah dicek di first_incomplete)
+    if ($step === AMT_PTI_STATEMENT_STEP) {
+        return amt_pti_note_ok();
     }
     foreach ($steps[$step]['items'] as $item) {
         if (!in_array(amt_pti_answer($step, $item['key']), ['layak', 'tidak'], true)) {
@@ -308,6 +359,10 @@ function amt_pti_bootstrap($screen)
         }
     }
 
+    if ($step === AMT_PTI_STATEMENT_STEP) {
+        $_SESSION['amt_pti']['note'] = amt_pti_clean_note(isset($_POST['catatan']) ? $_POST['catatan'] : '');
+    }
+
     $nav = isset($_POST['nav']) ? $_POST['nav'] : 'next';
 
     if ($nav === 'prev') {
@@ -333,6 +388,7 @@ function amt_pti_bootstrap($screen)
 
     $_SESSION['amt_pti']['status'] = 'sudah';
     $_SESSION['amt_pti']['done_at'] = date('c');
-    $_SESSION['amt_pti_flash'] = 'Inspeksi berhasil dikirim.';
+    $_SESSION['amt_pti']['result'] = amt_pti_result();
+    $_SESSION['amt_pti_flash'] = 'Inspeksi berhasil dikirim. Hasil: ' . $_SESSION['amt_pti']['result'] . '.';
     amt_pti_redirect('amt_pti');
 }

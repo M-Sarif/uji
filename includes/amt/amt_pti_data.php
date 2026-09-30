@@ -2,22 +2,44 @@
 /**
  * Data Pre-Trip Inspection (PTI) - role AMT
  *
- * Langkah 1 dan 2 mengikuti screenshot.
- * Langkah 3-11 adalah CONTOH pengisi: ganti judul, foto, dan item
- * sesuai form PTI asli (user guide AMT).
+ * 11 langkah, mengikuti form inspeksi asli:
+ *   1-10  = checklist per sisi kendaraan (foto acuan + item Layak / Tidak layak)
+ *   11    = Pernyataan Tanggung Jawab (hasil GO / NO GO + Catatan wajib)
  *
- * Foto per langkah: assets/amt/pti/step-01.jpg ... step-11.jpg
+ * Foto acuan: assets/amt/Asset/pti/pti1.png ... pti10.png
+ * Catatan: pti6.png = APAR & Spill Kit, pti7.png = sisi kiri belakang trailer,
+ * sedangkan urutan form-nya kebalikan (langkah 6 = trailer, langkah 7 = APAR),
+ * jadi pemetaan foto di bawah menukar keduanya. File tidak perlu diganti nama.
  * Kalau file foto belum ada, halaman menampilkan kotak placeholder.
  */
 
 const AMT_PTI_TOTAL = 11;
 
+/** Langkah terakhir (Pernyataan Tanggung Jawab): tanpa foto & tanpa item radio. */
+const AMT_PTI_STATEMENT_STEP = 11;
+
+/** Isi minimal Catatan pada langkah terakhir (jumlah karakter). */
+const AMT_PTI_NOTE_MIN = 3;
+const AMT_PTI_NOTE_MAX = 500;
+
+/** Nilai jawaban yang dianggap "Tidak layak" -> hasil inspeksi NO GO. */
+const AMT_PTI_FAIL = 'tidak';
+
 function amt_pti_steps()
 {
+    $img = 'assets/amt/Asset/pti/';
+    $tire = [
+        ['key' => 'ban',       'label' => 'Ban',       'hint' => 'Tidak bocor dan tidak gundul.'],
+        ['key' => 'baut_roda', 'label' => 'Baut Roda', 'hint' => 'Keadaan lengkap terpasang dan tidak ada yang kendur.'],
+    ];
+    $pneumatic = [
+        ['key' => 'pneumatic', 'label' => 'Pneumatic System', 'hint' => 'Tidak terdapat suara desisan tanda kebocoran.'],
+    ];
+
     return [
         1 => [
             'title' => 'SISI KANAN DEPAN (A)',
-            'image' => 'assets/amt/Asset/pti/pti1.png',
+            'image' => $img . 'pti1.png',
             'items' => [
                 ['key' => 'spion_kanan',   'label' => 'Kaca Spion Kanan', 'hint' => 'Kaca tidak buram / retak / pecah.'],
                 ['key' => 'pintu_kanan',   'label' => 'Pintu',            'hint' => 'Dapat dikunci dan tertutup rapat.'],
@@ -26,7 +48,7 @@ function amt_pti_steps()
         ],
         2 => [
             'title' => 'SISI DEPAN (B)',
-            'image' => 'assets/amt/Asset/pti/pti2.png',
+            'image' => $img . 'pti2.png',
             'items' => [
                 ['key' => 'luar_kabin', 'label' => 'Sisi Luar Kabin', 'hint' => 'Keadaan Lengkap.'],
                 ['key' => 'kaca_depan', 'label' => 'Kaca Depan',      'hint' => 'Kaca tidak buram / retak / pecah.'],
@@ -35,80 +57,73 @@ function amt_pti_steps()
         ],
         3 => [
             'title' => 'SISI KIRI DEPAN (C)',
-            'image' => 'assets/amt/Asset/pti/pti3.png',
+            'image' => $img . 'pti3.png',
             'items' => [
-                ['key' => 'spion_kiri', 'label' => 'Kaca Spion Kiri', 'hint' => 'Kaca tidak buram / retak / pecah.'],
-                ['key' => 'pintu_kiri', 'label' => 'Pintu',           'hint' => 'Dapat dikunci dan tertutup rapat.'],
-                ['key' => 'ban_depan',  'label' => 'Ban Depan',       'hint' => 'Tidak aus dan tekanan angin cukup.'],
+                ['key' => 'spion_kiri',    'label' => 'Kaca Spion Kiri',    'hint' => 'Kaca tidak buram / retak / pecah.'],
+                ['key' => 'pintu_kiri',    'label' => 'Pintu Kendaraan Kiri', 'hint' => 'Dapat dikunci dan tertutup rapat.'],
+                ['key' => 'lampu_rotator', 'label' => 'Lampu Rotator',      'hint' => 'Ada dan Menyala.'],
             ],
         ],
         4 => [
-            'title' => 'SISI KIRI TENGAH (D)',
-            'image' => 'assets/amt/Asset/pti/pti4.png',
-            'items' => [
-                ['key' => 'tangki_kiri', 'label' => 'Badan Tangki', 'hint' => 'Tidak bocor dan tidak penyok.'],
-                ['key' => 'ban_tengah',  'label' => 'Ban Tengah',   'hint' => 'Tidak aus dan tekanan angin cukup.'],
-            ],
+            'title' => 'SISI KIRI BELAKANG HEAD TRUCK (D)',
+            'image' => $img . 'pti4.png',
+            'items' => array_merge($tire, [
+                ['key' => 'komponen_lain', 'label' => 'Komponen Lain', 'hint' => 'Keadaan Lengkap.'],
+            ]),
         ],
         5 => [
-            'title' => 'SISI KIRI BELAKANG (E)',
-            'image' => 'assets/amt/Asset/pti/pti5.png',
-            'items' => [
-                ['key' => 'ban_belakang_kiri', 'label' => 'Ban Belakang', 'hint' => 'Tidak aus dan tekanan angin cukup.'],
-                ['key' => 'lampu_kiri',        'label' => 'Lampu Samping', 'hint' => 'Ada dan Menyala.'],
-            ],
+            'title' => 'AREA BOTTOM LOADER (E)',
+            'image' => $img . 'pti5.png',
+            'items' => $pneumatic,
         ],
         6 => [
-            'title' => 'SISI BELAKANG (F)',
-            'image' => 'assets/amt/Asset/pti/pti6.png',
-            'items' => [
-                ['key' => 'lampu_belakang', 'label' => 'Lampu Belakang', 'hint' => 'Lampu utama, rem, dan sein menyala.'],
-                ['key' => 'valve',          'label' => 'Valve Bawah',    'hint' => 'Tertutup rapat dan tidak menetes.'],
-                ['key' => 'plat_belakang',  'label' => 'Plat Nomor',     'hint' => 'Terpasang dan terbaca jelas.'],
-            ],
+            'title' => 'SISI KIRI BELAKANG TRAILER (F)',
+            'image' => $img . 'pti7.png',          // pti7.png = trailer kiri belakang
+            'items' => $pneumatic,
         ],
         7 => [
-            'title' => 'SISI KANAN BELAKANG (G)',
-            'image' => 'assets/amt/Asset/pti/pti7.png',
+            'title' => 'SISI BELAKANG (G)',
+            'image' => $img . 'pti6.png',          // pti6.png = APAR & Spill Kit
             'items' => [
-                ['key' => 'ban_belakang_kanan', 'label' => 'Ban Belakang', 'hint' => 'Tidak aus dan tekanan angin cukup.'],
-                ['key' => 'lampu_kanan',        'label' => 'Lampu Samping', 'hint' => 'Ada dan Menyala.'],
+                ['key' => 'komponen_lain', 'label' => 'Komponen Lain', 'hint' => 'APAR dan Kotak Spill Kit.'],
             ],
         ],
         8 => [
-            'title' => 'SISI KANAN TENGAH (H)',
-            'image' => 'assets/amt/Asset/pti/pti8.png',
-            'items' => [
-                ['key' => 'tangki_kanan', 'label' => 'Badan Tangki', 'hint' => 'Tidak bocor dan tidak penyok.'],
-                ['key' => 'ban_kanan',    'label' => 'Ban Tengah',   'hint' => 'Tidak aus dan tekanan angin cukup.'],
-            ],
+            'title' => 'SISI KANAN BELAKANG TRAILER (H)',
+            'image' => $img . 'pti8.png',
+            'items' => $pneumatic,
         ],
         9 => [
-            'title' => 'ATAS TANGKI (I)',
-            'image' => 'assets/amt/Asset/pti/pti9.png',
-            'items' => [
-                ['key' => 'manhole',  'label' => 'Tutup Manhole', 'hint' => 'Tertutup rapat dan seal baik.'],
-                ['key' => 'railing',  'label' => 'Pegangan Atas', 'hint' => 'Kokoh dan tidak longgar.'],
-            ],
+            'title' => 'SISI KANAN BELAKANG HEAD TRUCK (I)',
+            'image' => $img . 'pti9.png',
+            'items' => array_merge($tire, [
+                ['key' => 'komponen_lain', 'label' => 'Komponen Lain', 'hint' => 'Keadaan lengkap.'],
+            ]),
         ],
         10 => [
-            'title' => 'KABIN DALAM (J)',
-            'image' => 'assets/amt/Asset/pti/pti10.png',
+            'title' => 'DASHBOARD (J)',
+            'image' => $img . 'pti10.png',
             'items' => [
-                ['key' => 'klakson', 'label' => 'Klakson',  'hint' => 'Berbunyi normal.'],
-                ['key' => 'rem',     'label' => 'Rem',      'hint' => 'Berfungsi baik.'],
-                ['key' => 'sabuk',   'label' => 'Sabuk Pengaman', 'hint' => 'Ada dan berfungsi.'],
+                ['key' => 'tekanan_angin', 'label' => 'Tekanan Angin',            'hint' => 'Min 8 bar dalam kondisi mesin hidup.'],
+                ['key' => 'alarm_lampu',   'label' => 'Alarm atau Lampu Peringatan', 'hint' => 'Ada dan tidak menyala.'],
             ],
         ],
+        // Langkah 11 = Pernyataan Tanggung Jawab (dirender khusus di views/amt/pti_form.php)
         11 => [
-            'title' => 'PERLENGKAPAN KESELAMATAN (K)',
-            'image' => 'assets/amt/Asset/pti/pti10.png',
-            'items' => [
-                ['key' => 'apar',      'label' => 'APAR',            'hint' => 'Ada, tidak kedaluwarsa, tekanan normal.'],
-                ['key' => 'segitiga',  'label' => 'Segitiga Pengaman', 'hint' => 'Ada dan lengkap.'],
-                ['key' => 'ganjal',    'label' => 'Ganjal Roda',     'hint' => 'Ada minimal 2 buah.'],
-            ],
+            'title' => 'Pernyataan Tanggung Jawab',
+            'image' => null,
+            'items' => [],
         ],
+    ];
+}
+
+/** Teks pernyataan pada langkah 11 (satu paragraf per baris). */
+function amt_pti_statement_lines()
+{
+    return [
+        'Saya menyatakan bahwa hasil pemeriksaan pada checklist ini benar adanya.',
+        'Jika ditemukan kerusakan atau kendala, AMT wajib segera melapor ke pengawas.',
+        'Pengoperasian mobil tangki dilarang sebelum dilakukan pemeriksaan dan perbaikan yang diperlukan.',
     ];
 }
 

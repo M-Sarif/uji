@@ -34,6 +34,7 @@
 
     var LS_DONE  = 'onefis_amt_tour_v2_done';    // daftar tutorial yang sudah selesai
     var SS_SKIP  = 'onefis_amt_tour_v2_skip:';   // + kunci -> dilewati (sesi ini)
+    var LS_EPOCH = 'onefis_amt_tour_v2_epoch';   // penanda siklus dari server
     var OLD_KEYS = ['onefis_amt_tour_seen_screens', 'onefis_amt_tour_skipped'];
 
     /* ---------- penyimpanan (semua dibungkus try/catch) ---------- */
@@ -72,6 +73,18 @@
         } catch (e) {}
     }
 
+    // Siklus baru dari server (kembali ke index / Start Work / End Work):
+    // hapus semua catatan "selesai / dilewati" supaya tutorial muncul lagi dari awal.
+    function syncEpoch(epoch) {
+        if (!epoch) { return; }
+        try {
+            if (localStorage.getItem(LS_EPOCH) !== epoch) {
+                resetAll();
+                localStorage.setItem(LS_EPOCH, epoch);
+            }
+        } catch (e) {}
+    }
+
     /* ---------- bantuan DOM ---------- */
     function qs(sel) {
         try { return sel ? document.querySelector(sel) : null; } catch (e) { return null; }
@@ -101,6 +114,7 @@
         this.steps   = config.steps || [];
         this.journey = config.journey || null;
         this.startDelay = config.startDelay || 0;   // ms; 0 = FIRST_DELAY_MS
+        this.persist = config.persistDone !== false; // false = layar form: jangan catat "selesai"
         this.labels  = config.screenLabels || {};
 
         this.acked   = {};      // langkah aksi (done = null) yang sudah dilakukan
@@ -221,6 +235,12 @@
         return this.steps.length;
     };
 
+    // Alur selesai. Layar form (persist = false) tidak mencatat apa pun, karena
+    // Kirim bisa ditolak server lalu halaman dimuat ulang: tutorial harus muncul lagi.
+    Tour.prototype.finish = function () {
+        if (this.persist) { markDone(this.key); }
+    };
+
     // Pengguna melakukan langkah aksi ke-i (ketuk target / tekan tombol kartu).
     Tour.prototype.ack = function (i) {
         for (var j = 0; j <= i; j++) {
@@ -228,7 +248,7 @@
         }
         // Langkah terakhir dilakukan -> alur ini selesai. Dicatat SEKARANG
         // (sebelum halaman berpindah) supaya tidak muncul lagi.
-        if (i >= this.steps.length - 1) { markDone(this.key); }
+        if (i >= this.steps.length - 1) { this.finish(); }
         var self = this;
         this._later(function () { self.tick(); }, 30);
     };
@@ -259,7 +279,7 @@
         this.okUntil = 0;
 
         if (idx >= this.steps.length) {
-            markDone(this.key);
+            this.finish();
             this.destroy();
             return;
         }
@@ -496,6 +516,7 @@
     window.OneFISTour = {
         init: function (config) {
             var forceRestart = new URLSearchParams(window.location.search).get('tour') === 'restart';
+            syncEpoch(config.epoch);
             if (forceRestart) { resetAll(); }
 
             activeTour = new Tour(config);

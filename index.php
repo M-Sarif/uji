@@ -40,6 +40,12 @@ if ($isPost) {
     }
 }
 
+/* Kembali ke halaman index (pilih peran) => AMT dimulai dari awal:
+ * timer Waktu Kerja, Check-In, PTI, dan tutorial semuanya di-restart. */
+if ($screen === 'role_select' && !$isPost) {
+    amt_reset_all();
+}
+
 /* PTI: catat ack tutorial, jaga akses layar PTI, simpan jawaban inspeksi.
  * Harus sebelum ada output apa pun. */
 if ($role === 'amt') {
