@@ -1,155 +1,166 @@
 <?php
-/* Fitur jam kerja AMT (Start Work / End Work).
- * State di $_SESSION['work'] = [
- *   'started_at' => timestamp, 'ended_at' => timestamp|null,
- *   'activity'   => 'Hadir' dst, 'start_photo' => bool, 'end_photo' => bool ] */
+/* ============================================================
+ * OneFIS - AMT - titik masuk semua kode peran AMT.
+ *
+ * Seluruh kode peran AMT berada di folder "amt":
+ *   includes/amt/  amt.php (file ini), work.php, work_ui.php, header.php, tutorial.php
+ *   views/amt/     amt_home, start_end, start_work, end_work, checkin, _work_form
+ *   assets/amt/    css/ (amt, work, camera, checkin), js/ (camera), Asset/ (gambar)
+ *
+ * index.php hanya memanggil fungsi-fungsi di bawah ini.
+ * Dimuat SETELAH includes/data.php dan includes/functions.php.
+ * ============================================================ */
 
-// Cadangan opsional (ikon AMT sebagai data URI). Tidak wajib ada.
-if (is_file(__DIR__ . '/avatar_amt.php')) {
-    require_once __DIR__ . '/avatar_amt.php';
-}
+require_once __DIR__ . '/work.php';
+require_once __DIR__ . '/tutorial.php'; // tutorial terpandu (guided tour) peran AMT
 
-// Lokasi folder AMT
-//   includes/amt/  logika PHP     views/amt/  tampilan PHP
-//   assets/amt/    css, js, gambar
-if (!defined('AMT_APP_ROOT')) {
-    define('AMT_APP_ROOT', dirname(__DIR__, 2));            // <root> aplikasi
-    define('AMT_INC_DIR', AMT_APP_ROOT . '/includes/amt');
-    define('AMT_VIEW_DIR', AMT_APP_ROOT . '/views/amt');
-    define('AMT_ASSET_DIR', AMT_APP_ROOT . '/assets/amt');
-    define('AMT_URL', 'assets/amt');                        // dipakai di href/src
-}
+// Layar milik AMT yang tidak terdaftar di HEADER_TITLES (data.php)
+const AMT_EXTRA_SCREENS = ['start_end', 'start_work', 'end_work', 'checkin'];
 
-if (date_default_timezone_get() === 'UTC') {
-    date_default_timezone_set('Asia/Jakarta'); // WIB
-}
+// Aksi form (POST) milik AMT
+const AMT_POST_ACTIONS = ['submit_start_work', 'submit_end_work', 'submit_checkin'];
 
-// Lokasi tetap untuk verifikasi
-const WORK_LAT = -2.723788;
-const WORK_LNG = 114.261609;
-const WORK_PLACE_NAME = 'Pertamina Fuel Terminal Pulang Pisau'; // nama tempat di Google Maps (pin bawaan)
-const WORK_RADIUS_M = 500;          // batas jarak absen dari titik kerja (meter)
-// Simulasi lokasi: peluang posisi awal user "melenceng" di luar radius (0 = selalu
-// di dalam, 1 = selalu di luar). "Perbarui Lokasi" selalu memindahkan ke dalam radius.
-const WORK_SIM_OUTSIDE_CHANCE = 0.5;
-
-// Pilihan aktivitas saat Start Work
-const WORK_ACTIVITIES = ['Hadir', 'Sakit', 'Izin', 'Cuti', 'Alpa', 'Dinas Luar'];
-
-// Menu yang hanya aktif saat timer berjalan (setelah Start Work).
-// Saat ini hanya Check-In. PTI & Check-Out SENGAJA belum aktif (lihat
-// WORK_LOCKED_MENUS) sampai layarnya dibuat.
-const WORK_GATED_SCREENS = ['checkin'];
-
-// Menu yang masih terkunci walau timer sudah berjalan.
-// Hapus 'pti' / 'checkout' dari daftar ini saat layarnya sudah siap.
-const WORK_LOCKED_MENUS = ['pti', 'checkout'];
-
-// Pilihan aktivitas pada form Check-In (default sama dengan Start Work)
-const CHECKIN_ACTIVITIES = ['Tugas Rutin', 'Tugas Lembur'];
-
-// Judul header untuk layar tambahan (tidak ada di data.php)
-const WORK_SCREENS = [
-    'start_end'  => 'Start / End Work',
-    'start_work' => 'Start Work',
-    'end_work'   => 'End Work',
-    'checkin'    => 'Check-In',
-];
-
-/* Jarak (meter) antara dua koordinat - rumus haversine */
-function work_distance_m(float $lat1, float $lng1, float $lat2, float $lng2): float {
-    $r = 6371000;
-    $a = sin(deg2rad($lat2 - $lat1) / 2) ** 2
-       + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin(deg2rad($lng2 - $lng1) / 2) ** 2;
-    return 2 * $r * asin(min(1, sqrt($a)));
-}
-
-/* Apakah lokasi dari form (POST lat/lng) berada dalam radius titik kerja? */
-function work_post_in_range(): bool {
-    if (!isset($_POST['lat'], $_POST['lng']) || !is_numeric($_POST['lat']) || !is_numeric($_POST['lng'])) {
-        return false;
-    }
-    return work_distance_m((float) $_POST['lat'], (float) $_POST['lng'], WORK_LAT, WORK_LNG) <= WORK_RADIUS_M;
-}
-
-function work_data(): array {
-    return $_SESSION['work'] ?? [];
-}
-
-function work_is_running(): bool {
-    $w = work_data();
-    return !empty($w['started_at']) && empty($w['ended_at']);
-}
-
-/* Timestamp mulai, hanya saat timer berjalan (0 = timer berhenti) */
-function work_started_at(): int {
-    return work_is_running() ? (int) $_SESSION['work']['started_at'] : 0;
-}
-
-/* Riwayat Check-In (hari/ritase ini). Tiap item:
- * ['at' => timestamp, 'activity' => 'Hadir', 'photo' => dataURL|''] */
-function work_checkins(): array {
-    $c = $_SESSION['work']['checkins'] ?? [];
-    return is_array($c) ? array_values($c) : [];
-}
-
-function work_fmt(?int $ts): string {
-    return $ts ? date('d/m/Y H:i:s', $ts) : '-';
-}
-
-/* reset_flow_state() bawaan tidak boleh menghapus status kerja,
- * jadi disimpan dulu lalu dikembalikan. */
-function reset_flow_keep_work(): void {
-    $work = $_SESSION['work'] ?? null;
-    reset_flow_state();
-    if ($work !== null) {
-        $_SESSION['work'] = $work;
-    }
-}
-
-/* Ikon/avatar AMT (SVG inline, tanpa kamera) */
-function work_avatar_svg(int $size = 120): string {
-    return '<svg width="' . $size . '" height="' . round($size * 1.08) . '" viewBox="0 0 120 130" xmlns="http://www.w3.org/2000/svg" aria-label="AMT">'
-        . '<ellipse cx="60" cy="124" rx="34" ry="5" fill="#000" opacity=".08"/>'
-        . '<path d="M22 122c0-26 15-42 38-42s38 16 38 42z" fill="#2f5fa8"/>'
-        . '<path d="M44 84l16 18 16-18" fill="#e9eef7"/>'
-        . '<rect x="53" y="70" width="14" height="14" rx="6" fill="#f2b98f"/>'
-        . '<circle cx="60" cy="52" r="24" fill="#f6c7a0"/>'
-        . '<path d="M34 50c0-20 11-32 26-32s26 12 26 32z" fill="#fff" stroke="#d8dee9" stroke-width="2"/>'
-        . '<rect x="30" y="47" width="60" height="7" rx="3.5" fill="#e8edf5"/>'
-        . '<rect x="56" y="17" width="8" height="30" rx="4" fill="#dc2626"/>'
-        . '<circle cx="51" cy="58" r="2.6" fill="#2b2b2b"/><circle cx="69" cy="58" r="2.6" fill="#2b2b2b"/>'
-        . '<path d="M52 68q8 7 16 0" stroke="#a5583a" stroke-width="2.4" fill="none" stroke-linecap="round"/>'
-        . '<rect x="86" y="70" width="16" height="28" rx="3" fill="#1f2937"/>'
-        . '<rect x="88" y="73" width="12" height="20" rx="1.5" fill="#86efac"/>'
-        . '<circle cx="93" cy="82" r="3" fill="#166534"/>'
-        . '<path d="M78 100c2-8 6-12 10-12" stroke="#2f5fa8" stroke-width="9" fill="none" stroke-linecap="round"/>'
-        . '</svg>';
-}
-
-/* Ikon AMT: dipakai dari folder assets/ (nama file di bawah). Kalau file itu
- * tidak ada, dipakai ikon tertanam (avatar_amt.php) bila tersedia, atau SVG
- * cadangan. Tidak akan menyebabkan error walau file-nya tidak ada. */
-const WORK_AVATAR_FILE = 'Halaman Check-In_Form Check-In.png';
-
-function work_avatar_url(): ?string {
-    if (WORK_AVATAR_FILE !== '' && is_file(AMT_APP_ROOT . '/assets/' . WORK_AVATAR_FILE)) {
-        return 'assets/' . rawurlencode(WORK_AVATAR_FILE);
-    }
-    return defined('WORK_AVATAR_DATA') ? WORK_AVATAR_DATA : null;
-}
-
-function work_avatar_html(int $size = 120): string {
-    $url = work_avatar_url();
-    if ($url === null) {
-        return work_avatar_svg($size);
-    }
-    return '<img src="' . htmlspecialchars($url, ENT_QUOTES) . '" alt="AMT" style="width:' . $size . 'px;height:auto;max-height:' . round($size * 1.2) . 'px;object-fit:contain;display:block;margin:0 auto">';
-}
-
-/* CSS halaman Start/End Work (assets/amt/css/work.css) */
-function work_styles(): void
+/** Beranda AMT (mis. 'amt_home') */
+function amt_home_screen(): string
 {
-    $v = (int) @filemtime(AMT_ASSET_DIR . '/css/work.css');
-    echo '<link rel="stylesheet" href="' . AMT_URL . '/css/work.css?v=' . $v . '">' . "\n";
+    return ROLES['amt']['home'] ?? 'dashboard';
+}
+
+/** Apakah $screen dirender dari folder AMT? */
+function amt_owns_screen(string $screen): bool
+{
+    return in_array($screen, AMT_SCREENS, true) || in_array($screen, AMT_EXTRA_SCREENS, true);
+}
+
+/** Path file view untuk sebuah layar (folder AMT atau views/ bawaan) */
+function amt_view_file(string $screen): string
+{
+    return amt_owns_screen($screen)
+        ? AMT_VIEW_DIR . '/' . $screen . '.php'
+        : AMT_APP_ROOT . '/views/' . $screen . '.php';
+}
+
+/** Judul header untuk layar Start/End Work */
+function amt_screen_title(string $screen): string
+{
+    return WORK_SCREENS[$screen] ?? '';
+}
+
+/** Tujuan tombol back untuk layar Start/End Work */
+function amt_prev_screen(string $screen): ?string
+{
+    return [
+        'start_end'  => amt_home_screen(),
+        'start_work' => 'start_end',
+        'end_work'   => 'start_end',
+        'checkin'    => amt_home_screen(),
+    ][$screen] ?? null;
+}
+
+/** Apakah menu beranda AMT terkunci? (key = 'checkin' | 'pti' | 'checkout' | ...)
+ *  - menu di WORK_LOCKED_MENUS selalu terkunci (belum tersedia)
+ *  - menu di WORK_GATED_SCREENS terkunci selama timer belum berjalan */
+function amt_menu_locked(string $key): bool
+{
+    if (in_array($key, WORK_LOCKED_MENUS, true)) {
+        return true;
+    }
+    return in_array($key, WORK_GATED_SCREENS, true) && !work_is_running();
+}
+
+/** Penjagaan akses (GET): menu terkunci saat timer belum jalan,
+ *  Start Work hanya saat timer belum jalan, End Work hanya saat jalan. */
+function amt_guard_work(string $screen): void
+{
+    if (in_array($screen, WORK_GATED_SCREENS, true) && !work_is_running()) {
+        go_to(amt_home_screen());
+    }
+    if ($screen === 'start_work' && work_is_running()) {
+        go_to('start_end');
+    }
+    if ($screen === 'end_work' && !work_is_running()) {
+        go_to('start_end');
+    }
+}
+
+/** Proses form Start Work / End Work (pola Post/Redirect/Get) */
+function amt_handle_post(string $action): void
+{
+    switch ($action) {
+        case 'submit_start_work':
+            // Aktivitas + foto wajib, lalu timer berjalan
+            $akt = (string) ($_POST['aktivitas'] ?? '');
+            if (work_is_running()
+                || !work_post_in_range()
+                || !in_array($akt, WORK_ACTIVITIES, true)
+                || ($_POST['photo'] ?? '') !== '1'
+            ) {
+                go_to('start_work');
+            }
+            $_SESSION['work'] = [
+                'started_at'  => time(),
+                'ended_at'    => null,
+                'activity'    => $akt,
+                'start_photo' => true,
+                'end_photo'   => false,
+            ];
+            go_to(amt_home_screen());
+            break;
+
+        case 'submit_end_work':
+            // Aktivitas mengikuti Start Work (tidak bisa diubah)
+            if (!work_is_running() || !work_post_in_range() || ($_POST['photo'] ?? '') !== '1') {
+                go_to('end_work');
+            }
+            $_SESSION['work']['ended_at'] = time();
+            $_SESSION['work']['end_photo'] = true;
+            go_to(amt_home_screen());
+            break;
+
+        case 'submit_checkin':
+            // Check-In hanya boleh saat timer berjalan; aktivitas + foto wajib
+            $akt = (string) ($_POST['aktivitas'] ?? '');
+            if (!work_is_running()
+                || !work_post_in_range()
+                || !in_array($akt, CHECKIN_ACTIVITIES, true)
+                || ($_POST['photo'] ?? '') !== '1'
+            ) {
+                go_to('checkin');
+            }
+            // Foto disimpan (dataURL) supaya bisa dilihat lagi lewat "Lihat Foto"
+            // di tab Riwayat Check-In. Hanya gambar yang ukurannya wajar.
+            $photo = (string) ($_POST['photo_data'] ?? '');
+            if (!preg_match('#^data:image/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$#', $photo)
+                || strlen($photo) > 3000000
+            ) {
+                $photo = '';
+            }
+            $_SESSION['work']['checkins'][] = [
+                'at'       => time(),
+                'activity' => $akt,
+                'photo'    => $photo,
+            ];
+            $_SESSION['flash_success'] = [
+                'title' => 'Check-In Berhasil',
+                'body'  => 'Check-In ke-' . count($_SESSION['work']['checkins']) . ' tercatat di Riwayat Check-In.',
+            ];
+            go_to(amt_home_screen());
+            break;
+    }
+}
+
+/** Nama file CSS AMT -> path/URL. SCREEN_CSS memakai awalan "amt/" untuk CSS di folder ini. */
+function amt_css_href(string $cssFile): ?string
+{
+    return strpos($cssFile, 'amt/') === 0 ? AMT_URL . '/css/' . substr($cssFile, 4) . '.css' : null;
+}
+
+/** Skrip beranda AMT (menu Start/End, kunci menu, timer) - dipanggil setelah view dirender */
+function amt_after_view(string $screen): void
+{
+    // Peran dibaca dari session (bukan variabel $role di index.php, yang bisa
+    // tertimpa oleh perulangan di view role_select).
+    if (current_role() === 'amt' && $screen === amt_home_screen()) {
+        require AMT_INC_DIR . '/work_ui.php';
+    }
 }

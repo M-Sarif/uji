@@ -27,6 +27,7 @@ if (date_default_timezone_get() === 'UTC') {
 // Lokasi tetap untuk verifikasi
 const WORK_LAT = -2.723788;
 const WORK_LNG = 114.261609;
+const WORK_PLACE_NAME = 'Pertamina Fuel Terminal Pulang Pisau'; // nama tempat di Google Maps (pin bawaan)
 const WORK_RADIUS_M = 500;          // batas jarak absen dari titik kerja (meter)
 // Simulasi lokasi: peluang posisi awal user "melenceng" di luar radius (0 = selalu
 // di dalam, 1 = selalu di luar). "Perbarui Lokasi" selalu memindahkan ke dalam radius.
