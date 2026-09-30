@@ -96,7 +96,7 @@
     }
     // Kamera layar penuh / pop up foto: tutorial disembunyikan supaya tidak menimpa.
     function overlayOpen() {
-        return !!(qs('.amtcam.is-open') || qs('#ci-modal:not([hidden])'));
+        return !!(qs('.amtcam.is-open') || qs('#ci-modal:not([hidden])') || qs('.pti-notif.is-open'));
     }
     function el(tag, cls, html) {
         var n = document.createElement(tag);
@@ -129,6 +129,8 @@
         this.side    = 'bottom';// posisi kartu terakhir: 'bottom' | 'top'
         this.okMode  = false;   // sedang menampilkan pesan "sudah benar"
         this.baseHint = '';
+        this.whenAt  = {};      // kapan syarat 'when' sebuah langkah mulai terpenuhi
+        this.lastInputAt = 0;   // kapan pengguna terakhir mengetik (untuk 'settle')
         this.dom     = null;
         this.timers  = [];
         this.handlers = [];
@@ -193,15 +195,19 @@
         this._on(document, 'click', function (e) {
             var t = e.target;
             if (!t || !t.closest || panel.contains(t)) { return; }
+            // Tombol yang masih terkunci (mis. Kirim sebelum catatan terisi) tidak menghitung.
+            if (t.closest('.is-locked, [aria-disabled="true"]')) { return; }
             for (var i = self.steps.length - 1; i >= 0; i--) {
                 var st = self.steps[i];
                 if (!st.target || (st.done && !st.needTap)) { continue; }
+                if (st.when && !qs(st.when)) { continue; }   // mis. menu PTI masih abu-abu
                 if (t.closest(st.target)) { self.ack(i); break; }
             }
         }, true);
 
         // Perubahan form / ketukan apa pun -> periksa keadaan halaman segera.
         var soon = function () { self._later(function () { self.tick(); }, 60); };
+        this._on(document, 'input', function () { self.lastInputAt = Date.now(); }, true);
         this._on(document, 'input', soon, true);
         this._on(document, 'change', soon, true);
         this._on(document, 'click', soon, true);
@@ -223,6 +229,8 @@
         if (st.skip && qs(st.skip)) { return true; }
         if (st.done) {
             var cond = !!qs(st.done);
+            // Kolom teks: tunggu pengguna berhenti mengetik sebentar (jangan lompat di tengah ketikan).
+            if (cond && st.settle && (Date.now() - this.lastInputAt) < st.settle) { cond = false; }
             return st.needTap ? (cond && !!this.acked[i]) : cond;
         }
         return !!this.acked[i];
@@ -246,6 +254,9 @@
         for (var j = 0; j <= i; j++) {
             if (!this.steps[j].done || this.steps[j].needTap) { this.acked[j] = true; }
         }
+        // Langkah bertanda 'announce' (mis. "Mengerti" pada pemberitahuan DCU) memberi
+        // tahu halaman SEGERA, tanpa menunggu seluruh alur selesai.
+        if (this.steps[i].announce) { announce(this.key); }
         // Langkah terakhir dilakukan -> alur ini selesai. Dicatat SEKARANG
         // (sebelum halaman berpindah) supaya tidak muncul lagi.
         if (i >= this.steps.length - 1) { this.finish(); }
@@ -283,6 +294,16 @@
             this.destroy();
             return;
         }
+
+        // Langkah yang menunggu keadaan halaman (mis. menu PTI baru menyala setelah DCU):
+        // kartu disembunyikan dulu, lalu muncul 'delay' ms setelah syaratnya terpenuhi.
+        var nx = this.steps[idx];
+        if (nx.when) {
+            if (!qs(nx.when)) { this.whenAt[idx] = 0; this.hideUI(); return; }
+            if (!this.whenAt[idx]) { this.whenAt[idx] = Date.now(); }
+            if (Date.now() - this.whenAt[idx] < (nx.delay || 0)) { this.hideUI(); return; }
+        }
+
         if (idx !== this.shown || !this.uiOn) { this.show(idx); }
         else { this.sync(); }
     };
@@ -291,7 +312,7 @@
     Tour.prototype.fill = function (st, forOk) {
         var p = this.dom.panel;
         var j = this.journey;
-        var label = (j && j.label) || this.labels[this.screen] || '';
+        var label = st.label || (j && j.label) || this.labels[this.screen] || '';
         var prog = label;
         if (st.no && j) { prog = label + ' · Langkah ' + st.no + ' dari ' + j.total; }
         p.querySelector('[data-progress]').textContent = prog;

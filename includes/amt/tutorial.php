@@ -27,6 +27,14 @@
  *   'wait'      => (opsional) teks kotak biru saat target sudah diketuk tetapi
  *                  'done' belum terpenuhi ("menunggu...")
  *   'ok'        => pesan singkat saat langkah baru saja selesai
+ *   'settle'    => (opsional) ms; 'done' baru dianggap terpenuhi bila pengguna sudah
+ *                  berhenti mengetik selama itu (untuk kolom teks)
+ *   'label'     => (opsional) teks kecil di atas kartu; menimpa nama alur
+ *   'when'      => (opsional) selector; kartu BARU muncul bila elemen ini ada
+ *                  (mis. menu PTI yang baru menyala). Sebelumnya kartu disembunyikan.
+ *   'delay'     => (opsional) jeda (ms) setelah 'when' terpenuhi sebelum kartu muncul
+ *   'announce'  => (opsional) true = saat langkah ini selesai halaman langsung diberi
+ *                  tahu (event amt:tour-done), tanpa menunggu seluruh alur selesai
  *   'okText'    => (opsional) kalimat di bawah pesan 'ok'
  *   'hold'      => (opsional) lama pesan 'ok' tampil sebelum pindah langkah
  *                  (milidetik; bawaan 1000)
@@ -46,13 +54,15 @@
  * ============================================================ */
 
 // Nama layar untuk label (dipakai bila langkah tidak punya alur bernomor)
-const AMT_TOUR_SCREEN_ORDER = ['amt_home', 'start_end', 'start_work', 'checkin', 'end_work'];
+const AMT_TOUR_SCREEN_ORDER = ['amt_home', 'start_end', 'start_work', 'checkin', 'amt_pti', 'amt_pti_form', 'end_work'];
 
 const AMT_TOUR_SCREEN_LABELS = [
     'amt_home'   => 'Beranda AMT',
     'start_end'  => 'Start / End Work',
     'start_work' => 'Start Work',
     'checkin'    => 'Check-In',
+    'amt_pti'      => 'Pre-Trip Inspection',
+    'amt_pti_form' => 'Form Inspeksi',
     'end_work'   => 'End Work',
 ];
 
@@ -62,6 +72,8 @@ const AMT_TOUR_JOURNEYS = [
     'checkin' => ['label' => 'Check-In',     'total' => 5],
     'pulang'  => ['label' => 'Absen Pulang', 'total' => 4],
     'dcu'     => ['label' => 'Check-In Berhasil', 'total' => 1],   // pemberitahuan DCU (tanpa nomor langkah)
+    // Inspeksi PTI: 1 buka menu, 2-3 ringkasan, 4-5 jawab item, 6 catatan, 7 kirim
+    'pti'     => ['label' => 'Inspeksi PTI', 'total' => 7],
 ];
 
 // Jeda (ms) sebelum tutorial DCU muncul di beranda setelah Check-In berhasil
@@ -160,12 +172,123 @@ function amt_tour_form_steps(string $mode): array
 }
 
 /**
+ * Langkah tutorial PTI (Pre-Trip Inspection).
+ * Alur: beranda (buka menu PTI) -> ringkasan (Isi Inspeksi) -> form 11 langkah.
+ *
+ * @param string $screen 'amt_pti' | 'amt_pti_form'
+ * @return array{steps:array, journey:string, subKey:?string}
+ */
+function amt_tour_pti_steps(string $screen): array
+{
+    // ---- Ringkasan PTI ----
+    if ($screen === 'amt_pti') {
+        if (amt_pti_shipment() === null) {
+            return ['journey' => 'pti', 'steps' => [], 'subKey' => null];   // belum ada shipment
+        }
+        if (amt_pti_is_done()) {
+            return ['journey' => 'pti', 'subKey' => 'amt_pti_done', 'steps' => [[
+                'no'     => null,
+                'target' => null,
+                'title'  => 'Inspeksi selesai 🎉',
+                'text'   => 'Hasil inspeksi sudah terkirim dan status PTI sekarang “Sudah Inspeksi”. Ketuk panah kembali (←) di kiri atas untuk kembali ke Beranda.',
+                'button' => 'Mengerti',
+                'done'   => null,
+            ]]];
+        }
+        return ['journey' => 'pti', 'subKey' => null, 'steps' => [
+            [
+                'no'     => 2,
+                'target' => '[data-tour="pti-card"]',
+                'title'  => 'Cek data mobil tangki',
+                'text'   => 'Pastikan Nomor Polisi MT dan Kapasitas Tangki sesuai dengan mobil tangki yang Anda bawa.',
+                'hint'   => '👆 Ketuk “Mengerti” bila data sudah sesuai',
+                'button' => 'Mengerti',
+                'done'   => null,
+            ],
+            [
+                'no'     => 3,
+                'target' => '[data-tour="pti-start"]',
+                'title'  => 'Ketuk “Isi Inspeksi”',
+                'text'   => 'Inspeksi terdiri dari 11 langkah pendek. Anda akan memeriksa kondisi mobil tangki dari beberapa sisi.',
+                'hint'   => '👆 Ketuk tombol biru “Isi Inspeksi”',
+                'done'   => null,
+            ],
+        ]];
+    }
+
+    // ---- Form inspeksi (11 langkah) ----
+    $step = isset($_GET['step']) ? (int) $_GET['step'] : 1;
+    $step = max(1, min(AMT_PTI_TOTAL, $step));
+    $next = '#ptiForm .pti-next:not(.is-locked)';   // tombol lanjut aktif = semua item / catatan sudah diisi
+
+    if ($step === 1) {
+        return ['journey' => 'pti', 'subKey' => 'amt_pti_form_1', 'steps' => [
+            [
+                'no'        => 4,
+                'target'    => '[data-tour="pti-items"]',
+                'title'     => 'Periksa lalu jawab tiap item',
+                'text'      => 'Lihat foto acuan, cek kondisi mobil tangki, lalu pilih “Layak” bila baik atau “Tidak layak” bila ada masalah. Semua item bertanda * wajib dijawab.',
+                'hint'      => '👆 Pilih Layak atau Tidak layak di setiap item',
+                'done'      => $next,
+                'ok'        => '✅ Semua item sudah dijawab',
+            ],
+            [
+                'no'     => 5,
+                'target' => '#ptiForm .pti-next',
+                'title'  => 'Ketuk “Selanjutnya”',
+                'text'   => 'Ulangi hal yang sama untuk sisi mobil berikutnya, sampai langkah 11. Tombol “Sebelumnya” dipakai bila ingin memperbaiki jawaban.',
+                'hint'   => '👆 Ketuk “Selanjutnya”',
+                'done'   => null,
+            ],
+        ]];
+    }
+
+    if ($step < AMT_PTI_TOTAL) {
+        // Langkah 2-10: pengingat singkat, cukup tampil sekali
+        return ['journey' => 'pti', 'subKey' => 'amt_pti_form_mid', 'steps' => [[
+            'no'     => null,
+            'label'  => 'Form Inspeksi · Bagian ' . $step . ' dari ' . AMT_PTI_TOTAL,
+            'target' => '[data-tour="pti-items"]',
+            'title'  => 'Sama seperti tadi',
+            'text'   => 'Jawab semua item di sisi ini, lalu ketuk “Selanjutnya”. Ulangi sampai langkah ' . AMT_PTI_TOTAL . '.',
+            'button' => 'Mengerti',
+            'done'   => null,
+        ]]];
+    }
+
+    // Langkah 11: sorot CATATAN dulu (pengguna harus menulis), baru tombol Kirim.
+    // 'settle' = tunggu pengguna berhenti mengetik sebentar, supaya kartu tidak
+    // berpindah ke "Kirim" di tengah-tengah pengetikan.
+    return ['journey' => 'pti', 'subKey' => 'amt_pti_form_11', 'steps' => [
+        [
+            'no'        => 6,
+            'target'    => '#ptiNote',
+            'highlight' => '[data-tour="pti-note"]',
+            'title'     => 'Tulis catatan dulu',
+            'text'      => 'Kolom Catatan wajib diisi. Tuliskan kondisi mobil tangki, misalnya “MT dalam kondisi baik.” Tombol Kirim baru menyala setelah catatan terisi.',
+            'hint'      => '👆 Ketuk kolom Catatan, lalu ketik',
+            'done'      => $next,
+            'settle'    => 1500,
+            'ok'        => '✅ Catatan sudah terisi',
+        ],
+        [
+            'no'     => 7,
+            'target' => '#ptiForm .pti-btn--send',
+            'title'  => 'Ketuk “Kirim”',
+            'text'   => 'Semua sudah lengkap. Ketuk “Kirim” untuk mengirim hasil inspeksi. Setelah terkirim akan muncul pemberitahuan.',
+            'hint'   => '👆 Ketuk tombol biru “Kirim”',
+            'done'   => null,
+        ],
+    ]];
+}
+
+/**
  * Data langkah untuk satu layar.
  *
  * @param string $screen   nama layar
  * @param bool   $running  true bila timer Waktu Kerja sedang berjalan
  * @param int    $checkins jumlah Check-In yang sudah berhasil (0 = belum ada)
- * @return array{steps:array, journey:string, startDelay?:int}
+ * @return array{steps:array, journey:string, startDelay?:int, subKey?:?string}
  */
 function amt_tour_steps_for(string $screen, bool $running, int $checkins = 0): array
 {
@@ -176,17 +299,35 @@ function amt_tour_steps_for(string $screen, bool $running, int $checkins = 0): a
         // aplikasi, jadi tutorial ini hanya pemberitahuan (kartu di tengah).
         // Muncul AMT_TOUR_DCU_DELAY_MS setelah halaman dibuka.
         if ($running && $checkins > 0) {
-            return [
-                'journey'    => 'dcu',
-                'startDelay' => AMT_TOUR_DCU_DELAY_MS,
-                'steps'      => [[
-                    'no'     => null,
-                    'target' => null,
-                    'title'  => 'Lakukan DCU dulu 🩺',
-                    'text'   => 'Check-In berhasil. Sekarang lakukan DCU (cek kesehatan) terlebih dahulu. DCU dilakukan langsung di tempat, bukan lewat aplikasi ini. Setelah Anda ketuk “Mengerti”, menu PTI akan menyala.',
-                    'button' => 'Mengerti',
+            $dcuSeen = amt_flow_get('dcu_seen');
+            $steps = [[
+                'no'       => null,
+                'label'    => 'Check-In Berhasil',
+                'target'   => null,
+                'title'    => 'Lakukan DCU dulu 🩺',
+                'text'     => 'Check-In berhasil. Sekarang lakukan DCU (cek kesehatan) terlebih dahulu. DCU dilakukan langsung di tempat, bukan lewat aplikasi ini. Setelah Anda ketuk “Mengerti”, menu PTI akan menyala.',
+                'button'   => 'Mengerti',
+                'announce' => true,                                   // PTI mulai menyala 2 detik setelah ini
+                'skip'     => '.amt-home[data-dcu-seen="1"]',         // DCU sudah dibaca (halaman dimuat ulang)
+                'done'     => null,
+            ]];
+            // Sesudah DCU: arahkan ke menu PTI (kecuali inspeksi sudah selesai)
+            if (!amt_pti_is_done()) {
+                $steps[] = [
+                    'no'     => 1,
+                    'target' => '[data-tour="amt-menu-pti"]',
+                    'when'   => 'a[data-tour="amt-menu-pti"]',       // baru muncul setelah menu PTI menyala
+                    'delay'  => AMT_PTI_HINT_DELAY,
+                    'title'  => 'Buka menu “PTI”',
+                    'text'   => 'PTI adalah pemeriksaan mobil tangki sebelum berangkat. Menu PTI sekarang sudah menyala.',
+                    'hint'   => '👆 Ketuk menu “PTI”',
                     'done'   => null,
-                ]],
+                ];
+            }
+            return [
+                'journey'    => count($steps) > 1 ? 'pti' : 'dcu',
+                'startDelay' => $dcuSeen ? 0 : AMT_TOUR_DCU_DELAY_MS,
+                'steps'      => $steps,
             ];
         }
         if ($running) {
@@ -253,6 +394,12 @@ function amt_tour_steps_for(string $screen, bool $running, int $checkins = 0): a
         return ['journey' => 'pulang', 'steps' => amt_tour_form_steps('end')];
     }
 
+    // ---- PTI ----
+    if ($screen === 'amt_pti' || $screen === 'amt_pti_form') {
+        $pack = amt_tour_pti_steps($screen);
+        return ['journey' => $pack['journey'], 'steps' => $pack['steps'], 'subKey' => $pack['subKey']];
+    }
+
     return ['journey' => 'masuk', 'steps' => []];
 }
 
@@ -276,6 +423,8 @@ function amt_tour_config(string $screen): array
         $subKey = $checkins > 0 ? 'amt_home_dcu_' . $checkins : 'amt_home_running';
     } elseif ($running && $screen === 'start_end') {
         $subKey = 'start_end_running';
+    } elseif (!empty($pack['subKey'])) {
+        $subKey = $pack['subKey'];   // layar PTI menentukan kuncinya sendiri
     }
 
     return [

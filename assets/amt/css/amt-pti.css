@@ -200,3 +200,30 @@
 @media (prefers-reduced-motion: reduce) {
     .amt-modal, .amt-modal__card, .amt-spot, .pti-btn, .pti-option input::before { transition: none; }
 }
+
+/* ---------- Pemberitahuan: inspeksi terkirim ---------- */
+.pti-notif {
+    position: fixed; inset: 0; z-index: 950;          /* di atas tutorial (900-902), di bawah kamera (1000) */
+    display: none; align-items: center; justify-content: center;
+    padding: 24px; box-sizing: border-box;
+    background: rgba(15, 23, 42, .55);
+}
+.pti-notif.is-open { display: flex; animation: ptiNotifIn .18s ease; }
+.pti-notif__card {
+    width: 100%; max-width: 320px; box-sizing: border-box;
+    padding: 24px 20px 20px; border-radius: 20px; text-align: center;
+    background: #fff; box-shadow: 0 24px 48px -12px rgba(15, 23, 42, .45);
+}
+.pti-notif__icon {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 56px; height: 56px; margin-bottom: 12px; border-radius: 50%;
+}
+.pti-notif__icon--go   { background: var(--pti-green-bg); color: var(--pti-green); }
+.pti-notif__icon--nogo { background: #ffedd5; color: #c2410c; }
+.pti-notif__title  { margin: 0 0 6px; font-size: 18px; font-weight: 800; color: var(--pti-ink); }
+.pti-notif__result { margin: 0 0 8px; font-size: 14px; font-weight: 800; letter-spacing: .02em; }
+.pti-notif__result--go   { color: var(--pti-green); }
+.pti-notif__result--nogo { color: var(--pti-red); }
+.pti-notif__text   { margin: 0 0 18px; font-size: 13.5px; line-height: 1.5; color: #475569; }
+@keyframes ptiNotifIn { from { opacity: 0; transform: scale(.97); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .pti-notif.is-open { animation: none; } }

@@ -1,184 +1,99 @@
 <?php
 /**
- * Layar: ?screen=amt_pti_form&step=1..11  (role AMT)
- * Guard dan penyimpanan jawaban ada di amt_pti_bootstrap() (dipanggil index.php).
- * Layar ini punya progress bar sendiri, jadi header bawaan sebaiknya disembunyikan.
+ * Layar: ?screen=amt_pti  (role AMT)  -- "Pre-Trip Inspection"
+ *
+ * Ringkasan sebelum inspeksi: nomor polisi MT, kapasitas tangki, status PTI,
+ * dan tombol "Isi Inspeksi". Form 11 langkah ada di pti_form.php
+ * (?screen=amt_pti_form&step=1..11) dan dibuka lewat tombol ini.
+ *
+ * Judul header "Pre-Trip Inspection" diatur di includes/amt/work.php (WORK_SCREENS).
+ * Atribut data-tour dipakai tutorial AMT (includes/amt/tutorial.php).
  */
 require_once __DIR__ . '/../../includes/amt/amt_pti_functions.php';
 
-$steps = amt_pti_steps();
-$step  = isset($_GET['step']) ? (int) $_GET['step'] : 1;
-$step  = max(1, min(AMT_PTI_TOTAL, $step));
-
-$data     = $steps[$step];
-$isFirst  = $step === 1;
-$isLast   = $step === AMT_PTI_TOTAL;
-$complete = amt_pti_step_complete($step);
-
-$showError = isset($_SESSION['amt_pti_error']) && (int) $_SESSION['amt_pti_error'] === $step;
-unset($_SESSION['amt_pti_error']);
-
-$isStatement = $step === AMT_PTI_STATEMENT_STEP;
-$hasImage = !empty($data['image']) && is_file(__DIR__ . '/../../' . $data['image']);
-$result   = amt_pti_result();
-$failed   = amt_pti_failed_items();
-$note     = amt_pti_note();
-$counter  = str_pad((string) $step, 2, '0', STR_PAD_LEFT) . '/' . AMT_PTI_TOTAL;
+$shipment = amt_pti_shipment();
+$done     = amt_pti_is_done();
+$result   = $done ? (amt_pti_state()['result'] ?? null) : null;
+$flash    = isset($_SESSION['amt_pti_flash']) ? $_SESSION['amt_pti_flash'] : '';
+unset($_SESSION['amt_pti_flash']);
+$sent     = $flash !== '' && $done;   // baru saja mengirim inspeksi -> tampilkan pemberitahuan
+$isGo     = $result === 'GO';
 ?>
 
-<form method="post" action="<?= amt_e(amt_pti_url('amt_pti_form', ['step' => $step])) ?>"
-      class="pti-form" id="ptiForm" data-groups="<?= count($data['items']) ?>" novalidate>
-    <input type="hidden" name="pti_action" value="step">
-    <input type="hidden" name="step" value="<?= $step ?>">
-    <!-- Tombol default untuk tombol Enter: selalu "Selanjutnya", bukan "Sebelumnya". -->
-    <button type="submit" name="nav" value="next" class="pti-hidden-submit" tabindex="-1" aria-hidden="true"></button>
-
-    <div class="pti-scroll">
-        <div class="pti-top">
-            <div class="pti-progress" role="progressbar" aria-valuemin="1"
-                 aria-valuemax="<?= AMT_PTI_TOTAL ?>" aria-valuenow="<?= $step ?>">
-                <?php for ($i = 1; $i <= AMT_PTI_TOTAL; $i++): ?>
-                    <span class="pti-progress__seg<?= $i <= $step ? ' is-on' : '' ?>"></span>
-                <?php endfor; ?>
-            </div>
-            <span class="pti-counter"><?= amt_e($counter) ?></span>
+<section class="pti-screen" data-pti-done="<?= $done ? '1' : '0' ?>">
+    <?php if ($shipment === null): ?>
+        <div class="pti-empty">
+            <img src="assets/empty-delivery-truck.png" alt="" class="pti-empty__img">
+            <h2 class="pti-empty__title">Belum ada shipment</h2>
+            <p class="pti-empty__text">Inspeksi tersedia setelah ada shipment untuk Anda.</p>
         </div>
-
-        <h2 class="pti-title"><?= $step ?>. <?= amt_e($data['title']) ?></h2>
-
-<?php if ($isStatement): ?>
-        <div class="pti-result pti-result--<?= $result === 'GO' ? 'go' : 'nogo' ?>" role="status">
-            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
-                <?php if ($result === 'GO'): ?>
-                    <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 12.5l2.7 2.7L16 9.8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <?php else: ?>
-                    <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M9 9l6 6M15 9l-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                <?php endif; ?>
-            </svg>
-            <div>
-                <strong>Hasil Inspeksi adalah <?= amt_e($result) ?></strong>
-                <span><?= $result === 'GO'
-                    ? 'Mobil tangki dalam keadaan layak beroperasi.'
-                    : 'Mobil tangki belum layak beroperasi. Laporkan ke pengawas sebelum berangkat.' ?></span>
-            </div>
-        </div>
-
-        <?php if ($failed): ?>
-            <ul class="pti-failed" aria-label="Item yang tidak layak">
-                <?php foreach ($failed as $f): ?>
-                    <li><b><?= amt_e($f['label']) ?></b> <span>(<?= amt_e($f['title']) ?>)</span></li>
-                <?php endforeach; ?>
-            </ul>
-        <?php endif; ?>
-
-        <div class="pti-statement">
-            <?php foreach (amt_pti_statement_lines() as $line): ?>
-                <p><?= amt_e($line) ?></p>
-            <?php endforeach; ?>
-        </div>
-
-        <label class="pti-note">
-            <span class="pti-item__label">Catatan<span class="pti-req" aria-hidden="true">*</span></span>
-            <textarea name="catatan" id="ptiNote" rows="5" maxlength="<?= AMT_PTI_NOTE_MAX ?>"
-                      placeholder="Masukkan catatan terkait pemeriksaan (Misalnya: MT dalam kondisi baik.)"><?= amt_e($note) ?></textarea>
-        </label>
-<?php else: ?>
-        <div class="pti-photo">
-            <?php if ($hasImage): ?>
-                <img src="<?= amt_e($data['image']) ?>" alt="Foto acuan <?= amt_e($data['title']) ?>">
-            <?php else: ?>
-                <div class="pti-photo__empty">Foto acuan belum tersedia</div>
-            <?php endif; ?>
-        </div>
-
-        <?php foreach ($data['items'] as $item):
-            $name    = 'a[' . $item['key'] . ']';
-            $current = amt_pti_answer($step, $item['key']);
-        ?>
-            <fieldset class="pti-item">
-                <legend class="pti-item__label"><?= amt_e($item['label']) ?><span class="pti-req" aria-hidden="true">*</span></legend>
-                <p class="pti-item__hint"><?= amt_e($item['hint']) ?></p>
-                <div class="pti-options">
-                    <label class="pti-option">
-                        <input type="radio" name="<?= amt_e($name) ?>" value="tidak" <?= $current === 'tidak' ? 'checked' : '' ?>>
-                        <span>Tidak layak</span>
-                    </label>
-                    <label class="pti-option">
-                        <input type="radio" name="<?= amt_e($name) ?>" value="layak" <?= $current === 'layak' ? 'checked' : '' ?>>
-                        <span>Layak</span>
-                    </label>
+    <?php else: ?>
+        <div class="pti-card" data-tour="pti-card">
+            <div class="pti-grid">
+                <div>
+                    <div class="pti-label">Nomor Polisi MT</div>
+                    <div class="pti-value"><?= amt_e($shipment['nomor_polisi']) ?></div>
                 </div>
-            </fieldset>
-        <?php endforeach; ?>
-<?php endif; ?>
+                <div>
+                    <div class="pti-label">Kapasitas Tangki</div>
+                    <div class="pti-value"><?= amt_e($shipment['kapasitas']) ?></div>
+                </div>
+            </div>
 
-        <p class="pti-error" id="ptiError" <?= $showError ? '' : 'hidden' ?> role="alert">
-            <?= $isStatement
-                ? 'Isi Catatan terlebih dahulu sebelum mengirim inspeksi.'
-                : 'Pilih Layak atau Tidak layak untuk semua item bertanda * sebelum lanjut.' ?>
+            <div class="pti-status">
+                <div class="pti-label">Status PTI</div>
+                <?php if ($done): ?>
+                    <span class="pti-badge pti-badge--done">Sudah Inspeksi<?= $result ? ' · ' . amt_e($result) : '' ?></span>
+                <?php else: ?>
+                    <span class="pti-badge pti-badge--pending">Belum Inspeksi</span>
+                <?php endif; ?>
+            </div>
+
+            <form method="post" action="<?= amt_e(amt_pti_url('amt_pti')) ?>">
+                <input type="hidden" name="pti_action" value="start">
+                <?php if ($done): ?>
+                    <button type="button" class="pti-btn pti-btn--primary is-locked" aria-disabled="true">Inspeksi Selesai</button>
+                <?php else: ?>
+                    <button type="submit" class="pti-btn pti-btn--primary" data-tour="pti-start">Isi Inspeksi</button>
+                <?php endif; ?>
+            </form>
+        </div>
+    <?php endif; ?>
+</section>
+
+<?php if ($sent): ?>
+<!-- Pemberitahuan setelah inspeksi terkirim (tutorial AMT menunggu sampai ini ditutup). -->
+<div class="pti-notif is-open" id="ptiNotif" role="alertdialog" aria-modal="true"
+     aria-labelledby="ptiNotifTitle" aria-describedby="ptiNotifText">
+    <div class="pti-notif__card">
+        <span class="pti-notif__icon pti-notif__icon--<?= $isGo ? 'go' : 'nogo' ?>" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+        </span>
+        <h2 class="pti-notif__title" id="ptiNotifTitle">Inspeksi Berhasil Dikirim</h2>
+        <p class="pti-notif__result pti-notif__result--<?= $isGo ? 'go' : 'nogo' ?>">Hasil Inspeksi: <?= amt_e($result) ?></p>
+        <p class="pti-notif__text" id="ptiNotifText">
+            <?= $isGo
+                ? 'Mobil tangki dalam keadaan layak beroperasi. Status PTI Anda sekarang “Sudah Inspeksi”.'
+                : 'Mobil tangki belum layak beroperasi. Laporkan ke pengawas sebelum berangkat.' ?>
         </p>
+        <button type="button" class="pti-btn pti-btn--primary" id="ptiNotifOk">OK</button>
     </div>
-
-    <div class="pti-nav">
-        <button type="submit" name="nav" value="prev" class="pti-btn pti-btn--ghost"
-                <?= $isFirst ? 'disabled' : '' ?>>
-            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M15 5l-7 7 7 7M8 12h12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            Sebelumnya
-        </button>
-        <?php if ($isLast): ?>
-        <button type="submit" name="nav" value="next"
-                class="pti-btn pti-btn--send pti-next<?= $complete ? '' : ' is-locked' ?>"
-                aria-disabled="<?= $complete ? 'false' : 'true' ?>">
-            Kirim
-            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M4 12l16-8-6 16-3-7-7-1z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
-        </button>
-        <?php else: ?>
-        <button type="submit" name="nav" value="next"
-                class="pti-btn pti-btn--outline pti-next<?= $complete ? '' : ' is-locked' ?>"
-                aria-disabled="<?= $complete ? 'false' : 'true' ?>">
-            Selanjutnya
-            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M9 5l7 7-7 7M4 12h12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </button>
-        <?php endif; ?>
-    </div>
-</form>
-
+</div>
 <script>
 (function () {
-    var form = document.getElementById('ptiForm');
-    if (!form) return;
-    var groups = parseInt(form.getAttribute('data-groups'), 10);
-    var nexts = form.querySelectorAll('button[value="next"]');
-    var err = document.getElementById('ptiError');
-
-    var note = document.getElementById('ptiNote');
-
-    function allAnswered() {
-        if (note) return note.value.trim().length >= <?= (int) AMT_PTI_NOTE_MIN ?>;
-        var seen = {};
-        var checked = form.querySelectorAll('input[type="radio"]:checked');
-        for (var i = 0; i < checked.length; i++) seen[checked[i].name] = true;
-        return Object.keys(seen).length === groups;
+    var box = document.getElementById('ptiNotif');
+    var ok  = document.getElementById('ptiNotifOk');
+    if (!box || !ok) return;
+    function close() {
+        box.classList.remove('is-open');
+        document.removeEventListener('keydown', onKey);
+        if (window.OneFISTour && window.OneFISTour.rescan) window.OneFISTour.rescan();   // lanjutkan tutorial
     }
-
-    function sync() {
-        var ok = allAnswered();
-        for (var i = 0; i < nexts.length; i++) {
-            nexts[i].classList.toggle('is-locked', !ok);
-            nexts[i].setAttribute('aria-disabled', ok ? 'false' : 'true');
-        }
-        if (ok && err) err.hidden = true;
-    }
-
-    form.addEventListener('change', sync);
-    form.addEventListener('input', sync);
-    form.addEventListener('click', function (e) {
-        var btn = e.target.closest ? e.target.closest('button[value="next"]') : null;
-        if (btn && !allAnswered()) {
-            e.preventDefault();
-            if (err) err.hidden = false;
-        }
-    });
-    sync();
+    function onKey(e) { if (e.key === 'Escape') close(); }
+    ok.addEventListener('click', close);
+    box.addEventListener('click', function (e) { if (e.target === box) close(); });
+    document.addEventListener('keydown', onKey);
+    ok.focus();
 })();
 </script>
+<?php endif; ?>

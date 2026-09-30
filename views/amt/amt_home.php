@@ -21,7 +21,7 @@ $amtMenus = [
     ['key' => 'safire',      'label' => 'SAFIRE',       'icon' => 'assets/safire_icon.png',          'tone' => 'sky',    'href' => '#'],
 ];
 ?>
-<div class="amt-home">
+<div class="amt-home" data-dcu-seen="<?php echo amt_flow_get('dcu_seen') ? '1' : '0'; ?>">
 
     <!-- Waktu kerja -->
     <div class="amt-worktime">

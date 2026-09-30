@@ -54,7 +54,7 @@ const WORK_SCREENS = [
     'start_work' => 'Start Work',
     'end_work'   => 'End Work',
     'checkin'    => 'Check-In',
-    'amt_pti'      => 'Pre-Trip Inspection (PTI)',
+    'amt_pti'      => 'Pre-Trip Inspection',
     'amt_pti_form' => 'Form Inspeksi',
 ];
 

@@ -47,7 +47,7 @@ $counter  = str_pad((string) $step, 2, '0', STR_PAD_LEFT) . '/' . AMT_PTI_TOTAL;
         <h2 class="pti-title"><?= $step ?>. <?= amt_e($data['title']) ?></h2>
 
 <?php if ($isStatement): ?>
-        <div class="pti-result pti-result--<?= $result === 'GO' ? 'go' : 'nogo' ?>" role="status">
+        <div class="pti-result pti-result--<?= $result === 'GO' ? 'go' : 'nogo' ?>" role="status" data-tour="pti-result">
             <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
                 <?php if ($result === 'GO'): ?>
                     <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 12.5l2.7 2.7L16 9.8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -77,13 +77,13 @@ $counter  = str_pad((string) $step, 2, '0', STR_PAD_LEFT) . '/' . AMT_PTI_TOTAL;
             <?php endforeach; ?>
         </div>
 
-        <label class="pti-note">
+        <label class="pti-note" data-tour="pti-note">
             <span class="pti-item__label">Catatan<span class="pti-req" aria-hidden="true">*</span></span>
             <textarea name="catatan" id="ptiNote" rows="5" maxlength="<?= AMT_PTI_NOTE_MAX ?>"
                       placeholder="Masukkan catatan terkait pemeriksaan (Misalnya: MT dalam kondisi baik.)"><?= amt_e($note) ?></textarea>
         </label>
 <?php else: ?>
-        <div class="pti-photo">
+        <div class="pti-photo" data-tour="pti-photo">
             <?php if ($hasImage): ?>
                 <img src="<?= amt_e($data['image']) ?>" alt="Foto acuan <?= amt_e($data['title']) ?>">
             <?php else: ?>
@@ -91,6 +91,7 @@ $counter  = str_pad((string) $step, 2, '0', STR_PAD_LEFT) . '/' . AMT_PTI_TOTAL;
             <?php endif; ?>
         </div>
 
+        <div class="pti-items" data-tour="pti-items">
         <?php foreach ($data['items'] as $item):
             $name    = 'a[' . $item['key'] . ']';
             $current = amt_pti_answer($step, $item['key']);
@@ -110,6 +111,7 @@ $counter  = str_pad((string) $step, 2, '0', STR_PAD_LEFT) . '/' . AMT_PTI_TOTAL;
                 </div>
             </fieldset>
         <?php endforeach; ?>
+        </div>
 <?php endif; ?>
 
         <p class="pti-error" id="ptiError" <?= $showError ? '' : 'hidden' ?> role="alert">

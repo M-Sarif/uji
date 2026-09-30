@@ -33,8 +33,10 @@
     ack('pti_unlocked');
   }
 
+  var dcuHandled = false;   // pemberitahuan datang dua kali (Mengerti, lalu alur selesai): proses sekali saja
   document.addEventListener('amt:tour-done', function (e) {
-    if (!e.detail || String(e.detail.key).indexOf('amt_home_dcu_') !== 0) return;
+    if (dcuHandled || !e.detail || String(e.detail.key).indexOf('amt_home_dcu_') !== 0) return;
+    dcuHandled = true;
     ack('dcu_seen');
     setTimeout(unlock, <?= (int) AMT_PTI_UNLOCK_DELAY ?>);
   });
