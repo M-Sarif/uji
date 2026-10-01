@@ -21,7 +21,7 @@ const AMT_EXTRA_SCREENS = ['start_end', 'start_work', 'end_work', 'checkin', 'am
     'amt_shipments', 'amt_shipment_detail', 'amt_spbu'];
 
 // Aksi form (POST) milik AMT
-const AMT_POST_ACTIONS = ['submit_start_work', 'submit_end_work', 'submit_checkin'];
+const AMT_POST_ACTIONS = ['submit_start_work', 'submit_end_work', 'submit_checkin', 'submit_spbu_arrive'];
 
 /** Beranda AMT (mis. 'amt_home') */
 function amt_home_screen(): string
@@ -133,6 +133,7 @@ function amt_reset_all(): void
 {
     unset($_SESSION['work'], $_SESSION['flash_success']);
     amt_pti_reset();
+    amt_spbu_reset();   // status "Tiba di Lokasi" ikut direset
     amt_tour_bump();
 }
 
@@ -151,6 +152,7 @@ function amt_handle_post(string $action): void
                 go_to('start_work');
             }
             amt_pti_reset(); // shift baru: PTI & tutorial mulai dari awal
+            amt_spbu_reset();
             amt_tour_bump();
             $_SESSION['work'] = [
                 'started_at'  => time(),
@@ -168,6 +170,7 @@ function amt_handle_post(string $action): void
                 go_to('end_work');
             }
             amt_pti_reset();
+            amt_spbu_reset();
             amt_tour_bump();
             $_SESSION['work']['ended_at'] = time();
             $_SESSION['work']['end_photo'] = true;
@@ -203,6 +206,34 @@ function amt_handle_post(string $action): void
                 'body'  => 'Check-In ke-' . count($_SESSION['work']['checkins']) . ' tercatat di Riwayat Check-In.',
             ];
             go_to(amt_home_screen());
+            break;
+
+        case 'submit_spbu_arrive':
+            // "Ya, pengiriman telah tiba": hanya untuk pengiriman yang sedang berjalan,
+            // saat timer kerja berjalan, dan posisi berada dalam radius SPBU.
+            if (!work_is_running()) {
+                go_to(amt_home_screen());
+            }
+            $s = amt_ship_find(amt_ship_post_id() ?: null);
+            if ($s === null || $s['status'] !== 'sedang') {
+                go_to('amt_shipments');
+            }
+            $back = ['id' => $s['id']];
+            if (amt_spbu_arrived($s)) {
+                go_to('amt_spbu', $back);
+            }
+            if (!isset($_POST['lat'], $_POST['lng'])
+                || !is_numeric($_POST['lat']) || !is_numeric($_POST['lng'])
+                || !amt_spbu_in_range($s, (float) $_POST['lat'], (float) $_POST['lng'])
+            ) {
+                go_to('amt_spbu', $back);   // lokasi belum sesuai: tidak dicatat
+            }
+            amt_spbu_mark_arrived($s, (float) $_POST['lat'], (float) $_POST['lng']);
+            $_SESSION['flash_success'] = [
+                'title' => 'Tiba di Lokasi Tercatat',
+                'body'  => 'Kedatangan di SPBU ' . $s['spbu'] . ' sudah dicatat.',
+            ];
+            go_to('amt_spbu', $back);
             break;
     }
 }

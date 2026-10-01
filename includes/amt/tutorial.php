@@ -83,8 +83,9 @@ const AMT_TOUR_JOURNEYS = [
     'dcu'     => ['label' => 'Check-In Berhasil', 'total' => 1],   // pemberitahuan DCU (tanpa nomor langkah)
     // Inspeksi PTI: 1 buka menu, 2-3 ringkasan, 4-5 jawab item, 6 catatan, 7 kirim, 8 konfirmasi
     'pti'     => ['label' => 'Inspeksi PTI', 'total' => 8],
-    // Pengiriman: 1 buka Detail Order, 2 buka kartu SPBU (menu Shipments di Beranda = kartu tersendiri)
-    'kirim'   => ['label' => 'Pengiriman', 'total' => 2],
+    // Pengiriman: 1 buka Detail Order, 2 buka kartu SPBU, 3 ketuk Tiba di Lokasi,
+    // 4 cek lokasi, 5 konfirmasi tiba (menu Shipments di Beranda = kartu tersendiri)
+    'kirim'   => ['label' => 'Pengiriman', 'total' => 5],
 ];
 
 // Jeda (ms) sebelum tutorial DCU muncul di beranda setelah Check-In berhasil
@@ -364,6 +365,76 @@ function amt_tour_ship_steps(string $screen): array
 }
 
 /**
+ * Tutorial layar "Aktifitas di SPBU" (amt_spbu) untuk pengiriman yang sedang berjalan.
+ *
+ * Sebelum tiba (berbasis keadaan, jadi tidak "hilang" bila popup ditutup lalu dibuka lagi):
+ *   3) ketuk kartu "Tiba di Lokasi"            -> selesai saat popup terbuka (#arrSheet.is-open)
+ *   4) "Perbarui Lokasi", tunggu pin sesuai    -> selesai saat data-pin="1", lalu ditahan 2 detik
+ *   5) ketuk "Ya, pengiriman telah tiba"       -> halaman memproses lalu kembali ke layar ini
+ * Sesudah tiba: satu kartu pemberitahuan di tengah (langkah berikutnya: Isi Checklist).
+ * Pengiriman yang sudah selesai tidak diberi tutorial.
+ *
+ * @return array{steps:array, journey:string, subKey:?string}
+ */
+function amt_tour_spbu_steps(): array
+{
+    $s = amt_ship_current();
+    if ($s === null || $s['status'] !== 'sedang') {
+        return ['journey' => 'kirim', 'subKey' => null, 'steps' => []];
+    }
+
+    if (amt_spbu_arrived($s)) {
+        return ['journey' => 'kirim', 'subKey' => 'amt_spbu_arrived', 'steps' => [[
+            'no'     => null,
+            'label'  => 'Tiba di Lokasi',
+            'target' => null,
+            'title'  => 'Kedatangan Anda tercatat ✅',
+            'text'   => 'Mobil tangki sudah tercatat tiba di SPBU ' . $s['spbu'] . '. Langkah berikutnya adalah “Isi Checklist” sebelum pembongkaran BBM.',
+            'button' => 'Mengerti',
+            'done'   => null,
+        ]]];
+    }
+
+    return ['journey' => 'kirim', 'subKey' => null, 'steps' => [
+        [
+            'no'     => 3,
+            'label'  => 'Aktifitas di SPBU',
+            'target' => '[data-tour="spbu-step-active"]',
+            'title'  => 'Ketuk “Tiba di Lokasi”',
+            'text'   => 'Bila mobil tangki sudah sampai di SPBU tujuan, ketuk kartu biru “Tiba di Lokasi” untuk memberi tahu bahwa Anda sudah tiba.',
+            'hint'   => '👆 Ketuk kartu biru “Tiba di Lokasi”',
+            'done'   => '#arrSheet.is-open',
+        ],
+        [
+            'no'        => 4,
+            'label'     => 'Tiba di Lokasi',
+            'target'    => '#arr-refresh',
+            'highlight' => '#arr-loc',
+            'title'     => 'Cek lokasi Anda',
+            'text'      => 'Pin di peta harus ada di SPBU tujuan. Ketuk “Perbarui Lokasi”, lalu tunggu sampai pin muncul dan tulisan di bawah peta berwarna hijau.',
+            'hint'      => '👆 Ketuk “Perbarui Lokasi”',
+            'wait'      => '⏳ Menunggu lokasi sesuai… perhatikan pin di peta',
+            'when'      => '#arrSheet.is-open',
+            'done'      => '#arrSheet[data-pin="1"]',
+            'needTap'   => true,
+            'ok'        => '✅ Lokasi sudah sesuai',
+            'okText'    => 'Lihat pin di peta: sudah tepat di SPBU tujuan.',
+            'hold'      => 2000,   // tahan 2 detik setelah lokasi sesuai, baru lanjut
+        ],
+        [
+            'no'     => 5,
+            'label'  => 'Tiba di Lokasi',
+            'target' => '#arr-yes',
+            'when'   => '#arrSheet.is-open',
+            'title'  => 'Ketuk “Ya, pengiriman telah tiba”',
+            'text'   => 'Lokasi sudah sesuai. Ketuk tombol biru ini untuk mencatat bahwa mobil tangki sudah tiba di SPBU.',
+            'hint'   => '👆 Ketuk tombol biru “Ya, pengiriman telah tiba”',
+            'done'   => null,
+        ],
+    ]];
+}
+
+/**
  * Tutorial layar "Hasil Inspeksi" (baca saja): jelaskan GO / NO GO, lalu arahkan kembali
  * ke halaman PTI (←). 'remember' pada langkah pertama supaya tidak diulang.
  */
@@ -592,6 +663,12 @@ function amt_tour_steps_for(string $screen, bool $running, int $checkins = 0): a
         return ['journey' => $pack['journey'], 'steps' => $pack['steps']];
     }
 
+    // ---- Aktifitas di SPBU (Tiba di Lokasi) ----
+    if ($screen === 'amt_spbu') {
+        $pack = amt_tour_spbu_steps();
+        return ['journey' => $pack['journey'], 'steps' => $pack['steps'], 'subKey' => $pack['subKey']];
+    }
+
     // ---- Hasil Inspeksi ----
     if ($screen === 'amt_pti_hasil') {
         $pack = amt_tour_pti_hasil_steps();
@@ -642,7 +719,11 @@ function amt_tour_config(string $screen): array
         'epoch'        => amt_tour_epoch(),
         // Layar form/aksi: JANGAN catat "selesai" permanen (Kirim bisa ditolak server
         // lalu halaman dimuat ulang) -> tutorial tampil lagi otomatis setiap dibuka.
-        'persist'      => !in_array($screen, ['start_work', 'checkin', 'end_work', 'start_end'], true),
+        // Layar SPBU sebelum tiba juga tidak dicatat selesai: bila pengguna keluar lalu kembali
+        // sebelum menekan "Ya, pengiriman telah tiba", tutorial tampil lagi. Kartu "tercatat" (sesudah
+        // tiba) tetap dicatat supaya hanya tampil sekali.
+        'persist'      => !in_array($screen, ['start_work', 'checkin', 'end_work', 'start_end'], true)
+                          && !($screen === 'amt_spbu' && empty($pack['subKey'])),
         'screenOrder'  => AMT_TOUR_SCREEN_ORDER,
         'screenLabels' => AMT_TOUR_SCREEN_LABELS,
     ];

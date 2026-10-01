@@ -99,6 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         case 'submit_start_work':
         case 'submit_end_work':
         case 'submit_checkin':
+        case 'submit_spbu_arrive':
             amt_handle_post($action); // lihat includes/amt/amt.php
             break;
 

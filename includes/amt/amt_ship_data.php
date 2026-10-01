@@ -27,7 +27,7 @@ function amt_spbu_steps(): array
     return [
         ['key' => 'tiba',      'label' => 'Tiba di Lokasi',       'icon' => $pick('step-tiba.png',       'assets/step-arrive.png')],
         ['key' => 'checklist', 'label' => 'Isi Checklist',        'icon' => $pick('step-checklist.png',  'assets/step-checklist.png')],
-        ['key' => 'verifikasi','label' => 'Verifikasi Order',     'icon' => $pick('step-verifikasi.png', 'assets/step-surat-jalan.png')],
+        ['key' => 'verifikasi','label' => 'Verifikasi Order',     'icon' => $pick('step-verifikasi.png', 'assets/step-verification.png')],
         ['key' => 'surat',     'label' => 'Foto Surat Jalan',     'icon' => $pick('step-surat.png',      'assets/step-surat-jalan.png')],
         ['key' => 'rating',    'label' => 'Rating Petugas SPBU',  'icon' => $pick('step-rating.png',     'assets/step-rate-spbu.png')],
     ];
@@ -66,6 +66,9 @@ function amt_ship_all(): array
             'detail_no' => '45788827',
             'tanggal_iso' => '2026-10-01',
             'spbu'      => '65748002',
+            'lat'       => -2.736500,      // titik SPBU (CONTOH, ganti dengan data asli)
+            'lng'       => 114.267100,
+            'plus'      => '7726+W6J',   // kode lokasi (Plus Code) yang tampil di popup Tiba di Lokasi
             'products'  => $products('8144837464', '8144837463'),
         ]),
         array_merge($base, [
@@ -74,6 +77,9 @@ function amt_ship_all(): array
             'detail_no' => '45788811',
             'tanggal_iso' => '2026-10-01',
             'spbu'      => '65748001',
+            'lat'       => -2.739100,      // titik SPBU (CONTOH, ganti dengan data asli)
+            'lng'       => 114.270200,
+            'plus'      => '7727+4P8',   // kode lokasi (Plus Code) yang tampil di popup Tiba di Lokasi
             'products'  => $products('8144837402', '8144837401'),
         ]),
         array_merge($base, [
@@ -83,6 +89,9 @@ function amt_ship_all(): array
             'detail_no' => '45788790',
             'tanggal_iso' => '2026-09-28',
             'spbu'      => '65748003',
+            'lat'       => -2.734000,      // titik SPBU (CONTOH, ganti dengan data asli)
+            'lng'       => 114.264000,
+            'plus'      => '7725+MH3',   // kode lokasi (Plus Code) yang tampil di popup Tiba di Lokasi
             'products'  => $products('8144837311', '8144837310'),
         ]),
     ];
@@ -130,4 +139,43 @@ function amt_ship_chip(string $status): string
 {
     $st = AMT_SHIP_STATUS[$status] ?? AMT_SHIP_STATUS['selesai'];
     return '<span class="amts-chip ' . amt_e($st['class']) . '">' . amt_e($st['label']) . '</span>';
+}
+
+
+/* ------------------------------------------------------------
+ * "Tiba di Lokasi" (langkah pertama Aktifitas di SPBU)
+ * Status kedatangan disimpan di session per pengiriman:
+ *   $_SESSION['amt_spbu']['arrived'][<id>] = ['at' => time, 'lat' => .., 'lng' => ..]
+ * Direset bersama siklus kerja AMT (Start Work / End Work / pilih peran).
+ * ------------------------------------------------------------ */
+
+/** Radius (meter) dari titik SPBU agar tombol "Ya, pengiriman telah tiba" aktif. */
+const AMT_SPBU_RADIUS_M = 200;
+
+function amt_spbu_arrived(array $s): bool
+{
+    return !empty($_SESSION['amt_spbu']['arrived'][$s['id']]);
+}
+
+function amt_spbu_mark_arrived(array $s, float $lat, float $lng): void
+{
+    $_SESSION['amt_spbu']['arrived'][$s['id']] = ['at' => time(), 'lat' => $lat, 'lng' => $lng];
+}
+
+function amt_spbu_reset(): void
+{
+    unset($_SESSION['amt_spbu']);
+}
+
+/** Posisi (lat, lng) berada dalam radius SPBU? Dipakai untuk validasi di server. */
+function amt_spbu_in_range(array $s, float $lat, float $lng): bool
+{
+    return work_distance_m($lat, $lng, (float) $s['lat'], (float) $s['lng']) <= AMT_SPBU_RADIUS_M;
+}
+
+/** id pengiriman dari field POST, hanya karakter aman. */
+function amt_ship_post_id(): string
+{
+    $id = isset($_POST['id']) ? (string) $_POST['id'] : '';
+    return preg_match('/^[A-Za-z0-9-]{1,64}$/', $id) ? $id : '';
 }
