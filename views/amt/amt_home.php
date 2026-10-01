@@ -15,7 +15,7 @@ $amtMenus = [
     ['key' => 'start_end',   'label' => 'Start / End',  'icon' => 'assets/start-end.png',            'tone' => 'slate',  'href' => '?screen=start_end'],
     ['key' => 'checkin',     'label' => 'Check-In',     'icon' => 'assets/Check-In.png',             'tone' => 'green',  'href' => '?screen=checkin'],
     ['key' => 'pti',         'label' => 'PTI',          'icon' => 'assets/PTI.png',                  'tone' => 'peach',  'href' => '?screen=amt_pti'],
-    ['key' => 'shipments',   'label' => 'Shipments',    'icon' => 'assets/empty-delivery-truck.png', 'tone' => 'blue',   'href' => '#'],
+    ['key' => 'shipments',   'label' => 'Shipments',    'icon' => 'assets/empty-delivery-truck.png', 'tone' => 'blue',   'href' => '?screen=amt_shipments'],
     ['key' => 'checkout',    'label' => 'Check-Out',    'icon' => 'assets/Check-Out.png',            'tone' => 'rose',   'href' => '#'],
     ['key' => 'performance', 'label' => 'Performance',  'icon' => 'assets/performance.png',          'tone' => 'violet', 'href' => '#'],
     ['key' => 'safire',      'label' => 'SAFIRE',       'icon' => 'assets/safire_icon.png',          'tone' => 'sky',    'href' => '#'],

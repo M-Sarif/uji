@@ -2,9 +2,11 @@
 /**
  * Layar: ?screen=amt_pti  (role AMT)  -- "Pre-Trip Inspection"
  *
- * Ringkasan sebelum inspeksi: nomor polisi MT, kapasitas tangki, status PTI,
- * dan tombol "Isi Inspeksi". Form 11 langkah ada di pti_form.php
- * (?screen=amt_pti_form&step=1..11) dan dibuka lewat tombol ini.
+ * Halaman awal PTI: nomor polisi MT, kapasitas tangki, status PTI.
+ *  - Belum inspeksi : tombol "Isi Inspeksi" -> form 11 langkah (pti_form.php).
+ *  - Sudah inspeksi : tombol "Lihat Hasil Inspeksi" (pti_hasil.php) dan
+ *                     "Isi Inspeksi Lagi" (mengisi ulang form).
+ * Halaman ini juga tujuan setelah "Ya, kirim hasil inspeksi" pada popup konfirmasi.
  *
  * Judul header "Pre-Trip Inspection" diatur di includes/amt/work.php (WORK_SCREENS).
  * Atribut data-tour dipakai tutorial AMT (includes/amt/tutorial.php).
@@ -13,11 +15,7 @@ require_once __DIR__ . '/../../includes/amt/amt_pti_functions.php';
 
 $shipment = amt_pti_shipment();
 $done     = amt_pti_is_done();
-$result   = $done ? (amt_pti_state()['result'] ?? null) : null;
-$flash    = isset($_SESSION['amt_pti_flash']) ? $_SESSION['amt_pti_flash'] : '';
-unset($_SESSION['amt_pti_flash']);
-$sent     = $flash !== '' && $done;   // baru saja mengirim inspeksi -> tampilkan pemberitahuan
-$isGo     = $result === 'GO';
+$redo     = amt_pti_is_redo();   // sedang mengisi inspeksi ulang (draf belum dikirim)
 ?>
 
 <section class="pti-screen" data-pti-done="<?= $done ? '1' : '0' ?>">
@@ -40,60 +38,36 @@ $isGo     = $result === 'GO';
                 </div>
             </div>
 
-            <div class="pti-status">
+            <div class="pti-status" data-tour="pti-status">
                 <div class="pti-label">Status PTI</div>
                 <?php if ($done): ?>
-                    <span class="pti-badge pti-badge--done">Sudah Inspeksi<?= $result ? ' · ' . amt_e($result) : '' ?></span>
+                    <span class="pti-badge pti-badge--done">Sudah Inspeksi</span>
                 <?php else: ?>
                     <span class="pti-badge pti-badge--pending">Belum Inspeksi</span>
                 <?php endif; ?>
             </div>
 
-            <form method="post" action="<?= amt_e(amt_pti_url('amt_pti')) ?>">
-                <input type="hidden" name="pti_action" value="start">
-                <?php if ($done): ?>
-                    <button type="button" class="pti-btn pti-btn--primary is-locked" aria-disabled="true">Inspeksi Selesai</button>
-                <?php else: ?>
+            <?php if ($done): ?>
+                <div class="pti-actions">
+                    <a href="<?= amt_e(amt_pti_url('amt_pti_hasil')) ?>" class="pti-btn pti-btn--result" data-tour="pti-lihat">
+                        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4M3 7h2M3 12h2M3 17h2"/></svg>
+                        <span>Lihat Hasil Inspeksi</span>
+                        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.3l2.5 2.5 4.5-4.8"/></svg>
+                    </a>
+
+                    <form method="post" action="<?= amt_e(amt_pti_url('amt_pti')) ?>">
+                        <input type="hidden" name="pti_action" value="restart">
+                        <button type="submit" class="pti-btn pti-btn--again" data-tour="pti-ulang">
+                            <?= $redo ? 'Lanjutkan Isi Inspeksi' : 'Isi Inspeksi Lagi' ?>
+                        </button>
+                    </form>
+                </div>
+            <?php else: ?>
+                <form method="post" action="<?= amt_e(amt_pti_url('amt_pti')) ?>">
+                    <input type="hidden" name="pti_action" value="start">
                     <button type="submit" class="pti-btn pti-btn--primary" data-tour="pti-start">Isi Inspeksi</button>
-                <?php endif; ?>
-            </form>
+                </form>
+            <?php endif; ?>
         </div>
     <?php endif; ?>
 </section>
-
-<?php if ($sent): ?>
-<!-- Pemberitahuan setelah inspeksi terkirim (tutorial AMT menunggu sampai ini ditutup). -->
-<div class="pti-notif is-open" id="ptiNotif" role="alertdialog" aria-modal="true"
-     aria-labelledby="ptiNotifTitle" aria-describedby="ptiNotifText">
-    <div class="pti-notif__card">
-        <span class="pti-notif__icon pti-notif__icon--<?= $isGo ? 'go' : 'nogo' ?>" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
-        </span>
-        <h2 class="pti-notif__title" id="ptiNotifTitle">Inspeksi Berhasil Dikirim</h2>
-        <p class="pti-notif__result pti-notif__result--<?= $isGo ? 'go' : 'nogo' ?>">Hasil Inspeksi: <?= amt_e($result) ?></p>
-        <p class="pti-notif__text" id="ptiNotifText">
-            <?= $isGo
-                ? 'Mobil tangki dalam keadaan layak beroperasi. Status PTI Anda sekarang “Sudah Inspeksi”.'
-                : 'Mobil tangki belum layak beroperasi. Laporkan ke pengawas sebelum berangkat.' ?>
-        </p>
-        <button type="button" class="pti-btn pti-btn--primary" id="ptiNotifOk">OK</button>
-    </div>
-</div>
-<script>
-(function () {
-    var box = document.getElementById('ptiNotif');
-    var ok  = document.getElementById('ptiNotifOk');
-    if (!box || !ok) return;
-    function close() {
-        box.classList.remove('is-open');
-        document.removeEventListener('keydown', onKey);
-        if (window.OneFISTour && window.OneFISTour.rescan) window.OneFISTour.rescan();   // lanjutkan tutorial
-    }
-    function onKey(e) { if (e.key === 'Escape') close(); }
-    ok.addEventListener('click', close);
-    box.addEventListener('click', function (e) { if (e.target === box) close(); });
-    document.addEventListener('keydown', onKey);
-    ok.focus();
-})();
-</script>
-<?php endif; ?>

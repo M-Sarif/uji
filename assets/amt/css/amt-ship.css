@@ -1,0 +1,153 @@
+/* ============================================================
+   OneFIS - AMT - amt-ship.css
+   Layar Shipments (daftar), Detail Order, dan Aktifitas di SPBU.
+   Semua kelas berawalan "amts-" supaya tidak bentrok dengan CSS SPBU.
+   ============================================================ */
+
+:root {
+    --amts-blue: #2563eb;
+    --amts-blue-soft: #eaf1ff;
+    --amts-ink: #0f172a;
+    --amts-muted: #64748b;
+    --amts-line: #e2e8f0;
+    --amts-green: #15803d;
+    --amts-green-bg: #dcfce7;
+    --amts-amber: #a16207;
+    --amts-amber-bg: #fef3c7;
+    --amts-red: #dc2626;
+}
+
+.amts-screen { padding: 12px 16px 20px; color: var(--amts-ink); box-sizing: border-box; }
+.amts-h2 { margin: 0 0 12px; font-size: 18px; font-weight: 700; color: var(--amts-ink); }
+.amts-label { font-size: 12.5px; color: var(--amts-muted); margin-bottom: 4px; }
+.amts-value { font-size: 14.5px; font-weight: 700; color: var(--amts-ink); }
+.amts-break { word-break: break-all; }
+.amts-empty { margin: 24px 0; text-align: center; font-size: 13.5px; color: var(--amts-muted); }
+.amts-empty[hidden] { display: none; }
+
+/* ---------- Filter status ---------- */
+.amts-filter-label { display: block; margin: 0 0 6px 2px; font-size: 12px; color: var(--amts-muted); }
+.amts-select { position: relative; margin-bottom: 14px; }
+.amts-select select {
+    width: 100%; box-sizing: border-box; height: 46px; padding: 0 38px 0 14px;
+    appearance: none; -webkit-appearance: none; font: inherit; font-size: 14.5px; color: var(--amts-ink);
+    background: #fff; border: 1px solid var(--amts-line); border-radius: 12px;
+}
+.amts-select::after {
+    content: ''; position: absolute; right: 16px; top: 50%; width: 7px; height: 7px; margin-top: -6px;
+    border-right: 2px solid var(--amts-muted); border-bottom: 2px solid var(--amts-muted); transform: rotate(45deg);
+    pointer-events: none;
+}
+.amts-select select:focus-visible { outline: 3px solid rgba(37, 99, 235, .25); border-color: var(--amts-blue); }
+
+/* ---------- Kartu ---------- */
+.amts-list { display: flex; flex-direction: column; gap: 14px; }
+.amts-card {
+    background: #fff; border: 1px solid var(--amts-line); border-radius: 18px; padding: 16px;
+    box-shadow: 0 6px 18px rgba(15, 23, 42, .07);
+}
+.amts-card[hidden] { display: none; }
+.amts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 12px; margin-bottom: 16px; }
+.amts-grid > div { min-width: 0; }
+
+/* ---------- Chip status ---------- */
+.amts-chip { display: inline-block; padding: 3px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; white-space: nowrap; }
+.amts-chip.is-going { background: #dbe7ff; color: #1d4ed8; }
+.amts-chip.is-done  { background: var(--amts-green-bg); color: var(--amts-green); }
+
+/* ---------- Tombol ---------- */
+.amts-btn {
+    display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; box-sizing: border-box;
+    min-height: 46px; padding: 0 16px; border-radius: 12px; font: inherit; font-size: 14.5px; font-weight: 600;
+    text-decoration: none; cursor: pointer; background: #fff; border: 1.5px solid transparent;
+}
+.amts-btn--outline { color: var(--amts-blue); border-color: var(--amts-blue); }
+.amts-btn--outline:hover { background: var(--amts-blue-soft); }
+.amts-btn--danger { color: var(--amts-red); border-color: #f87171; }
+.amts-btn--danger:hover { background: #fef2f2; }
+.amts-btn--solid { background: var(--amts-blue); color: #fff; }
+.amts-btn--solid:disabled { background: #cbd5e1; color: #fff; cursor: not-allowed; }
+.amts-btn:focus-visible { outline: 3px solid rgba(37, 99, 235, .3); outline-offset: 2px; }
+.amts-card .amts-btn { margin-top: 4px; }
+.amts-order .amts-btn { margin-top: 14px; }
+
+/* ---------- Footer menempel di bawah ---------- */
+.amts-footer {
+    position: sticky; bottom: 0; z-index: 5; padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+    background: #fff; border-top: 1px solid #f1f5f9; box-sizing: border-box;
+}
+
+/* ---------- Detail Order ---------- */
+.amts-detail { padding-bottom: 8px; }
+.amts-info {
+    background: #fff; border: 1px solid var(--amts-line); border-radius: 18px; padding: 18px 16px 6px;
+    box-shadow: 0 6px 18px rgba(15, 23, 42, .07); margin-bottom: 16px;
+}
+.amts-info .amts-grid { margin-bottom: 12px; }
+.amts-route { background: #fff; border-radius: 22px; padding: 18px 14px 20px; border: 1px solid var(--amts-line); }
+.amts-note {
+    margin: 0 0 16px; padding: 10px 12px; font-size: 12px; line-height: 1.5; color: #1e40af;
+    background: var(--amts-blue-soft); border: 1px solid #c7d8fb; border-radius: 10px;
+}
+.amts-timeline { position: relative; display: flex; flex-direction: column; gap: 6px; }
+.amts-line { position: absolute; left: 13px; top: 14px; bottom: 14px; width: 3px; background: var(--amts-blue); border-radius: 2px; }
+.amts-stop { position: relative; display: flex; gap: 12px; align-items: flex-start; }
+.amts-node {
+    position: relative; z-index: 1; flex: none; display: inline-flex; align-items: center; justify-content: center;
+    width: 28px; height: 28px; border-radius: 50%; background: var(--amts-blue); color: #fff;
+    font-size: 13px; font-weight: 700; box-shadow: 0 0 0 4px #fff;
+}
+.amts-stop__body { flex: 1 1 auto; min-width: 0; }
+.amts-origin { min-height: 28px; display: flex; align-items: center; font-size: 13.5px; font-weight: 700; color: #334155; }
+.amts-km { margin: 6px 0 10px; font-size: 12px; color: var(--amts-muted); }
+.amts-spbu {
+    display: block; padding: 14px; text-decoration: none; color: inherit;
+    background: #eceff3; border: 1px solid #e2e8f0; border-radius: 14px;
+}
+.amts-spbu:hover { background: #e4e8ee; }
+.amts-spbu:focus-visible { outline: 3px solid rgba(37, 99, 235, .3); outline-offset: 2px; }
+.amts-spbu__top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.amts-spbu__name { font-size: 14.5px; font-weight: 700; color: var(--amts-ink); }
+.amts-spbu__status { font-size: 12px; font-weight: 700; }
+.amts-spbu__status.is-going { color: var(--amts-blue); }
+.amts-spbu__status.is-done  { color: var(--amts-green); }
+.amts-tags { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.amts-tag { padding: 4px 10px; font-size: 11.5px; font-weight: 700; letter-spacing: .01em; background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; }
+
+/* ---------- Aktifitas di SPBU ---------- */
+.amts-spbu-screen { padding-bottom: 12px; }
+.amts-act-card { background: #fff; border-radius: 18px; padding: 18px 14px 16px; }
+.amts-act { position: relative; display: flex; flex-direction: column; gap: 14px; padding-left: 4px; }
+.amts-act__line { position: absolute; left: 14px; top: 16px; bottom: 16px; width: 3px; background: #d6dff0; border-radius: 2px; }
+.amts-act__line--done { background: #10b981; bottom: auto; }
+.amts-act__item { position: relative; padding-left: 34px; }
+.amts-act__node {
+    position: absolute; left: 4px; top: 50%; transform: translateY(-50%); z-index: 1;
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 22px; height: 22px; border-radius: 50%; background: #e2e8f0; border: 3px solid #fff; box-sizing: border-box; color: #fff;
+}
+.amts-act__item.is-active .amts-act__node { background: #fff; border: 4px solid var(--amts-blue); }
+.amts-act__item.is-done .amts-act__node { background: #10b981; }
+.amts-act__row {
+    display: flex; align-items: center; gap: 12px; min-height: 66px; padding: 8px 14px 8px 8px;
+    background: #f1f5f9; border: 1px solid #e8edf4; border-radius: 14px; box-sizing: border-box;
+}
+.amts-act__item.is-active .amts-act__row { background: #fff; border: 1.5px solid var(--amts-blue); box-shadow: 0 6px 16px rgba(37, 99, 235, .18); }
+.amts-act__item.is-pending .amts-act__row { opacity: .6; }
+.amts-act__icon { flex: none; width: 52px; height: 52px; object-fit: contain; }
+.amts-act__label { flex: 1 1 auto; text-align: right; font-size: 13.5px; color: var(--amts-muted); }
+.amts-act__item.is-active .amts-act__label { color: var(--amts-blue); font-weight: 700; text-align: left; }
+.amts-act__item.is-done .amts-act__label { color: #1d4ed8; font-weight: 700; }
+.amts-act__chev { flex: none; color: var(--amts-blue); }
+
+.amts-h2--list { margin: 18px 0 10px 2px; font-size: 16px; }
+.amts-order { margin-bottom: 14px; }
+.amts-order__row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 7px 0; font-size: 13.5px; }
+.amts-order__k { color: #475569; }
+.amts-order__v { text-align: right; }
+.amts-box { display: inline-block; padding: 5px 12px; font-size: 12.5px; font-weight: 700; background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; }
+.amts-pill { display: inline-block; padding: 3px 12px; border-radius: 999px; font-size: 11.5px; font-weight: 700; }
+.amts-pill.is-warn { background: var(--amts-amber-bg); color: var(--amts-amber); }
+.amts-pill.is-ok   { background: var(--amts-green-bg); color: var(--amts-green); }
+
+@media (prefers-reduced-motion: reduce) { .amts-btn, .amts-spbu { transition: none; } }

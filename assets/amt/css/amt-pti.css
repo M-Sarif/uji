@@ -201,53 +201,65 @@
     .amt-modal, .amt-modal__card, .amt-spot, .pti-btn, .pti-option input::before { transition: none; }
 }
 
-/* ---------- Pemberitahuan: inspeksi terkirim ---------- */
-.pti-notif {
-    position: fixed; inset: 0; z-index: 950;          /* di atas tutorial (900-902), di bawah kamera (1000) */
-    display: none; align-items: center; justify-content: center;
-    padding: 24px; box-sizing: border-box;
-    background: rgba(15, 23, 42, .55);
+/* ---------- Halaman PTI setelah inspeksi terkirim ---------- */
+.pti-actions { display: flex; flex-direction: column; gap: 14px; }
+.pti-actions form { margin: 0; }
+.pti-btn--result {
+    display: flex; align-items: center; justify-content: center; gap: 12px;
+    width: 100%; box-sizing: border-box; min-height: 52px; padding: 0 16px;
+    border: 1.5px solid var(--pti-blue); border-radius: 16px; background: #fff;
+    color: var(--pti-blue); font-size: 15px; font-weight: 500; text-decoration: none;
 }
-.pti-notif.is-open { display: flex; animation: ptiNotifIn .18s ease; }
-.pti-notif__card {
-    width: 100%; max-width: 320px; box-sizing: border-box;
-    padding: 24px 20px 20px; border-radius: 20px; text-align: center;
-    background: #fff; box-shadow: 0 24px 48px -12px rgba(15, 23, 42, .45);
+.pti-btn--result:hover { background: var(--pti-blue-soft); }
+.pti-btn--again {
+    display: block; width: 100%; box-sizing: border-box; min-height: 52px; padding: 0 16px;
+    border: 1px solid var(--pti-line); border-radius: 16px; background: #fff;
+    color: #334155; font-size: 15px; font-weight: 500; cursor: pointer;
 }
-.pti-notif__icon {
-    display: inline-flex; align-items: center; justify-content: center;
-    width: 56px; height: 56px; margin-bottom: 12px; border-radius: 50%;
-}
-.pti-notif__icon--go   { background: var(--pti-green-bg); color: var(--pti-green); }
-.pti-notif__icon--nogo { background: #ffedd5; color: #c2410c; }
-.pti-notif__title  { margin: 0 0 6px; font-size: 18px; font-weight: 800; color: var(--pti-ink); }
-.pti-notif__result { margin: 0 0 8px; font-size: 14px; font-weight: 800; letter-spacing: .02em; }
-.pti-notif__result--go   { color: var(--pti-green); }
-.pti-notif__result--nogo { color: var(--pti-red); }
-.pti-notif__text   { margin: 0 0 18px; font-size: 13.5px; line-height: 1.5; color: #475569; }
-@keyframes ptiNotifIn { from { opacity: 0; transform: scale(.97); } to { opacity: 1; transform: none; } }
-@media (prefers-reduced-motion: reduce) { .pti-notif.is-open { animation: none; } }
+.pti-btn--again:hover { background: #f8fafc; }
+
+/* ---------- Layar "Hasil Inspeksi" (baca saja) ---------- */
+.pti-meta { display: flex; gap: 20px; margin: 0 0 12px; padding: 12px 14px; background: #fff; border: 1px solid var(--pti-line); border-radius: 14px; }
+.pti-meta > div { display: flex; flex-direction: column; gap: 4px; }
+.pti-meta b { font-size: 14px; font-weight: 700; }
+.pti-review { display: flex; flex-direction: column; gap: 10px; padding-bottom: 24px; }
+.pti-review__group { padding: 12px 14px; background: #fff; border: 1px solid var(--pti-line); border-radius: 14px; }
+.pti-review__title { margin: 0 0 8px; font-size: 12px; font-weight: 800; letter-spacing: .03em; color: var(--pti-muted); }
+.pti-review__row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 0; font-size: 13.5px; border-top: 1px dashed var(--pti-line); }
+.pti-review__row:first-of-type { border-top: 0; }
+.pti-chip { flex: none; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+.pti-chip--ok  { background: var(--pti-green-bg); color: var(--pti-green); }
+.pti-chip--bad { background: var(--pti-red-bg);   color: var(--pti-red); }
+.pti-review__note { margin: 0; font-size: 13.5px; line-height: 1.5; color: #334155; word-break: break-word; }
 
 /* ---------- Popup konfirmasi kirim inspeksi ---------- */
+/* z-index 890: DI BAWAH tutorial (900-903) supaya kartu tutorial bisa menyorot tombolnya,
+   tetap di atas halaman dan di bawah kamera (1000). */
 .pti-confirm {
-    position: fixed; inset: 0; z-index: 950;          /* di atas tutorial (900-902), di bawah kamera (1000) */
+    position: fixed; inset: 0; z-index: 890;
     display: none; align-items: center; justify-content: center;
     padding: 24px; box-sizing: border-box;
-    background: rgba(15, 23, 42, .55);
+    background: rgba(15, 23, 42, .28);
+    -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
 }
 .pti-confirm.is-open { display: flex; animation: ptiNotifIn .18s ease; }
 .pti-confirm__card {
-    width: 100%; max-width: 320px; box-sizing: border-box;
-    padding: 24px 20px 18px; border-radius: 20px; text-align: center;
-    background: #fff; box-shadow: 0 24px 48px -12px rgba(15, 23, 42, .45);
+    width: 100%; max-width: 420px; box-sizing: border-box;
+    padding: 24px 22px 22px; border-radius: 22px; text-align: left;
+    background: #fff; box-shadow: 0 24px 48px -12px rgba(15, 23, 42, .35);
 }
-.pti-confirm__icon {
-    display: inline-flex; align-items: center; justify-content: center;
-    width: 56px; height: 56px; margin-bottom: 12px; border-radius: 50%;
-    background: var(--pti-blue-soft); color: var(--pti-blue);
+.pti-confirm__title { margin: 0 0 16px; font-size: 20px; font-weight: 600; color: var(--pti-ink); }
+.pti-confirm__text  { margin: 0 0 12px; font-size: 17px; line-height: 1.5; color: #475569; }
+.pti-confirm__note  { margin: 0 0 22px; font-size: 14px; line-height: 1.5; color: #64748b; }
+.pti-confirm__yes, .pti-confirm__no {
+    display: block; width: 100%; box-sizing: border-box; min-height: 52px; padding: 0 16px;
+    border-radius: 16px; font: inherit; font-size: 16px; font-weight: 500; cursor: pointer;
 }
-.pti-confirm__title { margin: 0 0 6px; font-size: 18px; font-weight: 800; color: var(--pti-ink); }
-.pti-confirm__text  { margin: 0 0 18px; font-size: 13.5px; line-height: 1.5; color: #475569; }
-.pti-confirm__actions { display: flex; gap: 10px; }
-.pti-confirm__actions .pti-btn { flex: 1 1 0; }
+.pti-confirm__yes { border: 0; background: #1f6feb; color: #fff; }
+.pti-confirm__yes:hover { background: #1b5fcc; }
+.pti-confirm__yes:disabled { opacity: .7; cursor: default; }
+.pti-confirm__no { margin-top: 14px; border: 1px solid #d5deea; background: #fff; color: #334155; }
+.pti-confirm__no:hover { background: #f8fafc; }
+.pti-confirm__yes:focus-visible, .pti-confirm__no:focus-visible { outline: 3px solid rgba(31, 111, 235, .35); outline-offset: 2px; }
+@keyframes ptiNotifIn { from { opacity: 0; transform: scale(.97); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .pti-confirm.is-open { animation: none; } }

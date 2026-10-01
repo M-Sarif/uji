@@ -847,6 +847,10 @@ const SCREEN_CSS = [
     'amt_home'              => ['role', 'amt/amt'],   // 'amt/...' = assets/amt/css/
     'amt_pti'               => ['amt/amt-pti'],
     'amt_pti_form'          => ['amt/amt-pti'],
+    'amt_pti_hasil'         => ['amt/amt-pti'],
+    'amt_shipments'         => ['amt/amt-ship'],
+    'amt_shipment_detail'   => ['amt/amt-ship'],
+    'amt_spbu'              => ['amt/amt-ship'],
     'dashboard'             => ['dashboard'],
     'shipments_list'        => ['shipments'],
     'create_order_info'     => ['order-form'],

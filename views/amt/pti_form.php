@@ -149,18 +149,12 @@ $counter  = str_pad((string) $step, 2, '0', STR_PAD_LEFT) . '/' . AMT_PTI_TOTAL;
 <!-- Popup konfirmasi kirim (hanya di langkah terakhir). Dibuka lewat tombol "Kirim". -->
 <div class="pti-confirm" id="ptiConfirm" role="alertdialog" aria-modal="true"
      aria-labelledby="ptiConfirmTitle" aria-describedby="ptiConfirmText">
-    <div class="pti-confirm__card">
-        <span class="pti-confirm__icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.2a2.6 2.6 0 0 1 5 .9c0 1.7-2.5 2.2-2.5 3.9M12 17h.01"/></svg>
-        </span>
-        <h2 class="pti-confirm__title" id="ptiConfirmTitle">Kirim hasil inspeksi?</h2>
-        <p class="pti-confirm__text" id="ptiConfirmText">
-            Apakah Anda yakin ingin mengirim hasil inspeksi ini? Setelah dikirim, jawaban tidak dapat diubah lagi.
-        </p>
-        <div class="pti-confirm__actions">
-            <button type="button" class="pti-btn pti-btn--ghost" id="ptiConfirmNo">Tidak</button>
-            <button type="button" class="pti-btn pti-btn--send" id="ptiConfirmYes">Ya, Kirim</button>
-        </div>
+    <div class="pti-confirm__card" data-tour="pti-confirm">
+        <h2 class="pti-confirm__title" id="ptiConfirmTitle">Kirim Hasil Inspeksi</h2>
+        <p class="pti-confirm__text" id="ptiConfirmText">Apakah kamu yakin ingin mengirim hasil inspeksi?</p>
+        <p class="pti-confirm__note">Note : Data yang telah dikirim tidak dapat diubah kembali.</p>
+        <button type="button" class="pti-confirm__yes" id="ptiConfirmYes">Ya, kirim hasil inspeksi</button>
+        <button type="button" class="pti-confirm__no" id="ptiConfirmNo">Batal</button>
     </div>
 </div>
 <?php endif; ?>

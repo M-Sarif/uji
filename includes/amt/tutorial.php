@@ -59,7 +59,7 @@
  * ============================================================ */
 
 // Nama layar untuk label (dipakai bila langkah tidak punya alur bernomor)
-const AMT_TOUR_SCREEN_ORDER = ['amt_home', 'start_end', 'start_work', 'checkin', 'amt_pti', 'amt_pti_form', 'end_work'];
+const AMT_TOUR_SCREEN_ORDER = ['amt_home', 'start_end', 'start_work', 'checkin', 'amt_pti', 'amt_pti_form', 'amt_pti_hasil', 'amt_shipments', 'amt_shipment_detail', 'amt_spbu', 'end_work'];
 
 const AMT_TOUR_SCREEN_LABELS = [
     'amt_home'   => 'Beranda AMT',
@@ -68,6 +68,10 @@ const AMT_TOUR_SCREEN_LABELS = [
     'checkin'    => 'Check-In',
     'amt_pti'      => 'Pre-Trip Inspection',
     'amt_pti_form' => 'Form Inspeksi',
+    'amt_pti_hasil' => 'Hasil Inspeksi',
+    'amt_shipments' => 'Shipments',
+    'amt_shipment_detail' => 'Detail Order',
+    'amt_spbu' => 'Aktifitas di SPBU',
     'end_work'   => 'End Work',
 ];
 
@@ -77,8 +81,10 @@ const AMT_TOUR_JOURNEYS = [
     'checkin' => ['label' => 'Check-In',     'total' => 5],
     'pulang'  => ['label' => 'Absen Pulang', 'total' => 4],
     'dcu'     => ['label' => 'Check-In Berhasil', 'total' => 1],   // pemberitahuan DCU (tanpa nomor langkah)
-    // Inspeksi PTI: 1 buka menu, 2-3 ringkasan, 4-5 jawab item, 6 catatan, 7 kirim
-    'pti'     => ['label' => 'Inspeksi PTI', 'total' => 7],
+    // Inspeksi PTI: 1 buka menu, 2-3 ringkasan, 4-5 jawab item, 6 catatan, 7 kirim, 8 konfirmasi
+    'pti'     => ['label' => 'Inspeksi PTI', 'total' => 8],
+    // Pengiriman: 1 buka Detail Order, 2 buka kartu SPBU (menu Shipments di Beranda = kartu tersendiri)
+    'kirim'   => ['label' => 'Pengiriman', 'total' => 2],
 ];
 
 // Jeda (ms) sebelum tutorial DCU muncul di beranda setelah Check-In berhasil
@@ -192,14 +198,33 @@ function amt_tour_pti_steps(string $screen): array
             return ['journey' => 'pti', 'steps' => [], 'subKey' => null];   // belum ada shipment
         }
         if (amt_pti_is_done()) {
-            return ['journey' => 'pti', 'subKey' => 'amt_pti_done', 'steps' => [[
-                'no'     => null,
-                'target' => null,
-                'title'  => 'Inspeksi selesai 🎉',
-                'text'   => 'Hasil inspeksi sudah terkirim dan status PTI sekarang “Sudah Inspeksi”. Ketuk panah kembali (←) di kiri atas untuk kembali ke Beranda.',
-                'button' => 'Mengerti',
-                'done'   => null,
-            ]]];
+            // Halaman awal PTI setelah inspeksi terkirim. Hanya 2 kartu:
+            //  1) menyorot KOTAK KARTU PTI (status "Sudah Inspeksi"); tertutup sendiri setelah 5 detik
+            //     (atau ketuk "Mengerti"),
+            //  2) menyorot panah kembali (←) supaya AMT kembali ke Beranda; di sana tutorial segel menyusul.
+            // 'remember' = kartu 1 tidak diulang bila halaman dimuat ulang sebelum AMT menekan ←.
+            return ['journey' => 'pti', 'subKey' => 'amt_pti_done', 'steps' => [
+                [
+                    'no'       => null,
+                    'label'    => 'Inspeksi Terkirim',
+                    'target'   => '[data-tour="pti-card"]',
+                    'title'    => 'Inspeksi selesai ✅',
+                    'text'     => 'Hasil inspeksi sudah terkirim dan status PTI sekarang “Sudah Inspeksi”. Anda bisa melihat hasilnya lewat “Lihat Hasil Inspeksi”, atau mengisi ulang lewat “Isi Inspeksi Lagi”.',
+                    'button'   => 'Mengerti',
+                    'autoHide' => AMT_PTI_DONE_PAGE_VISIBLE_FOR,   // hilang sendiri setelah 5 detik
+                    'remember' => true,
+                    'done'     => null,
+                ],
+                [
+                    'no'     => null,
+                    'label'  => 'Kembali ke Beranda',
+                    'target' => 'a.back-btn',
+                    'title'  => 'Kembali ke Beranda',
+                    'text'   => 'Ketuk panah kembali (←) di kiri atas untuk kembali ke Beranda. Tahapan berikutnya (ambil segel, scan segel, dan seterusnya) dijelaskan di sana.',
+                    'hint'   => '👆 Ketuk panah ← di kiri atas',
+                    'done'   => null,
+                ],
+            ]];
         }
         return ['journey' => 'pti', 'subKey' => null, 'steps' => [
             [
@@ -281,8 +306,100 @@ function amt_tour_pti_steps(string $screen): array
             'no'     => 7,
             'target' => '#ptiForm .pti-btn--send',
             'title'  => 'Ketuk “Kirim”',
-            'text'   => 'Semua sudah lengkap. Ketuk “Kirim”, lalu pilih “Ya, Kirim” pada pertanyaan konfirmasi. Setelah terkirim, Anda kembali ke Beranda.',
+            'text'   => 'Semua sudah lengkap. Ketuk “Kirim”, lalu konfirmasi pada pertanyaan yang muncul.',
             'hint'   => '👆 Ketuk tombol biru “Kirim”',
+            'done'   => null,
+        ],
+        [
+            // Popup konfirmasi (gambar: "Kirim Hasil Inspeksi"). Kartu ini baru muncul saat popup
+            // terbuka; bila AMT mengetuk "Batal", kartu hilang dan muncul lagi saat popup dibuka ulang.
+            'no'        => 8,
+            'target'    => '#ptiConfirmYes',
+            'highlight' => '[data-tour="pti-confirm"]',
+            'when'      => '.pti-confirm.is-open',
+            'title'     => 'Konfirmasi pengiriman',
+            'text'      => 'Pastikan semua jawaban sudah benar, karena data yang sudah dikirim tidak bisa diubah lagi. Ketuk “Ya, kirim hasil inspeksi” untuk mengirim, atau “Batal” untuk memeriksa lagi.',
+            'hint'      => '👆 Ketuk “Ya, kirim hasil inspeksi”',
+            'done'      => null,
+        ],
+    ]];
+}
+
+/**
+ * Tutorial Shipments (AMT).
+ *  - amt_shipments        : arahkan ke "Lihat Detail Order" pada pengiriman berstatus Sedang Dikirim.
+ *  - amt_shipment_detail  : arahkan ke kartu abu-abu SPBU (data SPBU + produk yang dibawa).
+ * Pengiriman yang sudah selesai tidak diberi tutorial (hanya untuk dilihat).
+ *
+ * @return array{steps:array, journey:string}
+ */
+function amt_tour_ship_steps(string $screen): array
+{
+    if ($screen === 'amt_shipments') {
+        return ['journey' => 'kirim', 'steps' => [[
+            'no'     => 1,
+            'label'  => 'Shipments',
+            'target' => '[data-tour="ship-detail-active"]',
+            'title'  => 'Buka detail order',
+            'text'   => 'Pengiriman yang sedang berjalan berstatus “Sedang Dikirim”. Ketuk “Lihat Detail Order” pada pengiriman itu untuk melihat rutenya.',
+            'hint'   => '👆 Ketuk “Lihat Detail Order” pada pengiriman Sedang Dikirim',
+            'done'   => null,
+        ]]];
+    }
+
+    // amt_shipment_detail: tutorial hanya untuk pengiriman yang sedang berjalan
+    $s = amt_ship_current();
+    if ($s === null || $s['status'] !== 'sedang') {
+        return ['journey' => 'kirim', 'steps' => []];
+    }
+    return ['journey' => 'kirim', 'steps' => [[
+        'no'     => 2,
+        'label'  => 'Detail Order',
+        'target' => '[data-tour="ship-spbu-card"]',
+        'title'  => 'Buka kartu SPBU',
+        'text'   => 'Kartu abu-abu ini berisi SPBU tujuan dan produk yang Anda bawa. Ketuk kartunya untuk membuka aktifitas di SPBU.',
+        'hint'   => '👆 Ketuk kartu abu-abu “SPBU”',
+        'done'   => null,
+    ]]];
+}
+
+/**
+ * Tutorial layar "Hasil Inspeksi" (baca saja): jelaskan GO / NO GO, lalu arahkan kembali
+ * ke halaman PTI (←). 'remember' pada langkah pertama supaya tidak diulang.
+ */
+function amt_tour_pti_hasil_steps(): array
+{
+    $nogo = (amt_pti_submitted()['result'] ?? 'GO') === 'NO GO';
+    return ['journey' => 'pti', 'subKey' => 'amt_pti_hasil', 'steps' => [
+        [
+            'no'       => null,
+            'label'    => 'Hasil Inspeksi',
+            'target'   => '[data-tour="hasil-banner"]',
+            'title'    => $nogo ? 'Hasil: NO GO' : 'Hasil: GO',
+            'text'     => $nogo
+                ? 'Ada item yang Tidak layak, jadi mobil tangki belum boleh berangkat. Laporkan ke pengawas, lalu periksa ulang setelah diperbaiki.'
+                : 'Semua item Layak, jadi mobil tangki siap beroperasi. Jika ada item Tidak layak, hasilnya NO GO dan Anda wajib lapor ke pengawas.',
+            'button'   => 'Mengerti',
+            'remember' => true,
+            'done'     => null,
+        ],
+        [
+            'no'       => null,
+            'label'    => 'Hasil Inspeksi',
+            'target'   => '[data-tour="hasil-list"]',
+            'title'    => 'Jawaban Anda',
+            'text'     => 'Daftar ini menampilkan jawaban Layak / Tidak layak untuk setiap sisi mobil tangki, beserta catatan Anda. Halaman ini hanya untuk dilihat.',
+            'button'   => 'Mengerti',
+            'remember' => true,
+            'done'     => null,
+        ],
+        [
+            'no'     => null,
+            'label'  => 'Hasil Inspeksi',
+            'target' => 'a.back-btn',
+            'title'  => 'Kembali ke halaman PTI',
+            'text'   => 'Ketuk panah kembali (←) di kiri atas untuk kembali ke halaman PTI, lalu kembali lagi ke Beranda.',
+            'hint'   => '👆 Ketuk panah ← di kiri atas',
             'done'   => null,
         ],
     ]];
@@ -345,9 +462,8 @@ function amt_tour_pti_done_pack(int $checkins): array
             'when'   => '[data-tour="amt-menu-shipments"]',
             'delay'  => AMT_PTI_DONE_SHIPMENT_DELAY,     // muncul 3 detik setelah kartu 1 tertutup
             'title'  => 'Buka menu “Shipments”',
-            'text'   => 'Setelah sampai di SPBU tujuan, ketuk menu Shipments.',
-            'hint'   => '📍 Menu Shipments ada di kotak yang menyala',
-            'button' => 'Mengerti',
+            'text'   => 'Ketuk menu Shipments untuk membuka daftar pengiriman Anda.',
+            'hint'   => '👆 Ketuk menu “Shipments” di kotak yang menyala',
             'done'   => null,
         ],
     ]];
@@ -468,6 +584,18 @@ function amt_tour_steps_for(string $screen, bool $running, int $checkins = 0): a
     }
     if ($screen === 'end_work') {
         return ['journey' => 'pulang', 'steps' => amt_tour_form_steps('end')];
+    }
+
+    // ---- Shipments: daftar & Detail Order ----
+    if ($screen === 'amt_shipments' || $screen === 'amt_shipment_detail') {
+        $pack = amt_tour_ship_steps($screen);
+        return ['journey' => $pack['journey'], 'steps' => $pack['steps']];
+    }
+
+    // ---- Hasil Inspeksi ----
+    if ($screen === 'amt_pti_hasil') {
+        $pack = amt_tour_pti_hasil_steps();
+        return ['journey' => $pack['journey'], 'steps' => $pack['steps'], 'subKey' => $pack['subKey']];
     }
 
     // ---- PTI ----

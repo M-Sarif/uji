@@ -175,7 +175,7 @@ function amt_tutorial_spot($id, array $t)
 function amt_pti_state()
 {
     if (!isset($_SESSION['amt_pti'])) {
-        $_SESSION['amt_pti'] = ['status' => 'belum', 'answers' => [], 'note' => '', 'result' => null, 'done_at' => null];
+        $_SESSION['amt_pti'] = ['status' => 'belum', 'answers' => [], 'note' => '', 'result' => null, 'done_at' => null, 'redo' => false, 'submitted' => null];
     }
     return $_SESSION['amt_pti'];
 }
@@ -184,6 +184,44 @@ function amt_pti_is_done()
 {
     $state = amt_pti_state();
     return $state['status'] === 'sudah';
+}
+
+/** Boleh mengisi form? Ya bila belum pernah kirim, atau sedang "Isi Inspeksi Lagi". */
+function amt_pti_can_fill()
+{
+    $state = amt_pti_state();
+    return !amt_pti_is_done() || !empty($state['redo']);
+}
+
+/** Sedang mengisi inspeksi ulang (setelah "Isi Inspeksi Lagi")? */
+function amt_pti_is_redo()
+{
+    $state = amt_pti_state();
+    return amt_pti_is_done() && !empty($state['redo']);
+}
+
+/**
+ * Salinan inspeksi yang TERAKHIR DIKIRIM (dipakai layar "Lihat Hasil Inspeksi").
+ * @return array{answers:array, note:string, result:string, done_at:string}|null
+ */
+function amt_pti_submitted()
+{
+    $state = amt_pti_state();
+    return (isset($state['submitted']) && is_array($state['submitted'])) ? $state['submitted'] : null;
+}
+
+/** Item "Tidak layak" dari sekumpulan jawaban [langkah][kunci] => 'layak'|'tidak'. */
+function amt_pti_failed_from(array $answers)
+{
+    $failed = [];
+    foreach (amt_pti_steps() as $no => $data) {
+        foreach ($data['items'] as $item) {
+            if (isset($answers[$no][$item['key']]) && $answers[$no][$item['key']] === AMT_PTI_FAIL) {
+                $failed[] = ['step' => $no, 'title' => $data['title'], 'label' => $item['label']];
+            }
+        }
+    }
+    return $failed;
 }
 
 function amt_pti_answer($step, $key)
@@ -222,15 +260,8 @@ function amt_pti_note_ok()
  */
 function amt_pti_failed_items()
 {
-    $failed = [];
-    foreach (amt_pti_steps() as $no => $data) {
-        foreach ($data['items'] as $item) {
-            if (amt_pti_answer($no, $item['key']) === AMT_PTI_FAIL) {
-                $failed[] = ['step' => $no, 'title' => $data['title'], 'label' => $item['label']];
-            }
-        }
-    }
-    return $failed;
+    $state = amt_pti_state();
+    return amt_pti_failed_from(isset($state['answers']) && is_array($state['answers']) ? $state['answers'] : []);
 }
 
 /** Hasil inspeksi: 'GO' bila semua item layak, 'NO GO' bila ada yang tidak layak. */
@@ -305,15 +336,23 @@ function amt_pti_bootstrap($screen)
         exit;
     }
 
-    $isPtiScreen = in_array($screen, ['amt_pti', 'amt_pti_form'], true);
+    $isPtiScreen = in_array($screen, ['amt_pti', 'amt_pti_form', 'amt_pti_hasil'], true);
 
     // PTI belum aktif -> kembali ke dashboard.
     if ($isPtiScreen && AMT_PTI_GUARD && !amt_pti_unlocked()) {
         amt_pti_redirect(AMT_DASHBOARD_SCREEN);
     }
 
+    // Layar "Lihat Hasil Inspeksi": hanya ada bila inspeksi sudah pernah dikirim.
+    if ($screen === 'amt_pti_hasil') {
+        if (!amt_pti_shipment() || !amt_pti_is_done() || amt_pti_submitted() === null) {
+            amt_pti_redirect('amt_pti');
+        }
+        return;
+    }
+
     if ($screen === 'amt_pti_form' && $method !== 'POST') {
-        if (!amt_pti_shipment() || amt_pti_is_done()) {
+        if (!amt_pti_shipment() || !amt_pti_can_fill()) {
             amt_pti_redirect('amt_pti');
         }
         $step = isset($_GET['step']) ? (int) $_GET['step'] : 1;
@@ -330,9 +369,24 @@ function amt_pti_bootstrap($screen)
     }
 
     if ($action === 'start') {
-        if (!amt_pti_shipment() || amt_pti_is_done()) {
+        if (!amt_pti_shipment() || !amt_pti_can_fill()) {
             amt_pti_redirect('amt_pti');
         }
+        amt_pti_redirect('amt_pti_form', ['step' => min(amt_pti_first_incomplete(), AMT_PTI_TOTAL)]);
+    }
+
+    // "Isi Inspeksi Lagi": buat draf baru (hasil yang sudah terkirim tetap tersimpan sampai
+    // inspeksi baru dikirim). Bila draf sudah ada, lanjutkan dari langkah yang belum lengkap.
+    if ($action === 'restart') {
+        if (!amt_pti_shipment() || !amt_pti_is_done()) {
+            amt_pti_redirect('amt_pti');
+        }
+        if (empty($_SESSION['amt_pti']['redo'])) {
+            $_SESSION['amt_pti']['redo']    = true;
+            $_SESSION['amt_pti']['answers'] = [];
+            $_SESSION['amt_pti']['note']    = '';
+        }
+        unset($_SESSION['amt_pti_error']);
         amt_pti_redirect('amt_pti_form', ['step' => min(amt_pti_first_incomplete(), AMT_PTI_TOTAL)]);
     }
 
@@ -340,7 +394,7 @@ function amt_pti_bootstrap($screen)
         return;
     }
 
-    if (!amt_pti_shipment() || amt_pti_is_done()) {
+    if (!amt_pti_shipment() || !amt_pti_can_fill()) {
         amt_pti_redirect('amt_pti');
     }
 
@@ -386,17 +440,21 @@ function amt_pti_bootstrap($screen)
         amt_pti_redirect('amt_pti_form', ['step' => $first]);
     }
 
-    $_SESSION['amt_pti']['status'] = 'sudah';
-    $_SESSION['amt_pti']['done_at'] = date('c');
-    $_SESSION['amt_pti']['result'] = amt_pti_result();
-
-    // Setelah "Ya, Kirim" pada popup konfirmasi: kembali ke DASHBOARD. Di sana
-    // tutorial "PTI selesai" tampil (lihat amt_tour_pti_done_pack() di tutorial.php).
-    // 'pti_done' hanya berlaku untuk siklus Check-In ini (direset saat Check-In berikutnya).
-    amt_flow_set('pti_done');
-    $_SESSION['flash_success'] = [
-        'title' => 'Inspeksi Berhasil Dikirim',
-        'body'  => 'Hasil Inspeksi: ' . $_SESSION['amt_pti']['result'] . '.',
+    $result = amt_pti_result();
+    $_SESSION['amt_pti']['submitted'] = [
+        'answers' => $_SESSION['amt_pti']['answers'],
+        'note'    => amt_pti_note(),
+        'result'  => $result,
+        'done_at' => date('c'),
     ];
-    amt_pti_redirect(AMT_DASHBOARD_SCREEN);
+    $_SESSION['amt_pti']['status']  = 'sudah';
+    $_SESSION['amt_pti']['redo']    = false;
+    $_SESSION['amt_pti']['done_at'] = date('c');
+    $_SESSION['amt_pti']['result']  = $result;
+
+    // Setelah "Ya, kirim hasil inspeksi": buka halaman awal PTI (status "Sudah Inspeksi").
+    // Di sana tutorial mengarahkan AMT kembali ke Beranda, baru tutorial segel muncul
+    // (lihat amt_tour_pti_done_pack() di tutorial.php; 'pti_done' berlaku untuk siklus ini).
+    amt_flow_set('pti_done');
+    amt_pti_redirect('amt_pti');
 }

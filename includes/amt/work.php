@@ -56,6 +56,9 @@ const WORK_SCREENS = [
     'checkin'    => 'Check-In',
     'amt_pti'      => 'Pre-Trip Inspection',
     'amt_pti_form' => 'Form Inspeksi',
+    'amt_pti_hasil' => 'Hasil Inspeksi',
+    'amt_shipments' => 'Shipments',
+    'amt_shipment_detail' => 'Detail Order',
 ];
 
 /* Jarak (meter) antara dua koordinat - rumus haversine */

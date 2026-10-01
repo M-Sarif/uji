@@ -21,7 +21,8 @@
  *  - DAFTAR BERNOMOR (list): kartu boleh memuat tahapan berurutan.
  *  - INGAT LANGKAH (remember): langkah yang sudah dibaca tidak diulang bila
  *    pengguna pindah halaman lalu kembali sebelum alur selesai.
- *  - Tersembunyi otomatis saat kamera / pop up foto / popup konfirmasi terbuka.
+ *  - Tersembunyi otomatis saat kamera / pop up foto terbuka. Popup konfirmasi PTI
+ *    justru DISOROT oleh langkah tutorial (lihat tutorial.php, 'when').
  *  - "Lewati" hanya menyembunyikan tutorial halaman ini (sesi ini); tombol
  *    "?" selalu bisa memulai lagi.
  *
@@ -106,7 +107,7 @@
     }
     // Kamera layar penuh / pop up foto: tutorial disembunyikan supaya tidak menimpa.
     function overlayOpen() {
-        return !!(qs('.amtcam.is-open') || qs('#ci-modal:not([hidden])') || qs('.pti-notif.is-open') || qs('.pti-confirm.is-open'));
+        return !!(qs('.amtcam.is-open') || qs('#ci-modal:not([hidden])'));
     }
     function el(tag, cls, html) {
         var n = document.createElement(tag);

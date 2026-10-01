@@ -13,10 +13,12 @@
 
 require_once __DIR__ . '/work.php';
 require_once __DIR__ . '/amt_pti_functions.php'; // PTI + aktivasi setelah Check-In
+require_once __DIR__ . '/amt_ship_data.php';      // Shipments: daftar, Detail Order, SPBU
 require_once __DIR__ . '/tutorial.php'; // tutorial terpandu (guided tour) peran AMT
 
 // Layar milik AMT yang tidak terdaftar di HEADER_TITLES (data.php)
-const AMT_EXTRA_SCREENS = ['start_end', 'start_work', 'end_work', 'checkin', 'amt_pti', 'amt_pti_form'];
+const AMT_EXTRA_SCREENS = ['start_end', 'start_work', 'end_work', 'checkin', 'amt_pti', 'amt_pti_form', 'amt_pti_hasil',
+    'amt_shipments', 'amt_shipment_detail', 'amt_spbu'];
 
 // Aksi form (POST) milik AMT
 const AMT_POST_ACTIONS = ['submit_start_work', 'submit_end_work', 'submit_checkin'];
@@ -37,7 +39,8 @@ function amt_owns_screen(string $screen): bool
 function amt_view_file(string $screen): string
 {
     // Layar PTI: nama layar 'amt_pti' / 'amt_pti_form' -> file pti.php / pti_form.php
-    $file = ['amt_pti' => 'pti', 'amt_pti_form' => 'pti_form'][$screen] ?? $screen;
+    $file = ['amt_pti' => 'pti', 'amt_pti_form' => 'pti_form', 'amt_pti_hasil' => 'pti_hasil',
+             'amt_shipments' => 'shipments', 'amt_shipment_detail' => 'shipment_detail', 'amt_spbu' => 'spbu'][$screen] ?? $screen;
     return amt_owns_screen($screen)
         ? AMT_VIEW_DIR . '/' . $file . '.php'
         : AMT_APP_ROOT . '/views/' . $screen . '.php';
@@ -46,12 +49,22 @@ function amt_view_file(string $screen): string
 /** Judul header untuk layar Start/End Work */
 function amt_screen_title(string $screen): string
 {
+    // Layar SPBU: judul mengikuti kode SPBU pengiriman yang dibuka ("SPBU 65748002")
+    if ($screen === 'amt_spbu') {
+        $s = amt_ship_current();
+        return $s ? 'SPBU ' . $s['spbu'] : 'SPBU';
+    }
     return WORK_SCREENS[$screen] ?? '';
 }
 
 /** Tujuan tombol back untuk layar Start/End Work */
 function amt_prev_screen(string $screen): ?string
 {
+    // Tombol back membawa id pengiriman supaya kembali ke pengiriman yang sama
+    $id = amt_ship_request_id();
+    if ($screen === 'amt_spbu') {
+        return 'amt_shipment_detail' . ($id !== '' ? '&id=' . rawurlencode($id) : '');
+    }
     return [
         'start_end'  => amt_home_screen(),
         'start_work' => 'start_end',
@@ -59,6 +72,9 @@ function amt_prev_screen(string $screen): ?string
         'checkin'    => amt_home_screen(),
         'amt_pti'      => amt_home_screen(),
         'amt_pti_form' => 'amt_pti',
+        'amt_pti_hasil' => 'amt_pti',
+        'amt_shipments' => amt_home_screen(),
+        'amt_shipment_detail' => 'amt_shipments',
     ][$screen] ?? null;
 }
 
