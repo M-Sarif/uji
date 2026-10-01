@@ -65,10 +65,10 @@ function amt_ship_all(): array
             'status'    => 'sedang',
             'detail_no' => '45788827',
             'tanggal_iso' => '2026-10-01',
-            'spbu'      => '65748002',
-            'lat'       => -2.736500,      // titik SPBU (CONTOH, ganti dengan data asli)
-            'lng'       => 114.267100,
-            'plus'      => '7726+W6J',   // kode lokasi (Plus Code) yang tampil di popup Tiba di Lokasi
+            'spbu'      => '62.938.839',
+            'lat'       => -2.754705,      // titik SPBU tujuan
+            'lng'       => 114.257301,
+            'plus'      => '67W4+4W7',   // Plus Code titik di atas (dihitung dari lat/lng); tampil di popup Tiba di Lokasi
             'products'  => $products('8144837464', '8144837463'),
         ]),
         array_merge($base, [

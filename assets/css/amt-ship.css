@@ -183,15 +183,24 @@
     font-size: 13px; font-weight: 600; color: var(--amts-blue); text-decoration: none;
 }
 .amts-sheet__refresh:active { opacity: .6; }
+/* Tinggi peta minimal 190px: pada ukuran ini peta Google menampilkan tombol zoom (+ / -) seperti desain */
 .amts-sheet__map {
-    display: block; width: 100%; height: clamp(150px, 26vh, 220px);
+    display: block; width: 100%; height: clamp(190px, 28vh, 240px);
     border: 0; border-radius: 12px; background: #e5e7eb;
 }
-.amts-sheet__geo { margin: 8px 0 14px; min-height: 18px; font-size: 12.5px; line-height: 1.4; color: var(--amts-muted); }
-.amts-sheet__geo.ok  { color: var(--amts-green); font-weight: 600; }
-.amts-sheet__geo.bad { color: var(--amts-red);   font-weight: 600; }
+#arr-loc { margin-bottom: 16px; }
+.amts-sheet__geo { margin: 8px 0 0; font-size: 12.5px; line-height: 1.4; color: var(--amts-muted); }
+.amts-sheet__geo.bad { color: var(--amts-red); font-weight: 600; }
+/* Lokasi sesuai: tidak ada tulisan di bawah peta (sesuai desain); tetap terbaca oleh pembaca layar */
+.amts-sheet__geo.ok {
+    position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+}
 .amts-sheet .amts-btn { width: 100%; }
 .amts-sheet .amts-btn + .amts-btn, .amts-sheet form + .amts-btn { margin-top: 10px; }
+/* Tombol "Tutup": putih dengan garis abu-abu dan teks gelap (bukan biru) */
+.amts-sheet #arr-close { color: #1e293b; border-color: #cbd5e1; }
+.amts-sheet #arr-close:hover { background: #f8fafc; }
 .amts-btn.is-locked { background: #cbd5e1; border-color: #cbd5e1; color: #fff; cursor: not-allowed; }
 .amts-btn.is-locked:hover { background: #cbd5e1; }
 

@@ -11,6 +11,7 @@
  *
  * Atribut data-tour dipakai tutorial AMT (includes/amt/tutorial.php).
  * Konfirmasi tiba diproses amt_handle_post('submit_spbu_arrive') di includes/amt/amt.php.
+ * Gaya popup berada di <style> pada berkas ini (tidak bergantung pada letak amt-ship.css).
  */
 require_once __DIR__ . '/../../includes/amt/amt_ship_data.php';
 
@@ -92,6 +93,76 @@ $progress = $total > 1 ? min($doneN, $total - 1) / ($total - 1) * 100 : 0;
         Selesai
     </button>
 </div>
+<?php endif; ?>
+
+<?php if ($canOpen): ?>
+<!-- Gaya popup "Tiba di Lokasi" ditaruh DI SINI (bukan hanya di berkas CSS) supaya popup selalu
+     tampil benar walau assets/amt/css/amt-ship.css belum diperbarui / terpasang di folder lain. -->
+<style id="amts-sheet-css">
+/* ---------- Popup "Tiba di Lokasi" (bottom sheet) ---------- */
+.amts-act__item.is-active .amts-act__row[data-spbu-open] { cursor: pointer; }
+.amts-act__row[data-spbu-open]:focus-visible { outline: 3px solid rgba(37, 99, 235, .35); outline-offset: 2px; }
+
+/* z-index 890: DI BAWAH tutorial (900-903) supaya kartu tutorial bisa menyorot isi popup. */
+.amts-sheet {
+    position: fixed; inset: 0; z-index: 890;
+    display: flex; align-items: flex-end; justify-content: center;
+    background: rgba(15, 23, 42, .5);
+    animation: amtsSheetFade .16s ease;
+}
+.amts-sheet[hidden] { display: none; }
+.amts-sheet__card {
+    width: 100%; max-width: 430px; box-sizing: border-box;
+    max-height: 94vh; max-height: 94dvh; overflow-y: auto;
+    padding: 20px 18px calc(18px + env(safe-area-inset-bottom));
+    background: #fff; border-radius: 24px 24px 0 0;
+    box-shadow: 0 -12px 40px -12px rgba(15, 23, 42, .4);
+    animation: amtsSheetUp .22s ease;
+}
+.amts-sheet__title { margin: 0 0 4px; font-size: 17px; font-weight: 800; color: var(--amts-ink, #0f172a); }
+.amts-sheet__ask   { margin: 0 0 12px; font-size: 13.5px; line-height: 1.4; color: var(--amts-muted, #64748b); }
+.amts-sheet__code  { margin: 0; font-size: 12px; color: var(--amts-muted, #64748b); }
+.amts-sheet__plus  { margin: 0 0 14px; font-size: 14.5px; font-weight: 700; color: var(--amts-ink, #0f172a); letter-spacing: .01em; }
+.amts-sheet__head  { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+.amts-sheet__lbl   { font-size: 13.5px; font-weight: 700; color: var(--amts-ink, #0f172a); }
+.amts-sheet__refresh {
+    display: inline-flex; align-items: center; gap: 5px; padding: 4px 2px;
+    font-size: 13px; font-weight: 600; color: var(--amts-blue, #2563eb); text-decoration: none;
+}
+.amts-sheet__refresh:active { opacity: .6; }
+/* Tinggi peta minimal 190px: pada ukuran ini peta Google menampilkan tombol zoom (+ / -) seperti desain */
+.amts-sheet__map {
+    display: block; width: 100%; height: clamp(190px, 28vh, 240px);
+    border: 0; border-radius: 12px; background: #e5e7eb;
+}
+#arr-loc { margin-bottom: 16px; }
+.amts-sheet__geo { margin: 8px 0 0; font-size: 12.5px; line-height: 1.4; color: var(--amts-muted, #64748b); }
+.amts-sheet__geo.bad { color: var(--amts-red, #dc2626); font-weight: 600; }
+/* Lokasi sesuai: tidak ada tulisan di bawah peta (sesuai desain); tetap terbaca oleh pembaca layar */
+.amts-sheet__geo.ok {
+    position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+}
+.amts-sheet .amts-btn { width: 100%; }
+.amts-sheet .amts-btn + .amts-btn, .amts-sheet form + .amts-btn { margin-top: 10px; }
+/* Tombol "Tutup": putih dengan garis abu-abu dan teks gelap (bukan biru) */
+.amts-sheet #arr-close { color: #1e293b; border-color: #cbd5e1; }
+.amts-sheet #arr-close:hover { background: #f8fafc; }
+.amts-btn.is-locked { background: #cbd5e1; border-color: #cbd5e1; color: #fff; cursor: not-allowed; }
+.amts-btn.is-locked:hover { background: #cbd5e1; }
+
+@keyframes amtsSheetFade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes amtsSheetUp   { from { transform: translateY(24px); } to { transform: none; } }
+
+/* Di layar lebar bingkai HP berada di tengah: popup ikut di tengah */
+@media (min-width: 641px) {
+    .amts-sheet { align-items: center; padding: 16px; }
+    .amts-sheet__card { max-width: 390px; border-radius: 20px; }
+}
+/* Tombol "?" tutorial menyingkir selama popup terbuka */
+body:has(.amts-sheet.is-open) .amtt-fab { display: none; }
+@media (prefers-reduced-motion: reduce) { .amts-sheet, .amts-sheet__card { animation: none; } }
+</style>
 <?php endif; ?>
 
 <?php if ($canOpen): ?>

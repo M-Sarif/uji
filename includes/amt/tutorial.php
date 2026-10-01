@@ -411,7 +411,7 @@ function amt_tour_spbu_steps(): array
             'target'    => '#arr-refresh',
             'highlight' => '#arr-loc',
             'title'     => 'Cek lokasi Anda',
-            'text'      => 'Pin di peta harus ada di SPBU tujuan. Ketuk “Perbarui Lokasi”, lalu tunggu sampai pin muncul dan tulisan di bawah peta berwarna hijau.',
+            'text'      => 'Pin di peta harus ada di SPBU tujuan. Ketuk “Perbarui Lokasi”, lalu tunggu sampai pin muncul di peta dan tombol biru di bawahnya aktif.',
             'hint'      => '👆 Ketuk “Perbarui Lokasi”',
             'wait'      => '⏳ Menunggu lokasi sesuai… perhatikan pin di peta',
             'when'      => '#arrSheet.is-open',
