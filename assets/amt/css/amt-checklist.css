@@ -1,0 +1,138 @@
+/* Checklist Pra Bongkar BBM - role AMT (CSS murni, tanpa build step) */
+
+:root {
+    --pbk-blue: #1d4ed8;
+    --pbk-blue-soft: #e8effc;
+    --pbk-green: #16a34a;
+    --pbk-red: #dc2626;
+    --pbk-red-soft: #fdeaea;
+    --pbk-ink: #0f172a;
+    --pbk-muted: #64748b;
+    --pbk-line: #e2e8f0;
+}
+
+.pbk { display: flex; flex-direction: column; min-height: 100%; color: var(--pbk-ink); }
+.pbk-empty { padding: 48px 16px; text-align: center; color: var(--pbk-muted); }
+.pbk-hidden-submit { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+.pbk-scroll { flex: 1; padding: 16px 16px 8px; }
+
+/* ---------- Progress ---------- */
+.pbk-top { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+.pbk-progress { flex: 1; display: flex; gap: 4px; }
+.pbk-progress__seg { flex: 1; height: 5px; border-radius: 5px; background: var(--pbk-line); }
+.pbk-progress__seg.is-done { background: var(--pbk-green); }
+.pbk-progress__seg.is-now { background: #1a6ef0; }
+.pbk-counter { font-size: 14px; font-weight: 500; color: #475569; font-variant-numeric: tabular-nums; }
+
+/* ---------- Kartu pertanyaan ---------- */
+.pbk-card { padding: 18px 16px; border-radius: 24px; background: rgba(255, 255, 255, .85); }
+.pbk-q { margin: 0 0 18px; font-size: 16px; line-height: 1.55; font-weight: 400; color: #111827; overflow-wrap: anywhere; }
+.pbk-req { color: var(--pbk-red); }
+
+.pbk-box { padding: 16px; border: 1px solid var(--pbk-line); border-radius: 22px; background: #fff; }
+.pbk-hint { margin: 0 0 14px; font-size: 13.5px; font-style: italic; color: #64748b; line-height: 1.4; }
+.pbk-sep { margin: 16px 0; border: 0; border-top: 1px solid var(--pbk-line); }
+
+/* ---------- Tombol jawaban Ya / Tidak ---------- */
+.pbk-answers { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.pbk-ans { position: relative; display: block; cursor: pointer; }
+.pbk-ans input { position: absolute; opacity: 0; inset: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+.pbk-ans span {
+    display: flex; align-items: center; justify-content: center; text-align: center;
+    min-height: 54px; padding: 8px 6px; border-radius: 16px; border: 2px solid;
+    background: #fff; font-size: 15.5px; font-weight: 600; line-height: 1.2;
+    transition: background-color .12s, box-shadow .12s;
+}
+.pbk-ans--no span  { color: var(--pbk-red);  border-color: #e04b4b; }
+.pbk-ans--yes span { color: var(--pbk-blue); border-color: var(--pbk-blue); }
+.pbk-ans--no  input:checked + span { background: var(--pbk-red-soft); }
+.pbk-ans--yes input:checked + span { background: var(--pbk-blue-soft); }
+.pbk-ans input:focus-visible + span { outline: 3px solid rgba(29, 78, 216, .35); outline-offset: 2px; }
+
+/* ---------- Foto bukti (opsional) ---------- */
+.pbk-shot {
+    display: block; width: 100%; padding: 26px 12px; border-radius: 18px;
+    border: 1.5px dashed var(--pbk-blue); background: #fff; font: inherit; cursor: pointer; text-align: center;
+}
+.pbk-shot__t { display: block; font-size: 20px; font-weight: 600; color: var(--pbk-blue); }
+.pbk-shot__s { display: block; margin-top: 8px; font-size: 15px; color: #64748b; }
+.pbk-shot:focus-visible, .pbk-redo:focus-visible { outline: 3px solid rgba(29, 78, 216, .35); outline-offset: 2px; }
+.pbk-thumb { display: none; }
+.pbk-photo.is-taken .pbk-shot { display: none; }
+.pbk-photo.is-taken .pbk-thumb { display: block; }
+.pbk-thumb img { display: block; width: 100%; max-height: 260px; object-fit: cover; border-radius: 16px; background: #e2e8f0; }
+.pbk-redo {
+    display: block; width: 100%; margin-top: 10px; padding: 12px; border-radius: 14px;
+    border: 1.5px solid var(--pbk-blue); background: #fff; color: var(--pbk-blue);
+    font: inherit; font-size: 15px; font-weight: 600; cursor: pointer;
+}
+
+/* ---------- QR Code (langkah 7) ---------- */
+.pbk-qrbtn {
+    display: block; width: 100%; min-height: 56px; padding: 12px; border-radius: 16px;
+    border: 1.5px solid var(--pbk-blue); background: #eef4ff; color: var(--pbk-blue);
+    font: inherit; font-size: 17px; font-weight: 600; cursor: pointer;
+}
+.pbk-qrbtn:active { opacity: .7; }
+.pbk-qrcard { margin-bottom: 14px; padding: 14px; border: 1px solid var(--pbk-line); border-radius: 20px; background: #fff; }
+.pbk-qrframe { padding: 22px; border: 2px solid var(--pbk-line); border-radius: 18px; background: #fff; }
+.pbk-qr { width: 100%; max-width: 240px; margin: 0 auto; }
+.pbk-qr svg { display: block; width: 100%; height: auto; }
+.pbk-qrexp { margin: 12px 0 2px; text-align: center; font-size: 15px; color: #475569; }
+.pbk-qrexpired { margin: 0; text-align: center; font-size: 14px; font-weight: 600; color: var(--pbk-red); line-height: 1.4; }
+.pbk-qrexpired[hidden] { display: none; }
+.pbk-qrcard.is-expired .pbk-qr { display: none; }
+.pbk-qrcard.is-expired .pbk-qrexpired { display: block; }
+.pbk-qrcard.is-expired .pbk-qrexp { color: var(--pbk-red); }
+
+.pbk-error { margin: 10px 4px 0; font-size: 13px; font-weight: 600; color: #b91c1c; }
+.pbk-error[hidden] { display: none; }
+
+/* ---------- Dock bawah: tombol QR melayang + navigasi ---------- */
+.pbk-dock {
+    position: sticky; bottom: 0; display: flex; flex-direction: column; gap: 10px;
+    padding: 12px 16px calc(16px + env(safe-area-inset-bottom));
+    background: linear-gradient(to top, rgba(255, 255, 255, .97) 70%, rgba(255, 255, 255, 0));
+}
+.pbk-qrfab {
+    align-self: flex-end; padding: 14px 24px; border: 0; border-radius: 999px;
+    background: #1a6ef0; color: #fff; font: inherit; font-size: 17px; font-weight: 600; cursor: pointer;
+    box-shadow: 0 6px 16px rgba(26, 110, 240, .35);
+}
+.pbk-qrfab:active { opacity: .8; }
+.pbk-nav { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.pbk-btn {
+    display: inline-flex; align-items: center; justify-content: center; width: 100%; min-height: 56px;
+    padding: 12px 16px; border-radius: 16px; border: 1.5px solid transparent;
+    font: inherit; font-size: 18px; font-weight: 500; cursor: pointer;
+    transition: background-color .15s, color .15s, border-color .15s;
+}
+.pbk-btn--ghost { background: #fff; color: var(--pbk-blue); border-color: var(--pbk-blue); }
+.pbk-btn--solid { background: #2563eb; color: #fff; border-color: #2563eb; }
+.pbk-btn.is-locked { cursor: not-allowed; }
+.pbk-btn--ghost.is-locked { color: #94a3b8; border-color: #cbd5e1; }
+.pbk-btn--solid.is-locked { background: #cbd5e1; border-color: #cbd5e1; color: #fff; }
+.pbk-btn:focus-visible, .pbk-qrfab:focus-visible, .pbk-qrbtn:focus-visible { outline: 3px solid rgba(29, 78, 216, .35); outline-offset: 2px; }
+
+/* ---------- Pop up QR Code ---------- */
+.pbk-modal {
+    position: fixed; inset: 0; z-index: 890; display: flex; align-items: center; justify-content: center;
+    padding: 16px; background: rgba(15, 23, 42, .55);
+}
+.pbk-modal[hidden] { display: none; }
+.pbk-modal__card {
+    width: 100%; max-width: 360px; max-height: 94vh; overflow-y: auto; padding: 20px 18px;
+    border-radius: 22px; background: #fff; box-shadow: 0 20px 50px -12px rgba(15, 23, 42, .45);
+}
+.pbk-modal__title { margin: 0 0 12px; font-size: 17px; font-weight: 800; text-align: center; }
+.pbk-modal__note { margin: 6px 0 0; text-align: center; font-size: 13px; color: var(--pbk-muted); }
+.pbk-modal__note a { color: var(--pbk-blue); font-weight: 600; }
+.pbk-modal__note[hidden] { display: none; }
+.pbk-modal .pbk-btn { margin-top: 14px; }
+.pbk-modal .pbk-qrframe.is-expired .pbk-qr { display: none; }
+.pbk-modal .pbk-qrframe.is-expired .pbk-qrexpired { display: block; }
+
+/* Tombol "?" tutorial menyingkir selama pop up terbuka */
+body:has(.pbk-modal:not([hidden])) .amtt-fab { display: none; }
+
+@media (prefers-reduced-motion: reduce) { .pbk * { transition: none !important; } }

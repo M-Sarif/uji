@@ -7,7 +7,9 @@
  *   Ketuk "Tiba di Lokasi" -> popup (bottom sheet): peta lokasi + "Ya, pengiriman telah tiba".
  *   Setelah dikonfirmasi, "Tiba di Lokasi" hijau dan "Isi Checklist" menjadi langkah aktif.
  * Pengiriman selesai  : semua langkah hijau, status order terverifikasi, tanpa tombol "Selesai".
- * Layar tujuan langkah lain (Isi Checklist, dst) belum dibuat: kartunya belum membuka layar lain.
+ * Setelah tiba, "Isi Checklist" aktif dan membuka layar amt_checklist (Checklist Pra Bongkar BBM AMT, 14 langkah).
+ *   Selesai diisi -> "Isi Checklist" hijau dan "Verifikasi Order" menjadi langkah aktif.
+ * Layar tujuan langkah lain (Verifikasi Order, dst) belum dibuat: kartunya belum membuka layar lain.
  *
  * Atribut data-tour dipakai tutorial AMT (includes/amt/tutorial.php).
  * Konfirmasi tiba diproses amt_handle_post('submit_spbu_arrive') di includes/amt/amt.php.
@@ -25,7 +27,8 @@ $arrived  = $active && amt_spbu_arrived($s);
 $canOpen  = $active && !$arrived;              // popup "Tiba di Lokasi" hanya sebelum tiba
 $steps    = amt_spbu_steps();
 $total    = count($steps);
-$doneN    = $active ? ($arrived ? 1 : 0) : $total;      // jumlah langkah selesai
+$pbkDone  = $arrived && amt_pbk_done($s['id']);          // checklist Pra Bongkar sudah dikirim
+$doneN    = $active ? ($arrived ? ($pbkDone ? 2 : 1) : 0) : $total;   // jumlah langkah selesai
 $progress = $total > 1 ? min($doneN, $total - 1) / ($total - 1) * 100 : 0;
 ?>
 
@@ -38,7 +41,8 @@ $progress = $total > 1 ? min($doneN, $total - 1) / ($total - 1) * 100 : 0;
 
             <?php foreach ($steps as $i => $st):
                 $state  = $i < $doneN ? 'done' : ($i === $doneN ? 'active' : 'pending');
-                $isOpen = $canOpen && $state === 'active' && $st['key'] === 'tiba'; ?>
+                $isOpen = $canOpen && $state === 'active' && $st['key'] === 'tiba';
+                $isChk  = $arrived && !$pbkDone && $state === 'active' && $st['key'] === 'checklist'; ?>
                 <div class="amts-act__item is-<?= $state ?>"
                      <?= $state === 'active' ? 'data-tour="spbu-step-active"' : '' ?>>
                     <span class="amts-act__node" aria-hidden="true">
@@ -47,7 +51,8 @@ $progress = $total > 1 ? min($doneN, $total - 1) / ($total - 1) * 100 : 0;
                         <?php endif; ?>
                     </span>
                     <div class="amts-act__row"
-                         <?= $isOpen ? 'role="button" tabindex="0" data-spbu-open="arrSheet" aria-haspopup="dialog"' : '' ?>>
+                         <?= $isOpen ? 'role="button" tabindex="0" data-spbu-open="arrSheet" aria-haspopup="dialog"' : '' ?>
+                         <?= $isChk ? 'role="link" tabindex="0" data-spbu-href="' . amt_e(amt_pbk_url($s)) . '"' : '' ?>>
                         <img class="amts-act__icon" src="<?= amt_e($st['icon']) ?>" alt="">
                         <span class="amts-act__label"><?= amt_e($st['label']) ?></span>
                         <?php if ($state === 'active'): ?>
@@ -85,6 +90,22 @@ $progress = $total > 1 ? min($doneN, $total - 1) / ($total - 1) * 100 : 0;
         </article>
     <?php endforeach; ?>
 </section>
+
+<?php if ($arrived && !$pbkDone): ?>
+<style>.amts-act__row[data-spbu-href] { cursor: pointer; } .amts-act__row[data-spbu-href]:focus-visible { outline: 3px solid rgba(37, 99, 235, .35); outline-offset: 2px; }</style>
+<script>
+/* Ketuk "Isi Checklist" -> buka Checklist Pra Bongkar BBM AMT */
+(function () {
+    document.querySelectorAll('[data-spbu-href]').forEach(function (row) {
+        function go() { window.location.href = row.getAttribute('data-spbu-href'); }
+        row.addEventListener('click', go);
+        row.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); }
+        });
+    });
+})();
+</script>
+<?php endif; ?>
 
 <?php if ($active): ?>
 <div class="amts-footer">
