@@ -1,91 +1,209 @@
-/* ============================================================
-   OneFIS - amt.css
-   Beranda AMT: kartu Waktu Kerja, grid menu cepat, dan panel
-   "Pengiriman Aktif". Scrollbar disembunyikan (scroll tetap jalan).
-   ============================================================ */
+/* Verifikasi Order - role AMT (CSS murni, tanpa build step)
+   Letak: assets/amt/css/amt-verif.css */
 
-/* Sembunyikan garis abu-abu scrollbar di sisi kanan */
-.content.content-amt {
-    scrollbar-width: none;          /* Firefox */
-    -ms-overflow-style: none;       /* Edge lama */
-}
-.content.content-amt::-webkit-scrollbar { display: none; width: 0; height: 0; }  /* Chrome/Safari */
-
-/* Header AMT: titik merah notifikasi & avatar */
-.bell { position: relative; }
-.bell-dot {
-    position: absolute; top: -0.125rem; right: -0.0625rem;
-    width: 0.5rem; height: 0.5rem; border-radius: 50%;
-    background: #ef4444; border: 1.5px solid #fff;
-}
-a.badge { text-decoration: none; }
-
-.amt-home {
-    display: flex; flex-direction: column; gap: 1.125rem;
-    min-height: 100%; padding: 1rem 0 0 0;
+.verif, .vqr, .vkode, .vok {
+    --v-blue: #2563eb;
+    --v-blue-soft: #eaf1ff;
+    --v-ink: #0f172a;
+    --v-muted: #64748b;
+    --v-line: #dbe3ef;
+    --v-green: #15803d;
+    --v-green-bg: #dcfce7;
+    color: var(--v-ink);
 }
 
-/* ---------- Waktu kerja ---------- */
-.amt-worktime {
-    margin: 0 1rem; padding: 1rem 1.25rem;
-    display: flex; flex-direction: column; gap: 0.25rem;
-    border-radius: 1.25rem;
-    background: linear-gradient(135deg, rgba(219,234,254,0.75), rgba(255,255,255,0.65) 55%, rgba(251,232,240,0.6));
-    border: 1px solid rgba(255,255,255,0.9);
-    box-shadow: 0 6px 20px -10px rgba(37,99,235,0.25);
-    -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
-}
-.amt-worktime-label { font-size: 0.8125rem; font-weight: 600; color: #334155; }
-.amt-worktime-value {
-    font-size: 1.625rem; font-weight: 700; letter-spacing: 0.02em;
-    color: #64748b; font-variant-numeric: tabular-nums;
-}
+/* ---------- Daftar LO + Metode (gambar 1 dan 2) ---------- */
+.verif { padding: 14px 14px 24px; }
+.verif-head { display: flex; align-items: center; justify-content: space-between; }
+.verif-title { margin: 0; font-size: 17px; font-weight: 800; }
+.verif-title--gap { margin-top: 22px; }
+.verif-refresh { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; color: var(--v-blue); text-decoration: none; }
+.verif-hint { margin: 4px 0 10px; font-size: 11px; color: var(--v-muted); }
+.verif-note { margin: 10px 0 0; font-size: 12px; color: var(--v-muted); text-align: center; }
 
-/* ---------- Menu cepat ---------- */
-.amt-menu {
-    display: grid; grid-template-columns: repeat(4, 1fr);
-    gap: 0.875rem 0.625rem; padding: 0 1rem;
+.verif-lo {
+    position: relative; margin-bottom: 10px; padding: 12px 44px 12px 14px;
+    background: #fff; border: 1px solid var(--v-line); border-radius: 14px;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, .05);
+    transition: background-color .15s, border-color .15s;
 }
-.amt-menu-item { display: flex; flex-direction: column; align-items: center; gap: 0.375rem; min-width: 0; }
-.amt-menu-item { text-decoration: none; color: inherit; }
-.amt-menu-item:active .amt-menu-tile { transform: scale(0.95); }
-/* Menu terkunci (timer belum berjalan): pudar tapi tetap berwarna */
-.amt-menu-item.is-disabled { opacity: 0.45; cursor: not-allowed; }
-.amt-menu-item.is-disabled:active .amt-menu-tile { transform: none; }
-
-.amt-menu-tile {
-    width: 100%; aspect-ratio: 1 / 1; border-radius: 0.875rem;
-    display: flex; align-items: center; justify-content: center;
-    border: 1px solid rgba(255,255,255,0.8);
-    box-shadow: 0 2px 8px -3px rgba(15,23,42,0.18);
-    transition: transform 0.1s ease;
+.verif-lo.is-selected {
+    background: linear-gradient(135deg, #e3eeff, #f0f6ff);
+    border-color: #93b4f6;
 }
-.amt-menu-tile img { width: 72%; height: 72%; object-fit: contain; }
+.verif-lo.is-disabled { opacity: .7; }
+.verif-rows { margin: 0; display: grid; gap: 6px; }
+.verif-rows > div { display: grid; grid-template-columns: 88px 1fr; align-items: center; font-size: 11px; }
+.verif-rows dt { color: var(--v-muted); }
+.verif-rows dt::after { content: " :"; float: right; margin-right: 8px; }
+.verif-rows dd { margin: 0; }
+.verif-strong { font-size: 12px; font-weight: 800; }
 
-.tone-slate  { background: linear-gradient(135deg, #eef1f6, #dde3ee); }
-.tone-green  { background: linear-gradient(135deg, #eefaf1, #d9f2e0); }
-.tone-peach  { background: linear-gradient(135deg, #fdf3ea, #f8e2d1); }
-.tone-blue   { background: linear-gradient(135deg, #e6efff, #cfdffa); }
-.tone-rose   { background: linear-gradient(135deg, #fdefef, #f9d9d9); }
-.tone-violet { background: linear-gradient(135deg, #f3ecff, #e3d6fb); }
-.tone-sky    { background: linear-gradient(135deg, #dff1ff, #bfe3fb); }
-
-.amt-menu-label {
-    font-size: 0.6875rem; font-weight: 500; color: #475569;
-    text-align: center; line-height: 1.25; white-space: nowrap;
+.verif-pill {
+    display: inline-block; padding: 2px 10px; border: 1px solid var(--v-line); border-radius: 999px;
+    background: #fff; font-size: 10px; font-weight: 800; letter-spacing: .01em;
 }
+.verif-badge { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 10px; font-weight: 700; }
+.verif-badge.is-ok { background: var(--v-green-bg); color: var(--v-green); }
+.verif-badge.is-wait { background: #fef3c7; color: #92400e; }
 
-/* ---------- Pengiriman aktif ---------- */
-.amt-active {
-    flex: 1 1 auto; margin-top: 0.5rem; padding: 2rem 1.5rem 2.5rem;
+/* Checkbox di kanan kartu (seluruh kartu juga bisa disentuh lewat skrip kecil di view) */
+.verif-check {
+    position: absolute; right: 12px; top: 50%; width: 20px; height: 20px; margin-top: -10px;
+    display: grid; place-items: center; border: 1.5px solid #94a3b8; border-radius: 5px;
+    background: #fff; color: transparent; text-decoration: none;
+}
+.verif-check.is-on { background: var(--v-blue); border-color: var(--v-blue); color: #fff; }
+.verif-check:focus-visible { outline: 3px solid rgba(37, 99, 235, .35); outline-offset: 2px; }
+
+.verif-method {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    margin-top: 10px; padding: 11px 14px; border: 1px solid #c3ccda; border-radius: 10px;
+    background: #fff; color: #94a3b8; font-size: 12px; font-weight: 600; text-decoration: none;
+}
+.verif-method[aria-disabled="true"] { cursor: not-allowed; opacity: .75; }
+.verif-method.is-on { border-color: #4f8cf7; color: var(--v-blue); cursor: pointer; }
+.verif-method.is-on:hover { background: var(--v-blue-soft); }
+
+/* ---------- Pindai Kode QR ----------
+   Latar gelap memenuhi SELURUH area layar (di bawah header), jendela kamera
+   berada tepat di tengah. .vqr diposisikan absolut terhadap .content. */
+.vqr {
+    position: absolute; inset: 0; z-index: 2; overflow-y: auto;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    text-align: center; background: #fff;
-    border-radius: 2rem 2rem 0 0;
-    box-shadow: 0 -8px 24px -12px rgba(15,23,42,0.12);
+    padding: 20px 20px 28px; color: #fff; text-align: center;
+    background: radial-gradient(120% 90% at 50% 42%, #747474 0%, #565656 55%, #3e3e3e 100%);
 }
-.amt-active img { width: 100%; max-width: 10rem; height: auto; object-fit: contain; margin-bottom: 1.5rem; }
-.amt-active h3 { font-size: 0.8125rem; font-weight: 700; color: #0f172a; margin-bottom: 0.5rem; }
-.amt-active p  { font-size: 0.6875rem; color: #5f739f; line-height: 1.5; }
+.vqr-inner { width: 100%; max-width: 300px; display: flex; flex-direction: column; align-items: center; margin: auto; }
 
-/* Ikon Shipments punya ruang kosong lebar di dalam gambarnya -> perbesar agar sama besar dengan ikon lain */
-.tone-blue img { transform: scale(1.4); }
+/* Jendela kamera */
+.vqr-frame {
+    position: relative; width: min(78%, 250px); aspect-ratio: 1 / 1; overflow: hidden; cursor: pointer;
+    background: #1b1b1b;
+    box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0); /* placeholder agar transisi halus */
+}
+.vqr-scene {
+    position: absolute; inset: 0; display: grid; place-items: center;
+    background:
+        radial-gradient(70% 70% at 50% 45%, #3a3a3a 0%, #1d1d1d 100%);
+}
+/* Kartu putih berisi QR, sedikit miring seolah sedang ditangkap kamera */
+.vqr-card {
+    width: 62%; aspect-ratio: 1 / 1; padding: 7%; background: #fff; border-radius: 6px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, .55);
+    transform: rotate(-3deg);
+    animation: vqr-float 2.6s ease-in-out infinite alternate;
+}
+.vqr-card svg { display: block; width: 100%; height: 100%; }
+@keyframes vqr-float {
+    from { transform: rotate(-3deg) translateY(-2px); }
+    to   { transform: rotate(2deg)  translateY(2px); }
+}
+
+.vqr-corner { position: absolute; z-index: 2; width: 22px; height: 22px; border: 0 solid #2563eb; }
+.vqr-corner.is-tl { left: 0; top: 0; border-left-width: 3px; border-top-width: 3px; }
+.vqr-corner.is-tr { right: 0; top: 0; border-right-width: 3px; border-top-width: 3px; }
+.vqr-corner.is-bl { left: 0; bottom: 0; border-left-width: 3px; border-bottom-width: 3px; }
+.vqr-corner.is-br { right: 0; bottom: 0; border-right-width: 3px; border-bottom-width: 3px; }
+
+.vqr-laser {
+    position: absolute; z-index: 2; left: 4%; right: 4%; top: 8%; height: 2px; border-radius: 2px;
+    background: #ef4444; box-shadow: 0 0 10px 2px rgba(239, 68, 68, .85);
+    animation: vqr-scan 1.8s ease-in-out infinite alternate;
+}
+@keyframes vqr-scan { from { top: 8%; } to { top: 90%; } }
+.vqr-status {
+    position: absolute; z-index: 3; left: 0; right: 0; bottom: 8px; font-size: 11px; font-weight: 700;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, .7);
+}
+.vqr.is-found .vqr-laser, .vqr.is-expired .vqr-laser { animation: none; opacity: 0; }
+.vqr.is-found .vqr-card { animation: none; transform: none; box-shadow: 0 0 0 3px #22c55e, 0 6px 18px rgba(0, 0, 0, .55); }
+.vqr.is-found .vqr-corner { border-color: #22c55e; }
+.vqr.is-expired .vqr-frame { filter: grayscale(1); opacity: .6; }
+
+.vqr-note { margin: 16px 0 0; font-size: 10px; }
+.vqr-timer { margin: 6px 0 0; font-size: 18px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.vqr-btn {
+    margin-top: 16px; padding: 10px 18px; border: 1px solid rgba(255, 255, 255, .7); border-radius: 10px;
+    background: transparent; color: #fff; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; text-decoration: none;
+}
+.vqr-btn:disabled { opacity: .45; cursor: not-allowed; }
+.vqr-btn.is-solid { background: #fff; color: #1f2937; border-color: #fff; display: inline-block; }
+.vqr-sim { margin: 10px 0 0; font-size: 10px; opacity: .8; }
+.vqr-expired { margin-top: 14px; padding: 12px 16px; border-radius: 12px; background: rgba(0, 0, 0, .35); }
+.vqr-expired[hidden] { display: none; }
+.vqr-expired__title { margin: 0; font-size: 14px; font-weight: 800; }
+.vqr-expired__text { margin: 4px 0 0; font-size: 11px; opacity: .85; }
+.vqr-btn:focus-visible { outline: 3px solid rgba(255, 255, 255, .6); outline-offset: 2px; }
+
+/* Header layar QR ikut gelap supaya menyatu dengan latar (butuh :has, browser modern) */
+.app-container:has(.vqr) .app-header-simple {
+    background: #565656; border-bottom-color: rgba(255, 255, 255, .12); box-shadow: none;
+}
+.app-container:has(.vqr) .app-header-simple h1 { color: #fff; }
+.app-container:has(.vqr) .app-header-simple .back-btn { color: #fff; }
+.app-container:has(.vqr)::before { background: #3e3e3e; }
+
+/* ---------- Kode Konfirmasi ----------
+   Latar memenuhi seluruh area layar (bukan hanya sebesar kartu); kartu di tengah. */
+.vkode {
+    position: absolute; inset: 0; z-index: 2; overflow-y: auto;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 16px 14px 28px;
+    background:
+        radial-gradient(120% 55% at 100% 0%, #dbe7fd 0%, rgba(219, 231, 253, 0) 100%),
+        radial-gradient(120% 45% at 0% 100%, #fbdde8 0%, rgba(251, 221, 232, 0) 100%),
+        #f8fafc;
+}
+.vkode > * { width: 100%; max-width: 340px; margin-top: auto; margin-bottom: auto; }
+.vkode > .vkode-sim { margin-top: 0; }
+.vkode-card {
+    padding: 22px 16px 18px; text-align: center; border: 1px solid var(--v-line); border-radius: 18px;
+    background: linear-gradient(135deg, #fff1f3, #eef4ff);
+    box-shadow: 0 8px 24px rgba(15, 23, 42, .08);
+}
+.vkode-title { margin: 0 0 6px; font-size: 16px; font-weight: 800; }
+.vkode-sub { margin: 0 0 14px; font-size: 11px; color: #475569; }
+.vkode-boxes { display: flex; justify-content: center; gap: 6px; }
+.vkode-box {
+    width: 100%; max-width: 34px; height: 40px; padding: 0; text-align: center;
+    border: 1px solid var(--v-line); border-radius: 6px; background: #fff;
+    font: inherit; font-size: 18px; font-weight: 800; color: var(--v-ink);
+}
+.vkode-box:focus { outline: none; border-color: var(--v-blue); box-shadow: 0 0 0 3px rgba(37, 99, 235, .2); background: var(--v-blue-soft); }
+.vkode-box:disabled { opacity: .5; }
+.vkode-error { margin: 10px 0 0; font-size: 11px; font-weight: 600; color: #b91c1c; }
+.vkode-error[hidden], .vkode-expired[hidden] { display: none; }
+.vkode-note { margin: 14px 0 0; font-size: 10px; color: #475569; }
+.vkode-timer { margin: 4px 0 0; font-size: 17px; font-weight: 800; color: var(--v-blue); font-variant-numeric: tabular-nums; }
+.vkode-expired { margin-top: 10px; font-size: 12px; }
+.vkode-expired p { margin: 0 0 6px; color: #b91c1c; font-weight: 700; }
+.vkode-retry { color: var(--v-blue); font-weight: 700; }
+.vkode-sim { margin: 10px 0 0; text-align: center; font-size: 10px; color: var(--v-muted); }
+
+/* ---------- Order Berhasil Diverifikasi (gambar 5) ---------- */
+.vok { min-height: 520px; padding: 24px 14px 18px; display: flex; flex-direction: column; }
+.vok-body { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+.vok-icon {
+    width: 64px; height: 64px; display: grid; place-items: center; border: 3px solid var(--v-blue);
+    border-radius: 50%; color: var(--v-blue);
+}
+.vok-title { margin: 18px 0 8px; font-size: 20px; line-height: 1.25; font-weight: 800; }
+.vok-line { width: 44px; height: 3px; border-radius: 3px; background: var(--v-blue); margin-bottom: 22px; }
+.vok-card {
+    width: 100%; padding: 12px 14px; display: grid; gap: 10px; text-align: left;
+    background: #fff; border: 1px solid var(--v-line); border-radius: 12px; box-shadow: 0 6px 18px rgba(15, 23, 42, .08);
+}
+.vok-row { display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: var(--v-muted); }
+.vok-row strong { color: var(--v-ink); font-size: 12px; }
+.vok-btn {
+    display: block; margin-top: 18px; padding: 13px 16px; border-radius: 12px; text-align: center;
+    background: #0a66ff; color: #fff; font-size: 14px; font-weight: 700; text-decoration: none;
+}
+.vok-btn:hover { background: #0852cc; }
+.vok-btn:focus-visible { outline: 3px solid rgba(37, 99, 235, .4); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+    .vqr-laser, .vqr-card { animation: none; }
+    .verif-lo { transition: none; }
+}

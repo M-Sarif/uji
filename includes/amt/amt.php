@@ -15,11 +15,13 @@ require_once __DIR__ . '/work.php';
 require_once __DIR__ . '/amt_pti_functions.php'; // PTI + aktivasi setelah Check-In
 require_once __DIR__ . '/amt_ship_data.php';      // Shipments: daftar, Detail Order, SPBU
 require_once __DIR__ . '/amt_pbk.php';            // Checklist Pra-Pembongkaran AMT (Daftar LO, 14 langkah + QR Code)
+require_once __DIR__ . '/amt_verif_functions.php'; // Verifikasi Order (Daftar LO, QR, Kode, Berhasil)
 require_once __DIR__ . '/tutorial.php'; // tutorial terpandu (guided tour) peran AMT
 
 // Layar milik AMT yang tidak terdaftar di HEADER_TITLES (data.php)
 const AMT_EXTRA_SCREENS = ['start_end', 'start_work', 'end_work', 'checkin', 'amt_pti', 'amt_pti_form', 'amt_pti_hasil',
-    'amt_shipments', 'amt_shipment_detail', 'amt_spbu', 'amt_checklist_lo', 'amt_checklist'];
+    'amt_shipments', 'amt_shipment_detail', 'amt_spbu', 'amt_checklist_lo', 'amt_checklist',
+    'amt_verifikasi', 'amt_verifikasi_qr', 'amt_verifikasi_kode', 'amt_verifikasi_sukses'];
 
 // Aksi form (POST) milik AMT
 const AMT_POST_ACTIONS = ['submit_start_work', 'submit_end_work', 'submit_checkin', 'submit_spbu_arrive', 'submit_pbk'];
@@ -62,6 +64,12 @@ function amt_screen_title(string $screen): string
     if ($screen === 'amt_checklist') {
         return 'Checklist Pra Bongkar BBM AMT';   // wizard 14 langkah
     }
+    if ($screen === 'amt_verifikasi_qr') {
+        return 'Pindai Kode QR';
+    }
+    if (in_array($screen, AMT_VERIF_SCREENS, true)) {
+        return 'Verifikasi Order';
+    }
     return WORK_SCREENS[$screen] ?? '';
 }
 
@@ -79,6 +87,13 @@ function amt_prev_screen(string $screen): ?string
     }
     if ($screen === 'amt_checklist') {
         return 'amt_checklist_lo' . ($id !== '' ? '&id=' . rawurlencode($id) : '');
+    }
+    // Verifikasi Order: Daftar LO -> kembali ke SPBU; QR / Kode -> kembali ke Daftar LO
+    if (in_array($screen, AMT_VERIF_SCREENS, true)) {
+        $id = amt_verif_ship_id();
+        $q  = $id !== '' ? '&id=' . rawurlencode($id) : '';
+        return $screen === 'amt_verifikasi' ? AMT_VERIF_RETURN_SCREEN . $q
+             : ($screen === 'amt_verifikasi_sukses' ? AMT_VERIF_RETURN_SCREEN . $q : 'amt_verifikasi' . $q);
     }
     return [
         'start_end'  => amt_home_screen(),
@@ -150,6 +165,7 @@ function amt_reset_all(): void
     unset($_SESSION['work'], $_SESSION['flash_success']);
     amt_pti_reset();
     amt_spbu_reset();   // status "Tiba di Lokasi" ikut direset
+    amt_verif_reset();  // Verifikasi Order ikut direset
     amt_tour_bump();
 }
 
@@ -169,6 +185,7 @@ function amt_handle_post(string $action): void
             }
             amt_pti_reset(); // shift baru: PTI & tutorial mulai dari awal
             amt_spbu_reset();
+            amt_verif_reset();
             amt_tour_bump();
             $_SESSION['work'] = [
                 'started_at'  => time(),
@@ -187,6 +204,7 @@ function amt_handle_post(string $action): void
             }
             amt_pti_reset();
             amt_spbu_reset();
+            amt_verif_reset();
             amt_tour_bump();
             $_SESSION['work']['ended_at'] = time();
             $_SESSION['work']['end_photo'] = true;

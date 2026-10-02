@@ -50,6 +50,7 @@ if ($screen === 'role_select' && !$isPost) {
  * Harus sebelum ada output apa pun. */
 if ($role === 'amt') {
     amt_pti_bootstrap($screen);
+    amt_verif_bootstrap($screen);   // Verifikasi Order AMT (redirect/timer, sebelum output)
 }
 
 /* Penjagaan menu kerja AMT: Check-In hanya saat timer berjalan (PTI &

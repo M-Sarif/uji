@@ -4,8 +4,11 @@
  * Letak: includes/amt/amt_verif_data.php
  */
 
-/** Layar Shipment AMT (halaman "SPBU 2438203" berisi Aktifitas di SPBU). GANTI sesuai nama layar aslinya. */
-const AMT_VERIF_RETURN_SCREEN = 'amt_shipment';
+/** Layar Shipment AMT (halaman "SPBU ..." berisi Aktifitas di SPBU) = amt_spbu (butuh &id= pengiriman). */
+const AMT_VERIF_RETURN_SCREEN = 'amt_spbu';
+
+/** Semua layar Verifikasi Order */
+const AMT_VERIF_SCREENS = ['amt_verifikasi', 'amt_verifikasi_qr', 'amt_verifikasi_kode', 'amt_verifikasi_sukses'];
 
 const AMT_VERIF_QR_SECONDS     = 120;  // batas waktu pindai kode QR (2 menit)
 const AMT_VERIF_CODE_SECONDS   = 180;  // batas waktu kode konfirmasi (3 menit, sesuai tampilan 02:53)

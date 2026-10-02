@@ -1,16 +1,14 @@
 <?php
 /**
  * Layar: ?screen=amt_verifikasi  (Verifikasi Order - Daftar LO + Metode Verifikasi)
- * Letak: views/amt_verifikasi.php
+ * Letak: views/amt/amt_verifikasi.php
  */
-require_once __DIR__ . '/../includes/amt/amt_verif_functions.php';
 
 $los      = amt_verif_lo_list();
 $selected = amt_verif_selected();
 $hasPick  = count($selected) > 0;
 $allDone  = amt_verif_is_done();
 ?>
-<link rel="stylesheet" href="assets/amt-verif.css">
 
 <section class="verif">
     <div class="verif-head">

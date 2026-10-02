@@ -1,14 +1,12 @@
 <?php
 /**
  * Layar: ?screen=amt_verifikasi_sukses  (Order Berhasil Diverifikasi)
- * Letak: views/amt_verifikasi_sukses.php
+ * Letak: views/amt/amt_verifikasi_sukses.php
  */
-require_once __DIR__ . '/../includes/amt/amt_verif_functions.php';
 
 $state = amt_verif_state();
 $ids   = isset($state['last']['ids']) ? $state['last']['ids'] : [];
 ?>
-<link rel="stylesheet" href="assets/amt-verif.css">
 
 <section class="vok">
     <div class="vok-body">

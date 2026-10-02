@@ -18,9 +18,25 @@ function amt_verif_e($value)
     return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
 }
 
+/** ID pengiriman (shipment) yang sedang diverifikasi: dari ?id=, atau yang tersimpan di session. */
+function amt_verif_ship_id()
+{
+    $id = isset($_GET['id']) ? (string) $_GET['id'] : '';
+    if (preg_match('/^[A-Za-z0-9-]{1,64}$/', $id)) {
+        return $id;
+    }
+    return (isset($_SESSION['amt_verif']['ship_id']) && is_string($_SESSION['amt_verif']['ship_id']))
+        ? $_SESSION['amt_verif']['ship_id'] : '';
+}
+
 function amt_verif_url($screen, array $params = [])
 {
-    return '?' . http_build_query(array_merge(['screen' => $screen], $params));
+    $base = ['screen' => $screen];
+    $id = amt_verif_ship_id();
+    if ($id !== '') {
+        $base['id'] = $id;   // supaya tombol back / "Oke" kembali ke pengiriman yang sama
+    }
+    return 'index.php?' . http_build_query(array_merge($base, $params));
 }
 
 function amt_verif_redirect($screen, array $params = [])
@@ -151,10 +167,15 @@ function amt_verif_complete($via)
 
 function amt_verif_bootstrap($screen)
 {
-    if (!in_array($screen, ['amt_verifikasi', 'amt_verifikasi_qr', 'amt_verifikasi_kode', 'amt_verifikasi_sukses'], true)) {
+    if (!in_array($screen, AMT_VERIF_SCREENS, true)) {
         return;
     }
     amt_verif_state();
+    // Ingat pengiriman yang sedang diverifikasi (dibawa dari ?id= layar SPBU)
+    $rid = isset($_GET['id']) ? (string) $_GET['id'] : '';
+    if (preg_match('/^[A-Za-z0-9-]{1,64}$/', $rid)) {
+        $_SESSION['amt_verif']['ship_id'] = $rid;
+    }
 
     switch ($screen) {
         case 'amt_verifikasi':

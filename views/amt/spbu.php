@@ -29,7 +29,8 @@ $canOpen  = $active && !$arrived;              // popup "Tiba di Lokasi" hanya s
 $steps    = amt_spbu_steps();
 $total    = count($steps);
 $pbkDone  = $arrived && amt_pbk_done($s['id']);          // checklist Pra Bongkar sudah dikirim
-$doneN    = $active ? ($arrived ? ($pbkDone ? 2 : 1) : 0) : $total;   // jumlah langkah selesai
+$verDone  = $pbkDone && amt_verif_is_done();               // Verifikasi Order sudah selesai
+$doneN    = $active ? ($arrived ? ($pbkDone ? ($verDone ? 3 : 2) : 1) : 0) : $total;   // jumlah langkah selesai
 $progress = $total > 1 ? min($doneN, $total - 1) / ($total - 1) * 100 : 0;
 ?>
 
@@ -97,7 +98,8 @@ $progress = $total > 1 ? min($doneN, $total - 1) / ($total - 1) * 100 : 0;
             <?php foreach ($steps as $i => $st):
                 $state  = $i < $doneN ? 'done' : ($i === $doneN ? 'active' : 'pending');
                 $isOpen = $canOpen && $state === 'active' && $st['key'] === 'tiba';
-                $isChk  = $arrived && !$pbkDone && $state === 'active' && $st['key'] === 'checklist'; ?>
+                $isChk  = $arrived && !$pbkDone && $state === 'active' && $st['key'] === 'checklist';
+                $isVer  = $pbkDone && !$verDone && $state === 'active' && $st['key'] === 'verifikasi'; ?>
                 <?php
                     // Garis penghubung ke langkah berikutnya: biru bila langkah ini aktif (seperti aplikasi asli),
                     // hijau bila sudah selesai, abu-abu bila belum sampai.
@@ -112,7 +114,8 @@ $progress = $total > 1 ? min($doneN, $total - 1) / ($total - 1) * 100 : 0;
                     </span>
                     <div class="amts-act__row"
                          <?= $isOpen ? 'role="button" tabindex="0" data-spbu-open="arrSheet" aria-haspopup="dialog"' : '' ?>
-                         <?= $isChk ? 'role="link" tabindex="0" data-spbu-href="' . amt_e(amt_pbk_lo_url($s)) . '"' : '' ?>>
+                         <?= $isChk ? 'role="link" tabindex="0" data-spbu-href="' . amt_e(amt_pbk_lo_url($s)) . '"' : '' ?>
+                         <?= $isVer ? 'role="link" tabindex="0" data-spbu-href="' . amt_e(amt_ship_url('amt_verifikasi', $s)) . '"' : '' ?>>
                         <img class="amts-act__icon" src="<?= amt_e($st['icon']) ?>" alt="">
                         <span class="amts-act__label"><?= amt_e($st['label']) ?></span>
                         <?php if ($state === 'active'): ?>
@@ -151,7 +154,7 @@ $progress = $total > 1 ? min($doneN, $total - 1) / ($total - 1) * 100 : 0;
     <?php endforeach; ?>
 </section>
 
-<?php if ($arrived && !$pbkDone): ?>
+<?php if ($arrived): ?>
 <style>.amts-act__row[data-spbu-href] { cursor: pointer; } .amts-act__row[data-spbu-href]:focus-visible { outline: 3px solid rgba(37, 99, 235, .35); outline-offset: 2px; }</style>
 <script>
 /* Ketuk "Isi Checklist" -> buka Daftar LO (Checklist Pra-Pembongkaran) */

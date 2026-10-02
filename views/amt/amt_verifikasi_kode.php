@@ -1,24 +1,22 @@
 <?php
 /**
  * Layar: ?screen=amt_verifikasi_kode  (Kode Konfirmasi - SIMULASI: angka apa saja diterima)
- * Letak: views/amt_verifikasi_kode.php
+ * Letak: views/amt/amt_verifikasi_kode.php
  */
-require_once __DIR__ . '/../includes/amt/amt_verif_functions.php';
-
 $remaining = amt_verif_remaining('code');
 $retryUrl  = amt_verif_url('amt_verifikasi_kode', ['restart' => 1]);
 $hasError  = isset($_GET['err']);
 $len       = (int) AMT_VERIF_CODE_LENGTH;
 ?>
-<link rel="stylesheet" href="assets/amt-verif.css">
 
 <section class="vkode" id="vkode">
     <div class="vkode-card">
         <h2 class="vkode-title">Kode Konfirmasi</h2>
         <p class="vkode-sub">Silahkan AMT masukkan kode konfirmasi yang telah dikirim ke SPBU</p>
 
-        <form method="get" action="" id="vkodeForm" autocomplete="off">
+        <form method="get" action="index.php" id="vkodeForm" autocomplete="off">
             <input type="hidden" name="screen" value="amt_verifikasi_kode">
+            <?php if (amt_verif_ship_id() !== ''): ?><input type="hidden" name="id" value="<?= amt_verif_e(amt_verif_ship_id()) ?>"><?php endif; ?>
             <input type="hidden" name="kode" id="vkodeValue" value="">
             <div class="vkode-boxes" id="vkodeBoxes">
                 <?php for ($i = 1; $i <= $len; $i++): ?>
