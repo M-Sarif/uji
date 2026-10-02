@@ -83,16 +83,21 @@ if (is_array($flashSuccess)) {
         <?php require AMT_INC_DIR . '/header.php'; // header beranda AMT (includes/amt/) ?>
     <?php else: ?>
         <!-- Header layar lain: tombol back + judul -->
-        <div class="app-header-simple<?php echo $screen === 'claim_loss' ? ' centered' : ''; ?>">
+        <?php $amtCentered = function_exists('amt_header_centered') && amt_header_centered($screen); ?>
+        <div class="app-header-simple<?php echo $screen === 'claim_loss' ? ' centered' : ''; ?><?php echo $amtCentered ? ' centered amt-centered' : ''; ?>">
             <?php if ($prevScreen): ?>
-                <a class="back-btn" href="index.php?screen=<?php echo h($prevScreen); ?>">
+                <a class="back-btn" href="index.php?screen=<?php echo h($prevScreen); ?>" aria-label="Kembali">
+                    <?php if ($amtCentered): ?>
+                    <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 12H5m7-7l-7 7 7 7"/></svg>
+                    <?php else: ?>
                     <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+                    <?php endif; ?>
                 </a>
             <?php else: ?>
                 <span class="back-btn" style="visibility:hidden;"></span>
             <?php endif; ?>
             <h1><?php echo h($headerTitle); ?></h1>
-            <?php if ($screen === 'claim_loss'): ?>
+            <?php if ($screen === 'claim_loss' || $amtCentered): ?>
                 <span class="back-btn" style="visibility:hidden;"></span>
             <?php endif; ?>
         </div>

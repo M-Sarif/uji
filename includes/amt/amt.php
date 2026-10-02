@@ -252,6 +252,16 @@ function amt_handle_post(string $action): void
     }
 }
 
+/**
+ * Header layar AMT (selain beranda): judul DI TENGAH + tombol back berupa panah tipis "←",
+ * seperti aplikasi asli. Untuk mengembalikan gaya lama (judul di kiri) pada layar tertentu,
+ * kembalikan false untuk layar itu di sini.
+ */
+function amt_header_centered(string $screen): bool
+{
+    return current_role() === 'amt' && $screen !== amt_home_screen();
+}
+
 /** Nama file CSS AMT -> path/URL. SCREEN_CSS memakai awalan "amt/" untuk CSS di folder ini. */
 function amt_css_href(string $cssFile): ?string
 {

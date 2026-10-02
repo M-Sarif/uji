@@ -32,18 +32,77 @@ $doneN    = $active ? ($arrived ? ($pbkDone ? 2 : 1) : 0) : $total;   // jumlah 
 $progress = $total > 1 ? min($doneN, $total - 1) / ($total - 1) * 100 : 0;
 ?>
 
+<style id="amts-act-css">
+/* ---------- Aktifitas di SPBU: mengikuti tampilan aplikasi asli ----------
+   - tanpa kotak pembungkus (kartu langsung di atas latar halaman)
+   - node: abu-abu berhalo (belum), target biru (aktif), hijau berpusat centang (selesai)
+   - garis ke langkah berikutnya: biru dari langkah aktif, hijau dari langkah selesai, abu-abu sisanya
+   - label rata kanan, ikon besar, kartu aktif berbingkai biru */
+.amts-spbu-screen .amts-act-card { background: transparent; border-radius: 0; padding: 4px 0 0; box-shadow: none; }
+.amts-spbu-screen .amts-act-card > .amts-h2 { margin: 0 0 18px 2px; font-size: 15px; font-weight: 700; color: #111827; }
+.amts-spbu-screen .amts-act { position: relative; display: flex; flex-direction: column; gap: 14px; padding: 0; }
+.amts-spbu-screen .amts-act__line { display: none; }
+
+.amts-spbu-screen .amts-act__item { position: relative; padding-left: 44px; }
+
+/* garis penghubung: dari pusat node ini ke pusat node berikutnya */
+.amts-spbu-screen .amts-act__item::after {
+    content: ''; position: absolute; z-index: 0; left: 20.5px; top: 50%;
+    width: 3px; height: calc(100% + 14px); border-radius: 2px; background: #cfd6e2;
+}
+.amts-spbu-screen .amts-act__item.is-last::after { display: none; }
+.amts-spbu-screen .amts-act__item.is-linked.is-active::after { background: #2563eb; }
+.amts-spbu-screen .amts-act__item.is-linked.is-done::after   { background: #10b981; }
+
+/* node */
+.amts-spbu-screen .amts-act__node {
+    position: absolute; z-index: 1; left: 9px; top: 50%; transform: translateY(-50%);
+    width: 26px; height: 26px; box-sizing: border-box; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: #dde2eb; border: 5px solid #eef1f6; color: #fff;
+}
+.amts-spbu-screen .amts-act__item.is-active .amts-act__node {
+    background: #fff; border: 3px solid #2563eb; box-shadow: 0 0 0 4px rgba(37, 99, 235, .14);
+}
+.amts-spbu-screen .amts-act__item.is-active .amts-act__node::after {
+    content: ''; width: 10px; height: 10px; border-radius: 50%; background: #2563eb;
+}
+.amts-spbu-screen .amts-act__item.is-done .amts-act__node { background: #10b981; border: 5px solid #d1fae5; }
+
+/* kartu */
+.amts-spbu-screen .amts-act__row {
+    display: flex; align-items: center; gap: 10px; box-sizing: border-box; min-height: 76px;
+    padding: 4px 16px 4px 8px; border-radius: 16px; opacity: 1;
+    background: rgba(255, 255, 255, .72); border: 1px solid #edf0f5;
+    box-shadow: 0 2px 10px rgba(15, 23, 42, .05);
+}
+.amts-spbu-screen .amts-act__icon { flex: none; width: 66px; height: 66px; object-fit: contain; }
+.amts-spbu-screen .amts-act__item.is-pending .amts-act__row { opacity: 1; }   /* menimpa .6 di CSS lama */
+.amts-spbu-screen .amts-act__item.is-pending .amts-act__icon { opacity: .55; }
+.amts-spbu-screen .amts-act__label { flex: 1 1 auto; text-align: right; font-size: 13px; font-weight: 400; color: #4b5563; }
+
+.amts-spbu-screen .amts-act__item.is-active .amts-act__row {
+    background: #fff; border: 1.5px solid #3b82f6; box-shadow: 0 4px 16px rgba(37, 99, 235, .14);
+}
+.amts-spbu-screen .amts-act__item.is-active .amts-act__label { text-align: right; font-weight: 500; color: #1d6fe6; }
+.amts-spbu-screen .amts-act__item.is-done .amts-act__label { text-align: right; font-weight: 500; color: #1d4ed8; }
+.amts-spbu-screen .amts-act__chev { flex: none; margin-left: 2px; color: #1d6fe6; }
+</style>
+
 <section class="amts-screen amts-spbu-screen">
     <div class="amts-act-card" data-tour="spbu-activity">
         <h2 class="amts-h2">Aktifitas di SPBU</h2>
         <div class="amts-act">
-            <span class="amts-act__line" aria-hidden="true"></span>
-            <span class="amts-act__line amts-act__line--done" style="height:<?= (float) $progress ?>%;" aria-hidden="true"></span>
-
             <?php foreach ($steps as $i => $st):
                 $state  = $i < $doneN ? 'done' : ($i === $doneN ? 'active' : 'pending');
                 $isOpen = $canOpen && $state === 'active' && $st['key'] === 'tiba';
                 $isChk  = $arrived && !$pbkDone && $state === 'active' && $st['key'] === 'checklist'; ?>
-                <div class="amts-act__item is-<?= $state ?>"
+                <?php
+                    // Garis penghubung ke langkah berikutnya: biru bila langkah ini aktif (seperti aplikasi asli),
+                    // hijau bila sudah selesai, abu-abu bila belum sampai.
+                    $link = $i === $total - 1 ? ' is-last' : ($i <= $doneN ? ' is-linked' : '');
+                ?>
+                <div class="amts-act__item is-<?= $state ?><?= $link ?>"
                      <?= $state === 'active' ? 'data-tour="spbu-step-active"' : '' ?>>
                     <span class="amts-act__node" aria-hidden="true">
                         <?php if ($state === 'done'): ?>
