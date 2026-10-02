@@ -5,6 +5,8 @@
  * Satu langkah per halaman (pola sama dengan form PTI). Data langkah, state, guard akses, dan
  * penyimpanan jawaban ada di includes/amt/amt_pbk.php (dipanggil dari amt.php / index.php).
  * Logika tampilan (tombol Ya/Tidak, foto, QR Code) ada di assets/amt/js/amt-checklist.js.
+ * Dibuka dari Daftar LO (amt_checklist_lo) lewat "Mulai Checklist"; "Selesai" kembali ke Daftar LO.
+ * Langkah 7: "Generate QR Code" membuka pop up "QR Code Claim Loss" (Regenerate / Tutup).
  */
 $s = amt_ship_current();
 if ($s === null || !amt_pbk_ship_ready($s)) {
@@ -24,6 +26,7 @@ $ansA    = amt_pbk_answer($id, $step, 'a');
 $ansB    = amt_pbk_answer($id, $step, 'b');
 $photo   = amt_pbk_photo($id, $step);
 $qr      = amt_pbk_qr($id);
+$openQr  = $qr !== null && ($_GET['qr'] ?? '') === '1';   // setelah Generate/Regenerate: pop up QR langsung terbuka
 $complete = amt_pbk_step_complete($id, $step);
 
 $showError = isset($_SESSION['amt_spbu']['pbk_error']) && (int) $_SESSION['amt_spbu']['pbk_error'] === $step;
@@ -72,7 +75,7 @@ $photoBox = function (string $photo) {
 <link rel="stylesheet" href="<?= AMT_URL ?>/css/amt-checklist.css?v=<?= $v('css/amt-checklist.css') ?>">
 
 <form method="post" action="<?= amt_e(amt_pbk_url($s, $step)) ?>" class="pbk" id="pbkForm"
-      data-type="<?= amt_e($type) ?>" data-step="<?= $step ?>" data-total="<?= $total ?>" novalidate>
+      data-type="<?= amt_e($type) ?>" data-step="<?= $step ?>" data-total="<?= $total ?>" data-qr="<?= $qr !== null ? '1' : '0' ?>" novalidate>
     <input type="hidden" name="action" value="submit_pbk">
     <input type="hidden" name="id" value="<?= amt_e($id) ?>">
     <input type="hidden" name="step" value="<?= $step ?>">
@@ -114,14 +117,7 @@ $photoBox = function (string $photo) {
                 <?php if ($qr === null): ?>
                     <button type="submit" name="nav" value="qr" class="pbk-qrbtn" id="pbkGen">Generate QR Code</button>
                 <?php else: ?>
-                    <div class="pbk-qrcard" id="pbkQrCard" data-exp="<?= (int) $qr['exp'] ?>" data-now="<?= time() ?>">
-                        <div class="pbk-qrframe">
-                            <div class="pbk-qr" data-pbk-qr="<?= amt_e(amt_pbk_qr_payload($s, $qr)) ?>" role="img" aria-label="QR Code verifikasi untuk SPBU"></div>
-                            <p class="pbk-qrexpired" hidden>QR Code sudah kedaluwarsa. Ketuk "Regenerate QR Code".</p>
-                        </div>
-                        <p class="pbk-qrexp">Berlaku sampai: <span id="pbkQrExp"><?= amt_e(date('d/m/Y, H.i.s', (int) $qr['exp'])) ?></span></p>
-                    </div>
-                    <button type="submit" name="nav" value="qr" class="pbk-qrbtn" id="pbkGen">Regenerate QR Code</button>
+                    <button type="button" class="pbk-qrbtn" id="pbkShowQr" aria-haspopup="dialog">Lihat QR Code</button>
                 <?php endif; ?>
 <?php endif; ?>
             </div>
@@ -150,23 +146,27 @@ $photoBox = function (string $photo) {
 </form>
 
 <?php if ($qr !== null && $step >= AMT_PBK_QR_STEP): ?>
-<!-- Pop up QR Code (tombol "QR Code" melayang): ditampilkan ke Petugas SPBU untuk dipindai -->
-<div class="pbk-modal" id="pbkQrModal" hidden>
+<!-- Pop up "QR Code Claim Loss": dibuka otomatis setelah Generate/Regenerate (?qr=1) atau lewat tombol "QR Code".
+     Ditampilkan ke Petugas SPBU untuk dipindai. Dipindahkan ke <body> oleh amt-checklist.js. -->
+<div class="pbk-modal" id="pbkQrModal" data-open="<?= $openQr ? '1' : '0' ?>" hidden>
     <div class="pbk-modal__card" role="dialog" aria-modal="true" aria-labelledby="pbkQrTitle">
-        <h2 class="pbk-modal__title" id="pbkQrTitle">QR Code Verifikasi</h2>
+        <h2 class="pbk-modal__title" id="pbkQrTitle">QR Code Claim Loss</h2>
         <div class="pbk-qrframe">
-            <div class="pbk-qr" data-pbk-qr="<?= amt_e(amt_pbk_qr_payload($s, $qr)) ?>" data-pbk-exp="<?= (int) $qr['exp'] ?>" role="img" aria-label="QR Code verifikasi untuk SPBU"></div>
-            <p class="pbk-qrexpired" hidden>QR Code sudah kedaluwarsa.</p>
+            <div class="pbk-qr" data-pbk-qr="<?= amt_e(amt_pbk_qr_payload($s, $qr)) ?>" data-pbk-exp="<?= (int) $qr['exp'] ?>" data-pbk-now="<?= time() ?>" role="img" aria-label="QR Code verifikasi untuk SPBU"></div>
+            <p class="pbk-qrexpired" hidden>QR Code sudah kedaluwarsa. Ketuk "Regenerate".</p>
         </div>
-        <p class="pbk-qrexp">Berlaku sampai: <?= amt_e(date('d/m/Y, H.i.s', (int) $qr['exp'])) ?></p>
-        <p class="pbk-modal__note" hidden id="pbkQrRegen">Buat ulang di <a href="<?= amt_e(amt_pbk_url($s, AMT_PBK_QR_STEP)) ?>">langkah <?= AMT_PBK_QR_STEP ?></a>.</p>
-        <button type="button" class="pbk-btn pbk-btn--ghost" id="pbkQrClose">Tutup</button>
+        <p class="pbk-qrexp">Berlaku sampai: <?= amt_e(amt_pbk_qr_exp_text($qr)) ?></p>
+        <p class="pbk-qrsess">Session: <?= amt_e($qr['token']) ?></p>
+        <div class="pbk-modal__btns">
+            <button type="submit" form="pbkForm" name="nav" value="qr" class="pbk-btn pbk-btn--soft" id="pbkQrRegen">Regenerate</button>
+            <button type="button" class="pbk-btn pbk-btn--ghost" id="pbkQrClose">Tutup</button>
+        </div>
     </div>
 </div>
 <?php endif; ?>
 
 <script src="<?= AMT_URL ?>/js/camera.js?v=<?= $v('js/camera.js') ?>"></script>
-<?php if ($type === 'qr' || $qr !== null): ?>
+<?php if ($qr !== null && $step >= AMT_PBK_QR_STEP): ?>
 <script src="<?= AMT_URL ?>/js/qrcode.js?v=<?= $v('js/qrcode.js') ?>"></script>
 <?php endif; ?>
 <script src="<?= AMT_URL ?>/js/amt-checklist.js?v=<?= $v('js/amt-checklist.js') ?>"></script>

@@ -14,12 +14,12 @@
 require_once __DIR__ . '/work.php';
 require_once __DIR__ . '/amt_pti_functions.php'; // PTI + aktivasi setelah Check-In
 require_once __DIR__ . '/amt_ship_data.php';      // Shipments: daftar, Detail Order, SPBU
-require_once __DIR__ . '/amt_pbk.php';            // Checklist Pra Bongkar BBM AMT (14 langkah + QR Code)
+require_once __DIR__ . '/amt_pbk.php';            // Checklist Pra-Pembongkaran AMT (Daftar LO, 14 langkah + QR Code)
 require_once __DIR__ . '/tutorial.php'; // tutorial terpandu (guided tour) peran AMT
 
 // Layar milik AMT yang tidak terdaftar di HEADER_TITLES (data.php)
 const AMT_EXTRA_SCREENS = ['start_end', 'start_work', 'end_work', 'checkin', 'amt_pti', 'amt_pti_form', 'amt_pti_hasil',
-    'amt_shipments', 'amt_shipment_detail', 'amt_spbu', 'amt_checklist'];
+    'amt_shipments', 'amt_shipment_detail', 'amt_spbu', 'amt_checklist_lo', 'amt_checklist'];
 
 // Aksi form (POST) milik AMT
 const AMT_POST_ACTIONS = ['submit_start_work', 'submit_end_work', 'submit_checkin', 'submit_spbu_arrive', 'submit_pbk'];
@@ -42,7 +42,7 @@ function amt_view_file(string $screen): string
     // Layar PTI: nama layar 'amt_pti' / 'amt_pti_form' -> file pti.php / pti_form.php
     $file = ['amt_pti' => 'pti', 'amt_pti_form' => 'pti_form', 'amt_pti_hasil' => 'pti_hasil',
              'amt_shipments' => 'shipments', 'amt_shipment_detail' => 'shipment_detail', 'amt_spbu' => 'spbu',
-             'amt_checklist' => 'pra_bongkar'][$screen] ?? $screen;
+             'amt_checklist_lo' => 'pra_bongkar_lo', 'amt_checklist' => 'pra_bongkar'][$screen] ?? $screen;
     return amt_owns_screen($screen)
         ? AMT_VIEW_DIR . '/' . $file . '.php'
         : AMT_APP_ROOT . '/views/' . $screen . '.php';
@@ -56,8 +56,11 @@ function amt_screen_title(string $screen): string
         $s = amt_ship_current();
         return $s ? 'SPBU ' . $s['spbu'] : 'SPBU';
     }
+    if ($screen === 'amt_checklist_lo') {
+        return 'Checklist Pra-Pembongkaran';      // Daftar LO
+    }
     if ($screen === 'amt_checklist') {
-        return 'Checklist Pra Bongkar BBM AMT';
+        return 'Checklist Pra Bongkar BBM AMT';   // wizard 14 langkah
     }
     return WORK_SCREENS[$screen] ?? '';
 }
@@ -70,9 +73,12 @@ function amt_prev_screen(string $screen): ?string
     if ($screen === 'amt_spbu') {
         return 'amt_shipment_detail' . ($id !== '' ? '&id=' . rawurlencode($id) : '');
     }
-    // Tombol back checklist kembali ke Aktifitas di SPBU pengiriman yang sama
-    if ($screen === 'amt_checklist') {
+    // Daftar LO kembali ke Aktifitas di SPBU; wizard 14 langkah kembali ke Daftar LO
+    if ($screen === 'amt_checklist_lo') {
         return 'amt_spbu' . ($id !== '' ? '&id=' . rawurlencode($id) : '');
+    }
+    if ($screen === 'amt_checklist') {
+        return 'amt_checklist_lo' . ($id !== '' ? '&id=' . rawurlencode($id) : '');
     }
     return [
         'start_end'  => amt_home_screen(),
@@ -115,7 +121,7 @@ function amt_guard_work(string $screen): void
     if ($screen === 'end_work' && !work_is_running()) {
         go_to('start_end');
     }
-    amt_pbk_guard($screen);   // Checklist Pra Bongkar: hanya setelah "Tiba di Lokasi"
+    amt_pbk_guard($screen);   // Daftar LO + Checklist Pra Bongkar: hanya setelah "Tiba di Lokasi"
 }
 
 /* ------------------------------------------------------------

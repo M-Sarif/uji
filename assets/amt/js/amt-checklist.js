@@ -1,22 +1,98 @@
 /* ============================================================
    OneFIS - AMT - amt-checklist.js
-   Checklist Pra Bongkar BBM (views/amt/pra_bongkar.php):
-   - tombol "Selanjutnya" / "Selesai" aktif setelah jawaban lengkap
-   - kamera foto bukti (assets/amt/js/camera.js)
-   - QR Code (assets/amt/js/qrcode.js) + hitung mundur masa berlaku
-   - pop up QR Code (tombol "QR Code" melayang)
+   Dipakai dua layar:
+   1) Daftar LO "Checklist Pra-Pembongkaran" (views/amt/pra_bongkar_lo.php):
+      - Pilih Semua + centang LO, tombol "Mulai Checklist" / "Kirim" aktif sesuai pilihan
+      - pop up "Kirim Checklist" (Ya, Kirim / Batal)
+   2) Checklist Pra Bongkar BBM (views/amt/pra_bongkar.php):
+      - tombol "Selanjutnya" / "Selesai" aktif setelah jawaban lengkap
+      - kamera foto bukti (assets/amt/js/camera.js)
+      - pop up "QR Code Claim Loss" (assets/amt/js/qrcode.js) + hitung mundur masa berlaku
    File ini HANYA berisi JavaScript.
    ============================================================ */
 (function (w, d) {
     'use strict';
 
+    /* ============================================================
+       1) DAFTAR LO
+       ============================================================ */
+    var loForm = d.getElementById('pblForm');
+    if (loForm) {
+        var allBox   = d.getElementById('pblAll');
+        var cards    = [].slice.call(loForm.querySelectorAll('[data-pbl-card]'));
+        var startBtn = d.getElementById('pblStart');
+        var sendBtn  = d.getElementById('pblSend');
+        var sendMod  = d.getElementById('pblModal');
+        var yesBtn   = d.getElementById('pblYes');
+        var noBtn    = d.getElementById('pblNo');
+        var lastFoc  = null;
+
+        function boxOf(card) { return card.querySelector('input[type="checkbox"]'); }
+        function selectable() {
+            return cards.filter(function (c) { return !boxOf(c).disabled; });
+        }
+
+        // Sinkronkan tampilan kartu, "Pilih Semua", dan dua tombol bawah dengan centang saat ini.
+        function syncLo() {
+            var pick = selectable();
+            var checked = pick.filter(function (c) { return boxOf(c).checked; });
+            var hasDraft = checked.some(function (c) { return c.getAttribute('data-status') === 'draft'; });
+
+            cards.forEach(function (c) { c.classList.toggle('is-selected', boxOf(c).checked); });
+            if (allBox) allBox.checked = pick.length > 0 && checked.length === pick.length;
+            if (startBtn) startBtn.disabled = checked.length === 0;     // Mulai Checklist: minimal 1 LO dicentang
+            if (sendBtn)  sendBtn.disabled  = !hasDraft;                // Kirim: ada LO dicentang berstatus Draft
+        }
+
+        loForm.addEventListener('change', function (e) {
+            if (e.target === allBox) {
+                selectable().forEach(function (c) { boxOf(c).checked = allBox.checked; });
+            }
+            syncLo();
+        });
+
+        // Pop up "Kirim Checklist" ditaruh di <body>: tidak ikut tergulir / terpotong
+        if (sendMod) {
+            d.body.appendChild(sendMod);
+
+            var onModKey = function (e) { if (e.key === 'Escape') closeSend(); };
+            var openSend = function () {
+                if (!sendBtn || sendBtn.disabled) return;
+                lastFoc = d.activeElement;
+                sendMod.hidden = false;
+                d.addEventListener('keydown', onModKey);
+                if (yesBtn) yesBtn.focus();
+            };
+            var closeSend = function () {
+                sendMod.hidden = true;
+                d.removeEventListener('keydown', onModKey);
+                if (lastFoc && lastFoc.focus) lastFoc.focus();
+            };
+
+            if (sendBtn) sendBtn.addEventListener('click', openSend);
+            if (noBtn) noBtn.addEventListener('click', closeSend);
+            sendMod.addEventListener('click', function (e) { if (e.target === sendMod) closeSend(); });
+            if (yesBtn) {
+                yesBtn.addEventListener('click', function () {
+                    // cegah kirim ganda; nilai tombol tetap ikut terkirim karena submit sudah berjalan
+                    setTimeout(function () { yesBtn.disabled = true; }, 0);
+                });
+            }
+        }
+
+        syncLo();
+        return;    // layar Daftar LO tidak punya wizard
+    }
+
+    /* ============================================================
+       2) WIZARD 14 LANGKAH
+       ============================================================ */
     var form = d.getElementById('pbkForm');
     if (!form) return;
 
     var type    = form.getAttribute('data-type');
     var next    = d.getElementById('pbkNext');
     var errorEl = d.getElementById('pbkError');
-    var qrCard  = d.getElementById('pbkQrCard');
     var sending = false;
 
     /* ---------- Kelengkapan langkah ---------- */
@@ -24,7 +100,7 @@
         return !!form.querySelector('input[name="' + name + '"]:checked');
     }
     function isComplete() {
-        if (type === 'qr')   return !!qrCard;                       // QR sudah dibuat (server merender kartunya)
+        if (type === 'qr')   return form.getAttribute('data-qr') === '1';   // QR sudah dibuat (dicatat server)
         if (type === 'dual') return answered('a') && answered('b');
         return answered('a');
     }
@@ -77,40 +153,29 @@
     }
     d.querySelectorAll('[data-pbk-qr]').forEach(renderQr);
 
-    // Masa berlaku: selisih jam server-HP dikoreksi memakai data-now dari server
-    var expAt = null, skew = 0;
-    if (qrCard) {
-        expAt = parseInt(qrCard.getAttribute('data-exp'), 10) * 1000;
-        skew  = parseInt(qrCard.getAttribute('data-now'), 10) * 1000 - Date.now();
-    }
+    /* ---------- Pop up "QR Code Claim Loss" ---------- */
     var modal = d.getElementById('pbkQrModal');
-    if (!expAt && modal) {
-        var mq = modal.querySelector('[data-pbk-exp]');
-        if (mq) { expAt = parseInt(mq.getAttribute('data-pbk-exp'), 10) * 1000; skew = 0; }
-    }
-
-    function expired() { return expAt !== null && Date.now() + skew >= expAt; }
-    function tick() {
-        if (!expired()) return false;
-        if (qrCard) qrCard.classList.add('is-expired');
-        if (modal) {
-            var fr = modal.querySelector('.pbk-qrframe');
-            if (fr) fr.classList.add('is-expired');
-            var note = d.getElementById('pbkQrRegen');
-            if (note) note.hidden = false;
-        }
-        return true;
-    }
-    if (expAt !== null && !tick()) {
-        var timer = setInterval(function () { if (tick()) clearInterval(timer); }, 1000);
-    }
-
-    /* ---------- Pop up QR Code ---------- */
-    var fab = d.getElementById('pbkQrFab');
-    if (fab && modal) {
+    if (modal) {
         d.body.appendChild(modal);                                  // di luar .content: tidak ikut tergulir / terpotong
-        var lastFocus = null;
+
+        var qrEl     = modal.querySelector('[data-pbk-exp]');
+        var frame    = modal.querySelector('.pbk-qrframe');
         var closeBtn = d.getElementById('pbkQrClose');
+        var lastFocus = null;
+
+        // Masa berlaku: selisih jam server-HP dikoreksi memakai waktu server saat halaman dibuat
+        var expAt = qrEl ? parseInt(qrEl.getAttribute('data-pbk-exp'), 10) * 1000 : null;
+        var skew  = qrEl ? parseInt(qrEl.getAttribute('data-pbk-now'), 10) * 1000 - Date.now() : 0;
+
+        function expired() { return expAt !== null && Date.now() + skew >= expAt; }
+        function tick() {
+            if (!expired()) return false;
+            if (frame) frame.classList.add('is-expired');
+            return true;
+        }
+        if (expAt !== null && !tick()) {
+            var timer = setInterval(function () { if (tick()) clearInterval(timer); }, 1000);
+        }
 
         function onKey(e) { if (e.key === 'Escape') closeModal(); }
         function openModal() {
@@ -118,16 +183,27 @@
             tick();
             modal.hidden = false;
             d.addEventListener('keydown', onKey);
-            closeBtn.focus();
+            if (closeBtn) closeBtn.focus();
         }
         function closeModal() {
             modal.hidden = true;
             d.removeEventListener('keydown', onKey);
+            // buang ?qr=1 dari alamat supaya muat ulang halaman tidak membuka pop up lagi
+            if (w.history && w.history.replaceState && /[?&]qr=1/.test(w.location.search)) {
+                w.history.replaceState(null, '', w.location.search.replace(/([?&])qr=1&?/, '$1').replace(/[?&]$/, '') + w.location.hash);
+            }
             if (lastFocus && lastFocus.focus) lastFocus.focus();
         }
-        fab.addEventListener('click', openModal);
-        closeBtn.addEventListener('click', closeModal);
+
+        var fab = d.getElementById('pbkQrFab');
+        var showBtn = d.getElementById('pbkShowQr');
+        if (fab) fab.addEventListener('click', openModal);
+        if (showBtn) showBtn.addEventListener('click', openModal);
+        if (closeBtn) closeBtn.addEventListener('click', closeModal);
         modal.addEventListener('click', function (e) { if (e.target === modal) closeModal(); });
+
+        // Setelah Generate / Regenerate: pop up langsung terbuka
+        if (modal.getAttribute('data-open') === '1') openModal();
     }
 
     refresh();

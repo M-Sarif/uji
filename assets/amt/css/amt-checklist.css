@@ -74,16 +74,13 @@
     font: inherit; font-size: 17px; font-weight: 600; cursor: pointer;
 }
 .pbk-qrbtn:active { opacity: .7; }
-.pbk-qrcard { margin-bottom: 14px; padding: 14px; border: 1px solid var(--pbk-line); border-radius: 20px; background: #fff; }
-.pbk-qrframe { padding: 22px; border: 2px solid var(--pbk-line); border-radius: 18px; background: #fff; }
-.pbk-qr { width: 100%; max-width: 240px; margin: 0 auto; }
+.pbk-qrframe { padding: 18px; border: 1.5px solid var(--pbk-line); border-radius: 16px; background: #fff; }
+.pbk-qr { width: 100%; max-width: 220px; margin: 0 auto; }
 .pbk-qr svg { display: block; width: 100%; height: auto; }
-.pbk-qrexp { margin: 12px 0 2px; text-align: center; font-size: 15px; color: #475569; }
+.pbk-qrexp { margin: 14px 0 2px; text-align: center; font-size: 12.5px; color: #64748b; }
+.pbk-qrsess { margin: 0; text-align: center; font-size: 11.5px; color: #64748b; overflow-wrap: anywhere; }
 .pbk-qrexpired { margin: 0; text-align: center; font-size: 14px; font-weight: 600; color: var(--pbk-red); line-height: 1.4; }
 .pbk-qrexpired[hidden] { display: none; }
-.pbk-qrcard.is-expired .pbk-qr { display: none; }
-.pbk-qrcard.is-expired .pbk-qrexpired { display: block; }
-.pbk-qrcard.is-expired .pbk-qrexp { color: var(--pbk-red); }
 
 .pbk-error { margin: 10px 4px 0; font-size: 13px; font-weight: 600; color: #b91c1c; }
 .pbk-error[hidden] { display: none; }
@@ -114,7 +111,7 @@
 .pbk-btn--solid.is-locked { background: #cbd5e1; border-color: #cbd5e1; color: #fff; }
 .pbk-btn:focus-visible, .pbk-qrfab:focus-visible, .pbk-qrbtn:focus-visible { outline: 3px solid rgba(29, 78, 216, .35); outline-offset: 2px; }
 
-/* ---------- Pop up QR Code ---------- */
+/* ---------- Pop up (QR Code Claim Loss & Kirim Checklist) ---------- */
 .pbk-modal {
     position: fixed; inset: 0; z-index: 890; display: flex; align-items: center; justify-content: center;
     padding: 16px; background: rgba(15, 23, 42, .55);
@@ -124,15 +121,79 @@
     width: 100%; max-width: 360px; max-height: 94vh; overflow-y: auto; padding: 20px 18px;
     border-radius: 22px; background: #fff; box-shadow: 0 20px 50px -12px rgba(15, 23, 42, .45);
 }
-.pbk-modal__title { margin: 0 0 12px; font-size: 17px; font-weight: 800; text-align: center; }
-.pbk-modal__note { margin: 6px 0 0; text-align: center; font-size: 13px; color: var(--pbk-muted); }
-.pbk-modal__note a { color: var(--pbk-blue); font-weight: 600; }
-.pbk-modal__note[hidden] { display: none; }
-.pbk-modal .pbk-btn { margin-top: 14px; }
+.pbk-modal__title { margin: 0 0 14px; font-size: 16px; font-weight: 700; text-align: center; color: var(--pbk-ink); }
+.pbk-modal__btns { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
+.pbk-modal__btns .pbk-btn { min-height: 44px; font-size: 14px; font-weight: 500; border-radius: 12px; }
+.pbk-btn--soft { background: #dbeafe; color: var(--pbk-blue); border-color: #93b4f0; }
 .pbk-modal .pbk-qrframe.is-expired .pbk-qr { display: none; }
 .pbk-modal .pbk-qrframe.is-expired .pbk-qrexpired { display: block; }
+.pbk-modal .pbk-qrframe.is-expired ~ .pbk-qrexp { color: var(--pbk-red); }
+#pbkQrClose { color: #1e293b; border-color: #cbd5e1; }
 
 /* Tombol "?" tutorial menyingkir selama pop up terbuka */
 body:has(.pbk-modal:not([hidden])) .amtt-fab { display: none; }
 
-@media (prefers-reduced-motion: reduce) { .pbk * { transition: none !important; } }
+/* ============================================================
+   Daftar LO - "Checklist Pra-Pembongkaran" (views/amt/pra_bongkar_lo.php)
+   ============================================================ */
+.pbl-scroll { flex: 1; padding: 16px 16px 8px; }
+.pbl-h   { margin: 0 0 2px; font-size: 14px; font-weight: 600; color: #1e293b; }
+.pbl-sub { margin: 0 0 14px; font-size: 12px; line-height: 1.4; color: var(--pbk-muted); }
+
+/* checkbox asli disembunyikan (tetap bisa difokus keyboard); kotak biru digambar oleh .pbl-box */
+.pbl-input { position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0; pointer-events: none; }
+.pbl-box {
+    flex: none; width: 20px; height: 20px; box-sizing: border-box; border-radius: 5px;
+    border: 1.5px solid #cbd5e1; background: #fff; color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+}
+.pbl-box svg { display: none; }
+.pbl-input:checked + .pbl-box { background: #2563eb; border-color: #2563eb; }
+.pbl-input:checked + .pbl-box svg { display: block; }
+.pbl-input:focus-visible + .pbl-box { outline: 3px solid rgba(37, 99, 235, .35); outline-offset: 2px; }
+.pbl-input:disabled + .pbl-box { opacity: .5; }
+
+.pbl-all, .pbl-card {
+    position: relative; display: flex; align-items: flex-start; gap: 12px; box-sizing: border-box;
+    padding: 14px 16px; margin-bottom: 12px; border-radius: 16px; cursor: pointer;
+    background: #fff; border: 1px solid #e2e8f0; box-shadow: 0 2px 12px -4px rgba(15, 23, 42, .08);
+}
+.pbl-all { align-items: center; font-size: 13px; font-weight: 600; color: #334155; }
+.pbl-card.is-selected { border: 1.5px solid #3b82f6; background: #eff6ff; padding: 13.5px 15.5px; }
+.pbl-card.is-done { cursor: default; background: #f8fafc; }
+
+.pbl-detail { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.pbl-row { display: flex; align-items: center; font-size: 11.5px; line-height: 1.3; }
+.pbl-k { flex: none; width: 104px; color: #64748b; font-weight: 500; }
+.pbl-c { flex: none; width: 10px; color: #64748b; }
+.pbl-v { flex: 1; min-width: 0; font-weight: 600; color: #334155; overflow-wrap: anywhere; }
+.pbl-v--b { font-weight: 700; color: #0f172a; }
+.pbl-order {
+    display: inline-block; max-width: 100%; box-sizing: border-box; padding: 3px 8px;
+    border: 1px solid #cbd5e1; border-radius: 4px; background: #fff; font-size: 11px; font-weight: 600; color: #334155;
+}
+.pbl-st--belum, .pbl-st--draft { color: #d97706; font-weight: 700; }
+.pbl-st--done { color: #059669; font-weight: 700; }
+
+/* tombol bawah: Mulai Checklist (solid) + Kirim (outline); nonaktif = abu-abu */
+.pbl-btn {
+    display: inline-flex; align-items: center; justify-content: center; width: 100%; min-height: 48px;
+    padding: 10px 14px; border-radius: 12px; border: 1.5px solid transparent;
+    font: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
+    transition: background-color .15s, color .15s, border-color .15s;
+}
+.pbl-btn--solid { background: #2563eb; color: #fff; border-color: #2563eb; }
+.pbl-btn--ghost { background: #fff; color: var(--pbk-blue); border-color: var(--pbk-blue); }
+.pbl-btn--solid:disabled { background: #cbd5e1; border-color: #cbd5e1; color: #fff; cursor: not-allowed; }
+.pbl-btn--ghost:disabled { background: #fff; color: #94a3b8; border-color: #cbd5e1; cursor: not-allowed; }
+.pbl-btn:focus-visible { outline: 3px solid rgba(29, 78, 216, .35); outline-offset: 2px; }
+
+/* pop up "Kirim Checklist": judul & teks rata kiri */
+.pbl-modal__card { max-width: 340px; padding: 18px 16px; }
+.pbl-modal__title { margin: 0 0 8px; font-size: 15px; font-weight: 700; color: var(--pbk-ink); }
+.pbl-modal__text  { margin: 0 0 8px; font-size: 12.5px; line-height: 1.5; color: #475569; }
+.pbl-modal__note  { margin: 0 0 16px; font-size: 12px; line-height: 1.5; color: #94a3b8; }
+.pbl-modal__card .pbl-btn { border-radius: 999px; }
+.pbl-modal__card .pbl-btn + .pbl-btn { margin-top: 10px; }
+
+@media (prefers-reduced-motion: reduce) { .pbk *, .pbl-btn { transition: none !important; } }

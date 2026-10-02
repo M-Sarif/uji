@@ -7,8 +7,9 @@
  *   Ketuk "Tiba di Lokasi" -> popup (bottom sheet): peta lokasi + "Ya, pengiriman telah tiba".
  *   Setelah dikonfirmasi, "Tiba di Lokasi" hijau dan "Isi Checklist" menjadi langkah aktif.
  * Pengiriman selesai  : semua langkah hijau, status order terverifikasi, tanpa tombol "Selesai".
- * Setelah tiba, "Isi Checklist" aktif dan membuka layar amt_checklist (Checklist Pra Bongkar BBM AMT, 14 langkah).
- *   Selesai diisi -> "Isi Checklist" hijau dan "Verifikasi Order" menjadi langkah aktif.
+ * Setelah tiba, "Isi Checklist" aktif dan membuka layar amt_checklist_lo (Daftar LO: Checklist Pra-Pembongkaran).
+ *   Pilih LO -> "Mulai Checklist" -> amt_checklist (14 langkah) -> kembali ke Daftar LO ("Draft") -> "Kirim".
+ *   Semua LO terkirim -> "Isi Checklist" hijau dan "Verifikasi Order" menjadi langkah aktif.
  * Layar tujuan langkah lain (Verifikasi Order, dst) belum dibuat: kartunya belum membuka layar lain.
  *
  * Atribut data-tour dipakai tutorial AMT (includes/amt/tutorial.php).
@@ -111,7 +112,7 @@ $progress = $total > 1 ? min($doneN, $total - 1) / ($total - 1) * 100 : 0;
                     </span>
                     <div class="amts-act__row"
                          <?= $isOpen ? 'role="button" tabindex="0" data-spbu-open="arrSheet" aria-haspopup="dialog"' : '' ?>
-                         <?= $isChk ? 'role="link" tabindex="0" data-spbu-href="' . amt_e(amt_pbk_url($s)) . '"' : '' ?>>
+                         <?= $isChk ? 'role="link" tabindex="0" data-spbu-href="' . amt_e(amt_pbk_lo_url($s)) . '"' : '' ?>>
                         <img class="amts-act__icon" src="<?= amt_e($st['icon']) ?>" alt="">
                         <span class="amts-act__label"><?= amt_e($st['label']) ?></span>
                         <?php if ($state === 'active'): ?>
@@ -153,7 +154,7 @@ $progress = $total > 1 ? min($doneN, $total - 1) / ($total - 1) * 100 : 0;
 <?php if ($arrived && !$pbkDone): ?>
 <style>.amts-act__row[data-spbu-href] { cursor: pointer; } .amts-act__row[data-spbu-href]:focus-visible { outline: 3px solid rgba(37, 99, 235, .35); outline-offset: 2px; }</style>
 <script>
-/* Ketuk "Isi Checklist" -> buka Checklist Pra Bongkar BBM AMT */
+/* Ketuk "Isi Checklist" -> buka Daftar LO (Checklist Pra-Pembongkaran) */
 (function () {
     document.querySelectorAll('[data-spbu-href]').forEach(function (row) {
         function go() { window.location.href = row.getAttribute('data-spbu-href'); }
