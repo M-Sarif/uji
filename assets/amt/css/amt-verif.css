@@ -1,5 +1,5 @@
 /* Verifikasi Order - role AMT (CSS murni, tanpa build step)
-   Letak: assets/amt-verif.css */
+   Letak: assets/amt/css/amt-verif.css */
 
 .verif, .vqr, .vkode, .vok {
     --v-blue: #2563eb;
@@ -65,35 +65,63 @@
 .verif-method.is-on { border-color: #4f8cf7; color: var(--v-blue); cursor: pointer; }
 .verif-method.is-on:hover { background: var(--v-blue-soft); }
 
-/* ---------- Pindai Kode QR (gambar 3) ---------- */
+/* ---------- Pindai Kode QR ----------
+   Latar gelap memenuhi SELURUH area layar (di bawah header), jendela kamera
+   berada tepat di tengah. .vqr diposisikan absolut terhadap .content. */
 .vqr {
-    min-height: 520px; padding: 24px 20px; display: flex; flex-direction: column; align-items: center; justify-content: center;
-    background: #6b6b6b; color: #fff; text-align: center;
+    position: absolute; inset: 0; z-index: 2; overflow-y: auto;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 20px 20px 28px; color: #fff; text-align: center;
+    background: radial-gradient(120% 90% at 50% 42%, #747474 0%, #565656 55%, #3e3e3e 100%);
 }
+.vqr-inner { width: 100%; max-width: 300px; display: flex; flex-direction: column; align-items: center; margin: auto; }
+
+/* Jendela kamera */
 .vqr-frame {
-    position: relative; width: min(100%, 250px); aspect-ratio: 1 / 1; overflow: hidden; cursor: pointer;
-    background: linear-gradient(135deg, #ff4b3a, #d9261a);
+    position: relative; width: min(78%, 250px); aspect-ratio: 1 / 1; overflow: hidden; cursor: pointer;
+    background: #1b1b1b;
+    box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0); /* placeholder agar transisi halus */
 }
-.vqr-corner { position: absolute; width: 18px; height: 18px; border: 0 solid #2563eb; }
+.vqr-scene {
+    position: absolute; inset: 0; display: grid; place-items: center;
+    background:
+        radial-gradient(70% 70% at 50% 45%, #3a3a3a 0%, #1d1d1d 100%);
+}
+/* Kartu putih berisi QR, sedikit miring seolah sedang ditangkap kamera */
+.vqr-card {
+    width: 62%; aspect-ratio: 1 / 1; padding: 7%; background: #fff; border-radius: 6px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, .55);
+    transform: rotate(-3deg);
+    animation: vqr-float 2.6s ease-in-out infinite alternate;
+}
+.vqr-card svg { display: block; width: 100%; height: 100%; }
+@keyframes vqr-float {
+    from { transform: rotate(-3deg) translateY(-2px); }
+    to   { transform: rotate(2deg)  translateY(2px); }
+}
+
+.vqr-corner { position: absolute; z-index: 2; width: 22px; height: 22px; border: 0 solid #2563eb; }
 .vqr-corner.is-tl { left: 0; top: 0; border-left-width: 3px; border-top-width: 3px; }
 .vqr-corner.is-tr { right: 0; top: 0; border-right-width: 3px; border-top-width: 3px; }
 .vqr-corner.is-bl { left: 0; bottom: 0; border-left-width: 3px; border-bottom-width: 3px; }
 .vqr-corner.is-br { right: 0; bottom: 0; border-right-width: 3px; border-bottom-width: 3px; }
+
 .vqr-laser {
-    position: absolute; left: 6%; right: 6%; top: 8%; height: 2px; border-radius: 2px;
-    background: #fff; box-shadow: 0 0 10px 2px rgba(255, 255, 255, .85);
+    position: absolute; z-index: 2; left: 4%; right: 4%; top: 8%; height: 2px; border-radius: 2px;
+    background: #ef4444; box-shadow: 0 0 10px 2px rgba(239, 68, 68, .85);
     animation: vqr-scan 1.8s ease-in-out infinite alternate;
 }
 @keyframes vqr-scan { from { top: 8%; } to { top: 90%; } }
 .vqr-status {
-    position: absolute; left: 0; right: 0; bottom: 8px; font-size: 11px; font-weight: 700;
-    text-shadow: 0 1px 3px rgba(0, 0, 0, .5);
+    position: absolute; z-index: 3; left: 0; right: 0; bottom: 8px; font-size: 11px; font-weight: 700;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, .7);
 }
 .vqr.is-found .vqr-laser, .vqr.is-expired .vqr-laser { animation: none; opacity: 0; }
-.vqr.is-found .vqr-frame { background: linear-gradient(135deg, #22c55e, #15803d); }
+.vqr.is-found .vqr-card { animation: none; transform: none; box-shadow: 0 0 0 3px #22c55e, 0 6px 18px rgba(0, 0, 0, .55); }
+.vqr.is-found .vqr-corner { border-color: #22c55e; }
 .vqr.is-expired .vqr-frame { filter: grayscale(1); opacity: .6; }
 
-.vqr-note { margin: 14px 0 0; font-size: 10px; }
+.vqr-note { margin: 16px 0 0; font-size: 10px; }
 .vqr-timer { margin: 6px 0 0; font-size: 18px; font-weight: 800; font-variant-numeric: tabular-nums; }
 .vqr-btn {
     margin-top: 16px; padding: 10px 18px; border: 1px solid rgba(255, 255, 255, .7); border-radius: 10px;
@@ -108,10 +136,29 @@
 .vqr-expired__text { margin: 4px 0 0; font-size: 11px; opacity: .85; }
 .vqr-btn:focus-visible { outline: 3px solid rgba(255, 255, 255, .6); outline-offset: 2px; }
 
-/* ---------- Kode Konfirmasi (gambar 4) ---------- */
-.vkode { padding: 16px 14px; }
+/* Header layar QR ikut gelap supaya menyatu dengan latar (butuh :has, browser modern) */
+.app-container:has(.vqr) .app-header-simple {
+    background: #565656; border-bottom-color: rgba(255, 255, 255, .12); box-shadow: none;
+}
+.app-container:has(.vqr) .app-header-simple h1 { color: #fff; }
+.app-container:has(.vqr) .app-header-simple .back-btn { color: #fff; }
+.app-container:has(.vqr)::before { background: #3e3e3e; }
+
+/* ---------- Kode Konfirmasi ----------
+   Latar memenuhi seluruh area layar (bukan hanya sebesar kartu); kartu di tengah. */
+.vkode {
+    position: absolute; inset: 0; z-index: 2; overflow-y: auto;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 16px 14px 28px;
+    background:
+        radial-gradient(120% 55% at 100% 0%, #dbe7fd 0%, rgba(219, 231, 253, 0) 100%),
+        radial-gradient(120% 45% at 0% 100%, #fbdde8 0%, rgba(251, 221, 232, 0) 100%),
+        #f8fafc;
+}
+.vkode > * { width: 100%; max-width: 340px; margin-top: auto; margin-bottom: auto; }
+.vkode > .vkode-sim { margin-top: 0; }
 .vkode-card {
-    padding: 20px 16px 16px; text-align: center; border: 1px solid var(--v-line); border-radius: 18px;
+    padding: 22px 16px 18px; text-align: center; border: 1px solid var(--v-line); border-radius: 18px;
     background: linear-gradient(135deg, #fff1f3, #eef4ff);
     box-shadow: 0 8px 24px rgba(15, 23, 42, .08);
 }
@@ -157,6 +204,6 @@
 .vok-btn:focus-visible { outline: 3px solid rgba(37, 99, 235, .4); outline-offset: 2px; }
 
 @media (prefers-reduced-motion: reduce) {
-    .vqr-laser { animation: none; }
+    .vqr-laser, .vqr-card { animation: none; }
     .verif-lo { transition: none; }
 }

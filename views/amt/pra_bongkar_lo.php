@@ -61,7 +61,7 @@ $check = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="cu
             <label class="pbl-all" for="pblAll">
                 <input type="checkbox" id="pblAll" class="pbl-input" <?= $allChecked ? 'checked' : '' ?> <?= $selectable ? '' : 'disabled' ?>>
                 <span class="pbl-box" aria-hidden="true"><?= $check ?></span>
-                <span class="pbl-all__t">Pilih Semua</span>
+                <span>Pilih Semua</span>
             </label>
 
             <?php foreach ($rows as $r): $isDone = $r['status'] === 'done'; ?>
@@ -73,7 +73,7 @@ $check = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="cu
                     <span class="pbl-detail">
                         <span class="pbl-row"><span class="pbl-k">Nomor LO</span><span class="pbl-c">:</span><span class="pbl-v pbl-v--b"><?= amt_e($r['lo']) ?></span></span>
                         <span class="pbl-row"><span class="pbl-k">Order</span><span class="pbl-c">:</span><span class="pbl-v"><span class="pbl-order"><?= amt_e($r['order']) ?></span></span></span>
-                        <span class="pbl-row"><span class="pbl-k">Status Checklist</span><span class="pbl-c">:</span><span class="pbl-v pbl-st pbl-st--<?= amt_e($r['status']) ?>"><?= amt_e($r['label']) ?></span></span>
+                        <span class="pbl-row"><span class="pbl-k">Status Checklist</span><span class="pbl-c">:</span><span class="pbl-v pbl-st--<?= amt_e($r['status']) ?>"><?= amt_e($r['label']) ?></span></span>
                     </span>
                 </label>
             <?php endforeach; ?>

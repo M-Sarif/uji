@@ -10,7 +10,8 @@
  * Setelah tiba, "Isi Checklist" aktif dan membuka layar amt_checklist_lo (Daftar LO: Checklist Pra-Pembongkaran).
  *   Pilih LO -> "Mulai Checklist" -> amt_checklist (14 langkah) -> kembali ke Daftar LO ("Draft") -> "Kirim".
  *   Semua LO terkirim -> "Isi Checklist" hijau dan "Verifikasi Order" menjadi langkah aktif.
- * Layar tujuan langkah lain (Verifikasi Order, dst) belum dibuat: kartunya belum membuka layar lain.
+ * Setelah checklist terkirim, "Verifikasi Order" aktif dan membuka amt_verifikasi (Daftar LO, QR / Kode Konfirmasi).
+ * Layar tujuan langkah lain (Foto Surat Jalan, dst) belum dibuat: kartunya belum membuka layar lain.
  *
  * Atribut data-tour dipakai tutorial AMT (includes/amt/tutorial.php).
  * Konfirmasi tiba diproses amt_handle_post('submit_spbu_arrive') di includes/amt/amt.php.
@@ -29,9 +30,8 @@ $canOpen  = $active && !$arrived;              // popup "Tiba di Lokasi" hanya s
 $steps    = amt_spbu_steps();
 $total    = count($steps);
 $pbkDone  = $arrived && amt_pbk_done($s['id']);          // checklist Pra Bongkar sudah dikirim
-$verDone  = $pbkDone && amt_verif_is_done();               // Verifikasi Order sudah selesai
+$verDone  = $pbkDone && amt_verif_is_done($s);               // Verifikasi Order sudah selesai
 $doneN    = $active ? ($arrived ? ($pbkDone ? ($verDone ? 3 : 2) : 1) : 0) : $total;   // jumlah langkah selesai
-$progress = $total > 1 ? min($doneN, $total - 1) / ($total - 1) * 100 : 0;
 ?>
 
 <style id="amts-act-css">
@@ -43,7 +43,6 @@ $progress = $total > 1 ? min($doneN, $total - 1) / ($total - 1) * 100 : 0;
 .amts-spbu-screen .amts-act-card { background: transparent; border-radius: 0; padding: 4px 0 0; box-shadow: none; }
 .amts-spbu-screen .amts-act-card > .amts-h2 { margin: 0 0 18px 2px; font-size: 15px; font-weight: 700; color: #111827; }
 .amts-spbu-screen .amts-act { position: relative; display: flex; flex-direction: column; gap: 14px; padding: 0; }
-.amts-spbu-screen .amts-act__line { display: none; }
 
 .amts-spbu-screen .amts-act__item { position: relative; padding-left: 44px; }
 
@@ -128,7 +127,8 @@ $progress = $total > 1 ? min($doneN, $total - 1) / ($total - 1) * 100 : 0;
     </div>
 
     <h2 class="amts-h2 amts-h2--list">Order List</h2>
-    <?php foreach ($s['products'] as $p): ?>
+    <?php foreach ($s['products'] as $p):
+        $loVerified = !$active || amt_verif_is_verified($p['lo']); ?>
         <article class="amts-card amts-order">
             <div class="amts-order__row">
                 <span class="amts-order__k">Nomor LO</span>
@@ -140,7 +140,7 @@ $progress = $total > 1 ? min($doneN, $total - 1) / ($total - 1) * 100 : 0;
             </div>
             <div class="amts-order__row">
                 <span class="amts-order__k">Status Order</span>
-                <span class="amts-order__v"><span class="amts-pill <?= $active ? 'is-warn' : 'is-ok' ?>"><?= $active ? 'Belum Diverifikasi' : 'Sudah Diverifikasi' ?></span></span>
+                <span class="amts-order__v"><span class="amts-pill <?= $loVerified ? 'is-ok' : 'is-warn' ?>"><?= $loVerified ? 'Sudah Diverifikasi' : 'Belum Diverifikasi' ?></span></span>
             </div>
             <div class="amts-order__row">
                 <span class="amts-order__k">Status Surat Jalan</span>
@@ -157,7 +157,7 @@ $progress = $total > 1 ? min($doneN, $total - 1) / ($total - 1) * 100 : 0;
 <?php if ($arrived): ?>
 <style>.amts-act__row[data-spbu-href] { cursor: pointer; } .amts-act__row[data-spbu-href]:focus-visible { outline: 3px solid rgba(37, 99, 235, .35); outline-offset: 2px; }</style>
 <script>
-/* Ketuk "Isi Checklist" -> buka Daftar LO (Checklist Pra-Pembongkaran) */
+/* Ketuk langkah aktif "Isi Checklist" (Daftar LO) atau "Verifikasi Order" -> buka layarnya */
 (function () {
     document.querySelectorAll('[data-spbu-href]').forEach(function (row) {
         function go() { window.location.href = row.getAttribute('data-spbu-href'); }

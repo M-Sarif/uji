@@ -118,8 +118,6 @@
 .amts-spbu-screen { padding-bottom: 12px; }
 .amts-act-card { background: #fff; border-radius: 18px; padding: 18px 14px 16px; }
 .amts-act { position: relative; display: flex; flex-direction: column; gap: 14px; padding-left: 4px; }
-.amts-act__line { position: absolute; left: 14px; top: 16px; bottom: 16px; width: 3px; background: #d6dff0; border-radius: 2px; }
-.amts-act__line--done { background: #10b981; bottom: auto; }
 .amts-act__item { position: relative; padding-left: 34px; }
 .amts-act__node {
     position: absolute; left: 4px; top: 50%; transform: translateY(-50%); z-index: 1;

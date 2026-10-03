@@ -18,12 +18,27 @@ const AMT_VERIF_SIM_NOTE       = true; // tampilkan catatan "mode simulasi"
 const AMT_VERIF_ORDER_TYPE     = 'Produk'; // tulisan pada kartu halaman berhasil
 
 /**
- * Daftar LO milik shipment ini. DATA CONTOH (sesuai screenshot): ganti dengan sumber data asli.
- * Hanya LO dengan form_bongkar = 'Sudah Diisi' yang bisa dipilih untuk verifikasi.
+ * Daftar LO milik pengiriman yang sedang diverifikasi.
+ * Sumbernya sama dengan Order List di layar SPBU (amt_ship_data.php); "Form Bongkar" mengikuti
+ * hasil Checklist Pra-Pembongkaran (amt_pbk.php): LO baru bisa diverifikasi setelah checklist-nya
+ * terkirim ("Sudah Diisi").
+ *
+ * @param array|null $s pengiriman; null = pengiriman dari ?id= / session / yang sedang berjalan
+ * @return array<int, array{id:string, order:string, form_bongkar:string}>
  */
-function amt_verif_lo_list()
+function amt_verif_lo_list(?array $s = null): array
 {
-    return [
-        ['id' => '01102609053', 'order' => 'PERTAMAX,BULK 8.000 L', 'form_bongkar' => 'Sudah Diisi'],
-    ];
+    $s = $s ?? amt_ship_find(amt_verif_ship_id() ?: null);
+    if ($s === null) {
+        return [];
+    }
+    $out = [];
+    foreach ($s['products'] as $p) {
+        $out[] = [
+            'id'           => (string) $p['lo'],
+            'order'        => (string) $p['name'],
+            'form_bongkar' => amt_pbk_lo_status($s['id'], (string) $p['lo']) === 'done' ? 'Sudah Diisi' : 'Belum Diisi',
+        ];
+    }
+    return $out;
 }

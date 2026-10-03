@@ -4,19 +4,12 @@
  * Letak: includes/amt/amt_verif_functions.php
  *
  * Semua aksi memakai GET (sama seperti toggle di lo_list), jadi penjaga POST di index.php tidak perlu diubah.
+ * Hanya bisa dibuka saat timer kerja berjalan, pengiriman sedang berjalan, sudah "Tiba di Lokasi",
+ * dan Checklist Pra-Pembongkaran sudah terkirim (kalau belum, diarahkan kembali ke layar SPBU).
  * Dipanggil dari index.php:  amt_verif_bootstrap($screen);
  */
 
 require_once __DIR__ . '/amt_verif_data.php';
-
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-function amt_verif_e($value)
-{
-    return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
-}
 
 /** ID pengiriman (shipment) yang sedang diverifikasi: dari ?id=, atau yang tersimpan di session. */
 function amt_verif_ship_id()
@@ -103,10 +96,10 @@ function amt_verif_selected()
 }
 
 /** true kalau semua LO yang eligible sudah terverifikasi (dipakai halaman Shipment). */
-function amt_verif_is_done()
+function amt_verif_is_done(?array $s = null)
 {
     $any = false;
-    foreach (amt_verif_lo_list() as $lo) {
+    foreach (amt_verif_lo_list($s) as $lo) {
         if (!amt_verif_is_eligible($lo)) {
             continue;
         }
@@ -116,12 +109,6 @@ function amt_verif_is_done()
         }
     }
     return $any;
-}
-
-/** Teks status untuk kartu Order List di Shipment. */
-function amt_verif_status_label()
-{
-    return amt_verif_is_done() ? 'Berhasil Diverifikasi' : 'Belum Diverifikasi';
 }
 
 /** Sisa detik: $kind = 'qr' atau 'code'. */
@@ -175,6 +162,18 @@ function amt_verif_bootstrap($screen)
     $rid = isset($_GET['id']) ? (string) $_GET['id'] : '';
     if (preg_match('/^[A-Za-z0-9-]{1,64}$/', $rid)) {
         $_SESSION['amt_verif']['ship_id'] = $rid;
+    }
+
+    // Penjagaan akses
+    if (!work_is_running()) {
+        go_to(amt_home_screen());
+    }
+    $ship = amt_ship_find(amt_verif_ship_id() ?: null);
+    if ($ship === null || $ship['status'] !== 'sedang') {
+        go_to('amt_shipments');
+    }
+    if (!amt_spbu_arrived($ship) || !amt_pbk_done($ship['id'])) {
+        go_to('amt_spbu', ['id' => $ship['id']]);
     }
 
     switch ($screen) {

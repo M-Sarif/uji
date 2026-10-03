@@ -16,7 +16,7 @@ $len       = (int) AMT_VERIF_CODE_LENGTH;
 
         <form method="get" action="index.php" id="vkodeForm" autocomplete="off">
             <input type="hidden" name="screen" value="amt_verifikasi_kode">
-            <?php if (amt_verif_ship_id() !== ''): ?><input type="hidden" name="id" value="<?= amt_verif_e(amt_verif_ship_id()) ?>"><?php endif; ?>
+            <?php if (amt_verif_ship_id() !== ''): ?><input type="hidden" name="id" value="<?= amt_e(amt_verif_ship_id()) ?>"><?php endif; ?>
             <input type="hidden" name="kode" id="vkodeValue" value="">
             <div class="vkode-boxes" id="vkodeBoxes">
                 <?php for ($i = 1; $i <= $len; $i++): ?>
@@ -33,7 +33,7 @@ $len       = (int) AMT_VERIF_CODE_LENGTH;
 
         <div class="vkode-expired" id="vkodeExpired" hidden>
             <p>Kode kedaluwarsa.</p>
-            <a class="vkode-retry" href="<?= amt_verif_e($retryUrl) ?>">Kirim ulang kode</a>
+            <a class="vkode-retry" href="<?= amt_e($retryUrl) ?>">Kirim ulang kode</a>
         </div>
     </div>
 

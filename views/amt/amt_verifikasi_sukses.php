@@ -18,11 +18,11 @@ $ids   = isset($state['last']['ids']) ? $state['last']['ids'] : [];
 
         <div class="vok-card">
             <?php foreach ($ids as $id): ?>
-                <div class="vok-row"><span>Nomor LO</span><strong><?= amt_verif_e($id) ?></strong></div>
+                <div class="vok-row"><span>Nomor LO</span><strong><?= amt_e($id) ?></strong></div>
             <?php endforeach; ?>
-            <div class="vok-row"><span>Order</span><span class="verif-pill"><?= amt_verif_e(AMT_VERIF_ORDER_TYPE) ?></span></div>
+            <div class="vok-row"><span>Order</span><span class="verif-pill"><?= amt_e(AMT_VERIF_ORDER_TYPE) ?></span></div>
         </div>
     </div>
 
-    <a class="vok-btn" href="<?= amt_verif_e(amt_verif_url(AMT_VERIF_RETURN_SCREEN)) ?>">Oke</a>
+    <a class="vok-btn" href="<?= amt_e(amt_verif_url(AMT_VERIF_RETURN_SCREEN)) ?>">Oke</a>
 </section>

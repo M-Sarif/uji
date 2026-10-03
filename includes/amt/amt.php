@@ -88,12 +88,12 @@ function amt_prev_screen(string $screen): ?string
     if ($screen === 'amt_checklist') {
         return 'amt_checklist_lo' . ($id !== '' ? '&id=' . rawurlencode($id) : '');
     }
-    // Verifikasi Order: Daftar LO -> kembali ke SPBU; QR / Kode -> kembali ke Daftar LO
+    // Verifikasi Order: Daftar LO & Berhasil -> kembali ke SPBU; QR / Kode -> kembali ke Daftar LO
     if (in_array($screen, AMT_VERIF_SCREENS, true)) {
-        $id = amt_verif_ship_id();
-        $q  = $id !== '' ? '&id=' . rawurlencode($id) : '';
-        return $screen === 'amt_verifikasi' ? AMT_VERIF_RETURN_SCREEN . $q
-             : ($screen === 'amt_verifikasi_sukses' ? AMT_VERIF_RETURN_SCREEN . $q : 'amt_verifikasi' . $q);
+        $vid = amt_verif_ship_id();
+        $q   = $vid !== '' ? '&id=' . rawurlencode($vid) : '';
+        $toList = $screen === 'amt_verifikasi_qr' || $screen === 'amt_verifikasi_kode';
+        return ($toList ? 'amt_verifikasi' : AMT_VERIF_RETURN_SCREEN) . $q;
     }
     return [
         'start_end'  => amt_home_screen(),

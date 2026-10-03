@@ -14,7 +14,7 @@ $payload   = 'ONEFIS-VERIF|' . (amt_verif_ship_id() ?: 'SIM') . '|' . implode(',
         <!-- Jendela kamera (simulasi): kode QR yang sedang dipindai tampil di dalamnya -->
         <div class="vqr-frame" id="vqrFrame" role="img" aria-label="Simulasi pemindaian kode QR">
             <div class="vqr-scene">
-                <div class="vqr-card" id="vqrCard" data-vqr-payload="<?= amt_verif_e($payload) ?>"></div>
+                <div class="vqr-card" id="vqrCard" data-vqr-payload="<?= amt_e($payload) ?>"></div>
             </div>
             <span class="vqr-corner is-tl"></span><span class="vqr-corner is-tr"></span>
             <span class="vqr-corner is-bl"></span><span class="vqr-corner is-br"></span>
@@ -33,7 +33,7 @@ $payload   = 'ONEFIS-VERIF|' . (amt_verif_ship_id() ?: 'SIM') . '|' . implode(',
         <div class="vqr-expired" id="vqrExpired" hidden>
             <p class="vqr-expired__title">Kode QR kedaluwarsa</p>
             <p class="vqr-expired__text">Waktu pemindaian sudah habis.</p>
-            <a class="vqr-btn is-solid" href="<?= amt_verif_e($retryUrl) ?>">Coba Lagi</a>
+            <a class="vqr-btn is-solid" href="<?= amt_e($retryUrl) ?>">Coba Lagi</a>
         </div>
     </div>
 </section>
