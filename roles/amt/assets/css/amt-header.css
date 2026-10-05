@@ -1,0 +1,8 @@
+/* Header layar AMT (aplikasi asli): judul tebal di tengah, panah "←" tipis berwarna abu-biru,
+   bayangan halus di bawah header. Diaktifkan lewat amt_header_style() di roles/amt/module.php.
+   (Dulu bagian dari base.css; dipindah ke sini supaya kode AMT terpisah dari yang bersama.) */
+.app-header-simple.amt-centered { padding-left: 0.75rem; padding-right: 0.75rem; box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06); border-bottom-color: #eef1f6; }
+.app-header-simple.amt-centered h1 { font-size: 1.0625rem; font-weight: 700; color: #111827; letter-spacing: 0; }
+.app-header-simple.amt-centered .back-btn { color: #94a3b8; }
+.app-header-simple.amt-centered .back-btn:hover { color: #64748b; }
+.app-header-simple.amt-centered .back-btn svg { stroke-width: 1.6; }
