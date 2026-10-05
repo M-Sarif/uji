@@ -1,15 +1,17 @@
 <?php
-/* Dipakai oleh roles/amt/views/start_work.php, end_work.php, dan checkin.php.
- * Butuh variabel $mode = 'start' | 'end' | 'checkin'. */
+/* Dipakai oleh roles/amt/views/start_work.php, end_work.php, checkin.php, dan checkout.php.
+ * Butuh variabel $mode = 'start' | 'end' | 'checkin' | 'checkout'. */
 work_styles();
 
 $isEnd     = ($mode === 'end');
+$isOut     = ($mode === 'checkout');
 $isCheckin = ($mode === 'checkin');
-$needAct   = !$isEnd;                       // Start Work & Check-In: aktivitas wajib dipilih
-$label     = $isCheckin ? 'Check-In' : ($isEnd ? 'End Work' : 'Start Work');
-$screenKey = $isCheckin ? 'checkin' : ($isEnd ? 'end_work' : 'start_work');
-$postAct   = $isCheckin ? 'submit_checkin' : ($isEnd ? 'submit_end_work' : 'submit_start_work');
-$actList   = $isCheckin ? CHECKIN_ACTIVITIES : WORK_ACTIVITIES;
+$needAct   = !$isEnd;                       // Start Work, Check-In & Check-Out: aktivitas wajib dipilih
+$label     = $isOut ? 'Check-Out' : ($isCheckin ? 'Check-In' : ($isEnd ? 'End Work' : 'Start Work'));
+$screenKey = $isOut ? 'checkout' : ($isCheckin ? 'checkin' : ($isEnd ? 'end_work' : 'start_work'));
+$postAct   = $isOut ? 'submit_checkout' : ($isCheckin ? 'submit_checkin' : ($isEnd ? 'submit_end_work' : 'submit_start_work'));
+$actList   = ($isCheckin || $isOut) ? CHECKIN_ACTIVITIES : WORK_ACTIVITIES;
+$photoName = $isOut ? 'Foto Check-Out' : 'Foto Verifikasi';
 $w         = work_data();
 $activity  = $w['activity'] ?? '';        // End Work: mengikuti pilihan saat Start Work
 ?>
@@ -22,7 +24,7 @@ $activity  = $w['activity'] ?? '';        // End Work: mengikuti pilihan saat St
   <input type="hidden" name="lat" id="wk-lat" value="">
   <input type="hidden" name="lng" id="wk-lng" value="">
 
-  <p class="wk-title">Form Verifikasi <?= $isCheckin ? 'Check-In' : 'Work ' . ($isEnd ? 'End' : 'Start') ?></p>
+  <p class="wk-title"><?= $isOut ? 'Form Check-Out' : 'Form Verifikasi ' . ($isCheckin ? 'Check-In' : 'Work ' . ($isEnd ? 'End' : 'Start')) ?></p>
 
   <!-- Lokasi: peta Google Maps + status jangkauan -->
   <div id="wk-loc" data-inrange="0">
@@ -58,7 +60,7 @@ $activity  = $w['activity'] ?? '';        // End Work: mengikuti pilihan saat St
 
   <!-- Foto verifikasi -->
   <div id="wk-photo-box">
-  <span class="wk-label">Foto Verifikasi<span style="color:#dc2626"> *</span> <span style="color:#2563eb">&#9432;</span></span>
+  <span class="wk-label"><?= $photoName ?><span style="color:#dc2626"> *</span> <span style="color:#2563eb">&#9432;</span></span>
   <div class="wk-photo" id="wk-box">
     <!-- Sebelum diambil: ikon AMT + tombol Ambil Foto -->
     <div class="wk-idle">
@@ -84,7 +86,7 @@ $activity  = $w['activity'] ?? '';        // End Work: mengikuti pilihan saat St
 
   <button type="submit" class="wk-submit" id="wk-submit" disabled>
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></svg>
-    Kirim
+    <?= $isOut ? 'Kirim Check-Out' : 'Kirim' ?>
   </button>
 
 </form>

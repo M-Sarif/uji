@@ -48,6 +48,49 @@
 })();
 </script>
 <script>
+/* Aktivasi menu Check-Out di beranda tanpa muat ulang:
+ *  - tutorial "scan segel di AVM" ditutup (Mengerti / Lewati / hilang sendiri setelah 20 detik)
+ *    -> lapor ke server, menu Check-Out menyala sesaat kemudian
+ *  - failsafe: menyala sendiri setelah sisa waktu habis, walau tutorial tidak sempat ditutup */
+(function () {
+  var tile = document.querySelector('[data-amt-out]');
+  if (!tile || tile.tagName === 'A') return;          // tidak ada / sudah aktif dari server
+  var href = tile.getAttribute('data-href') || '?screen=checkout';
+  var done = false;
+
+  function ack(key) {
+    try {
+      var b = new URLSearchParams();
+      b.set('out_action', 'seal_ack'); b.set('key', key);
+      fetch(window.location.href, { method: 'POST', body: b, credentials: 'same-origin', keepalive: true });
+    } catch (e) {}
+  }
+  function unlock() {
+    if (done) return; done = true;
+    var a = document.createElement('a');
+    a.className = tile.className.replace(/\bis-disabled\b/, '').trim();
+    a.setAttribute('href', href);
+    a.setAttribute('data-tour', tile.getAttribute('data-tour'));
+    a.setAttribute('data-amt-out', '');
+    while (tile.firstChild) a.appendChild(tile.firstChild);
+    tile.parentNode.replaceChild(a, tile);
+    ack('unlocked');
+  }
+
+  var sealHandled = false;   // pemberitahuan bisa datang dua kali (Mengerti, lalu alur selesai): proses sekali saja
+  document.addEventListener('amt:tour-done', function (e) {
+    if (sealHandled || !e.detail || String(e.detail.key).indexOf('amt_home_seal_') !== 0) return;
+    sealHandled = true;
+    ack('seal_seen');
+    setTimeout(unlock, <?= (int) AMT_OUT_UNLOCK_DELAY ?>);
+  });
+
+  <?php if (amt_out_order_done()): ?>
+  setTimeout(unlock, <?= (int) amt_out_failsafe_remaining() ?> * 1000 + 300);
+  <?php endif; ?>
+})();
+</script>
+<script>
 (function () {
   var START = <?= work_started_at() ?>;   // 0 = timer berhenti
   var timer = document.getElementById('amtWorktime');

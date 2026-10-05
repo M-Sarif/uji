@@ -16,12 +16,12 @@ $amtMenus = [
     ['key' => 'checkin',     'label' => 'Check-In',     'icon' => AMT_URL . '/img/menu/Check-In.png',             'tone' => 'green',  'href' => '?screen=checkin'],
     ['key' => 'pti',         'label' => 'PTI',          'icon' => AMT_URL . '/img/menu/PTI.png',                  'tone' => 'peach',  'href' => '?screen=amt_pti'],
     ['key' => 'shipments',   'label' => 'Shipments',    'icon' => AMT_URL . '/img/ilustrasi/empty-delivery-truck.png', 'tone' => 'blue',   'href' => '?screen=amt_shipments'],
-    ['key' => 'checkout',    'label' => 'Check-Out',    'icon' => AMT_URL . '/img/menu/Check-Out.png',            'tone' => 'rose',   'href' => '#'],
+    ['key' => 'checkout',    'label' => 'Check-Out',    'icon' => AMT_URL . '/img/menu/Check-Out.png',            'tone' => 'rose',   'href' => '?screen=checkout'],
     ['key' => 'performance', 'label' => 'Performance',  'icon' => AMT_URL . '/img/menu/performance.png',          'tone' => 'violet', 'href' => '#'],
     ['key' => 'safire',      'label' => 'SAFIRE',       'icon' => AMT_URL . '/img/menu/safire_icon.png',          'tone' => 'sky',    'href' => '#'],
 ];
 ?>
-<div class="amt-home" data-dcu-seen="<?php echo amt_flow_get('dcu_seen') ? '1' : '0'; ?>">
+<div class="amt-home" data-dcu-seen="<?php echo amt_flow_get('dcu_seen') ? '1' : '0'; ?>" data-seal-seen="<?php echo amt_out_seal_seen() ? '1' : '0'; ?>">
 
     <!-- Waktu kerja -->
     <div class="amt-worktime">
@@ -34,9 +34,9 @@ $amtMenus = [
         <?php foreach ($amtMenus as $m): ?>
             <?php $locked = amt_menu_locked($m['key']); ?>
             <?php if ($locked): ?>
-                <span class="amt-menu-item is-disabled" aria-disabled="true" data-tour="amt-menu-<?php echo h($m['key']); ?>"<?php echo $m['key'] === 'pti' ? ' data-amt-pti data-href="' . h($m['href']) . '"' : ''; ?>>
+                <span class="amt-menu-item is-disabled" aria-disabled="true" data-tour="amt-menu-<?php echo h($m['key']); ?>"<?php echo $m['key'] === 'pti' ? ' data-amt-pti data-href="' . h($m['href']) . '"' : ''; ?><?php echo $m['key'] === 'checkout' ? ' data-amt-out data-href="' . h($m['href']) . '"' : ''; ?>>
             <?php else: ?>
-                <a href="<?php echo h($m['href']); ?>" class="amt-menu-item" data-tour="amt-menu-<?php echo h($m['key']); ?>"<?php echo $m['key'] === 'pti' ? ' data-amt-pti' : ''; ?>>
+                <a href="<?php echo h($m['href']); ?>" class="amt-menu-item" data-tour="amt-menu-<?php echo h($m['key']); ?>"<?php echo $m['key'] === 'pti' ? ' data-amt-pti' : ''; ?><?php echo $m['key'] === 'checkout' ? ' data-amt-out' : ''; ?>>
             <?php endif; ?>
                 <span class="amt-menu-tile tone-<?php echo h($m['tone']); ?>">
                     <img src="<?php echo h($m['icon']); ?>" alt="">

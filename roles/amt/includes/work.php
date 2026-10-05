@@ -29,9 +29,9 @@ const WORK_ACTIVITIES = ['Hadir', 'Sakit', 'Izin', 'Cuti', 'Alpa', 'Dinas Luar']
 // WORK_LOCKED_MENUS) sampai layarnya dibuat.
 const WORK_GATED_SCREENS = ['checkin'];
 
-// Menu yang masih terkunci walau timer sudah berjalan.
-// Hapus 'pti' / 'checkout' dari daftar ini saat layarnya sudah siap.
-const WORK_LOCKED_MENUS = ['checkout'];
+// Menu yang SELALU terkunci walau timer sudah berjalan (belum ada layarnya).
+// Check-Out sudah punya layar: kuncinya diatur amt_out_unlocked() (roles/amt/includes/amt_out.php).
+const WORK_LOCKED_MENUS = [];
 
 // Pilihan aktivitas pada form Check-In (default sama dengan Start Work)
 const CHECKIN_ACTIVITIES = ['Tugas Rutin', 'Tugas Lembur'];
@@ -42,6 +42,7 @@ const WORK_SCREENS = [
     'start_work' => 'Start Work',
     'end_work'   => 'End Work',
     'checkin'    => 'Check-In',
+    'checkout'   => 'Check-Out',
     'amt_pti'      => 'Pre-Trip Inspection',
     'amt_pti_form' => 'Form Inspeksi',
     'amt_pti_hasil' => 'Hasil Inspeksi',

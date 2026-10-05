@@ -11,6 +11,7 @@
  *   includes/amt_verif_*.php    Verifikasi Order (Daftar LO, QR, Kode, Berhasil)
  *   includes/amt_sj.php    Foto Surat Jalan (kamera belakang, 1 foto per Nomor LO)
  *   includes/amt_rating.php Rating Petugas SPBU + Selesaikan Order
+ *   includes/amt_out.php   Tutorial scan segel di AVM + Check-Out + arahan Start / End -> End Work
  *   includes/tutorial.php  tutorial terpandu (guided tour) AMT
  *   includes/work_ui.php   skrip beranda AMT (timer, kunci menu PTI)
  *   views/                 satu file per layar AMT (+ partials/header_home.php)
@@ -34,16 +35,17 @@ require_once AMT_INC_DIR . '/amt_pbk.php';            // Checklist Pra-Pembongka
 require_once AMT_INC_DIR . '/amt_verif_functions.php'; // Verifikasi Order (Daftar LO, QR, Kode, Berhasil)
 require_once AMT_INC_DIR . '/amt_sj.php';             // Foto Surat Jalan (kamera belakang)
 require_once AMT_INC_DIR . '/amt_rating.php';         // Rating Petugas SPBU + Selesaikan Order
+require_once AMT_INC_DIR . '/amt_out.php';            // Check-Out (scan segel dilakukan di AVM, bukan di aplikasi)
 require_once AMT_INC_DIR . '/tutorial.php'; // tutorial terpandu (guided tour) peran AMT
 
 // Layar milik AMT selain beranda (amt_home)
 const AMT_EXTRA_SCREENS = ['start_end', 'start_work', 'end_work', 'checkin', 'amt_pti', 'amt_pti_form', 'amt_pti_hasil',
     'amt_shipments', 'amt_shipment_detail', 'amt_spbu', 'amt_checklist_lo', 'amt_checklist',
     'amt_verifikasi', 'amt_verifikasi_qr', 'amt_verifikasi_kode', 'amt_verifikasi_sukses',
-    'amt_surat_jalan', 'amt_rating'];
+    'amt_surat_jalan', 'amt_rating', 'checkout'];
 
 // Aksi form (POST) milik AMT
-const AMT_POST_ACTIONS = ['submit_start_work', 'submit_end_work', 'submit_checkin', 'submit_spbu_arrive', 'submit_pbk', 'submit_sj', 'submit_rating', 'finish_order'];
+const AMT_POST_ACTIONS = ['submit_start_work', 'submit_end_work', 'submit_checkin', 'submit_spbu_arrive', 'submit_pbk', 'submit_sj', 'submit_rating', 'finish_order', 'submit_checkout'];
 
 /** Beranda AMT (mis. 'amt_home') */
 function amt_home_screen(): string
@@ -140,6 +142,7 @@ function amt_prev_screen(string $screen): ?string
         'start_work' => 'start_end',
         'end_work'   => 'start_end',
         'checkin'    => amt_home_screen(),
+        'checkout'   => amt_home_screen(),
         'amt_pti'      => amt_home_screen(),
         'amt_pti_form' => 'amt_pti',
         'amt_pti_hasil' => 'amt_pti',
@@ -155,6 +158,10 @@ function amt_menu_locked(string $key): bool
 {
     if (in_array($key, WORK_LOCKED_MENUS, true)) {
         return true;
+    }
+    // Check-Out aktif setelah order selesai + tutorial "scan segel di AVM" ditutup (lihat amt_out_unlocked)
+    if ($key === 'checkout') {
+        return !amt_out_unlocked();
     }
     // PTI aktif setelah Check-In + tutorial DCU dibaca (atau otomatis, lihat amt_pti_unlocked)
     if ($key === 'pti') {
@@ -179,6 +186,7 @@ function amt_guard_work(string $screen): void
     amt_pbk_guard($screen);   // Daftar LO + Checklist Pra Bongkar: hanya setelah "Tiba di Lokasi"
     amt_sj_guard($screen);    // Surat Jalan: hanya setelah semua LO terverifikasi
     amt_rating_guard($screen); // Beri Penilaian: hanya setelah foto surat jalan tersimpan
+    amt_out_guard($screen);    // Check-Out: hanya setelah order selesai + tutorial scan segel di AVM ditutup
 }
 
 /* ------------------------------------------------------------
@@ -208,6 +216,7 @@ function amt_reset_all(): void
     amt_pti_reset();
     amt_spbu_reset();   // status "Tiba di Lokasi" ikut direset
     amt_verif_reset();  // Verifikasi Order ikut direset
+    amt_out_reset();    // Check-Out ikut direset
     amt_tour_bump();
 }
 
@@ -228,6 +237,7 @@ function amt_handle_post(string $action): void
             amt_pti_reset(); // shift baru: PTI & tutorial mulai dari awal
             amt_spbu_reset();
             amt_verif_reset();
+            amt_out_reset();
             amt_tour_bump();
             $_SESSION['work'] = [
                 'started_at'  => time(),
@@ -247,6 +257,7 @@ function amt_handle_post(string $action): void
             amt_pti_reset();
             amt_spbu_reset();
             amt_verif_reset();
+            amt_out_reset();
             amt_tour_bump();
             $_SESSION['work']['ended_at'] = time();
             $_SESSION['work']['end_photo'] = true;
@@ -271,6 +282,7 @@ function amt_handle_post(string $action): void
             ) {
                 $photo = '';
             }
+            amt_out_clear_after();      // Check-In lagi: arahan End Work sesudah Check-Out tidak berlaku lagi
             $_SESSION['work']['checkins'][] = [
                 'at'       => time(),
                 'activity' => $akt,
@@ -327,6 +339,10 @@ function amt_handle_post(string $action): void
         case 'finish_order':
             amt_order_finish_post();  // pop up "Menyelesaikan Order" -> beranda AMT
             break;
+
+        case 'submit_checkout':
+            amt_out_handle_post();    // lihat roles/amt/includes/amt_out.php
+            break;
     }
 }
 
@@ -355,7 +371,7 @@ function amt_content_class(string $screen): string
 function amt_screen_css(string $screen): array
 {
     $map = [
-        'amt_home'              => [CORE_URL . '/css/role.css', AMT_URL . '/css/amt.css'],
+        'amt_home'              => [CORE_URL . '/css/role.css', AMT_URL . '/css/amt.css', AMT_URL . '/css/checkout.css'],
         'amt_pti'               => [AMT_URL . '/css/amt-pti.css'],
         'amt_pti_form'          => [AMT_URL . '/css/amt-pti.css'],
         'amt_pti_hasil'         => [AMT_URL . '/css/amt-pti.css'],
@@ -399,7 +415,7 @@ function amt_after_view(string $screen): void
 /** Aksi POST milik AMT: aksi form + 'pti_action' (form PTI & ack tutorial, dikirim tanpa field 'action') */
 function amt_accepts_post(string $action): bool
 {
-    return in_array($action, AMT_POST_ACTIONS, true) || isset($_POST['pti_action']);
+    return in_array($action, AMT_POST_ACTIONS, true) || isset($_POST['pti_action']) || isset($_POST['out_action']);
 }
 
 /** Layar pilih peran dibuka => AMT dimulai dari awal: timer, Check-In, PTI, tutorial di-restart. */
@@ -411,12 +427,13 @@ function amt_on_role_select_screen(): void
 /** Pengguna pindah ke peran lain: jam kerja AMT dihapus supaya state tidak bocor antar peran. */
 function amt_on_role_change(): void
 {
-    unset($_SESSION['work']);
+    unset($_SESSION['work'], $_SESSION['amt_out']);
 }
 
 /** Penjagaan sebelum ada output: PTI (ack tutorial, akses, simpan jawaban) + Verifikasi Order */
 function amt_bootstrap(string $screen): void
 {
+    amt_out_bootstrap($screen);   // tutorial "scan segel di AVM" ditutup (POST out_action=seal_ack)
     amt_pti_bootstrap($screen);
     amt_verif_bootstrap($screen);
 }

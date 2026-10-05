@@ -59,13 +59,14 @@
  * ============================================================ */
 
 // Nama layar untuk label (dipakai bila langkah tidak punya alur bernomor)
-const AMT_TOUR_SCREEN_ORDER = ['amt_home', 'start_end', 'start_work', 'checkin', 'amt_pti', 'amt_pti_form', 'amt_pti_hasil', 'amt_shipments', 'amt_shipment_detail', 'amt_spbu', 'amt_checklist_lo', 'amt_checklist', 'amt_verifikasi', 'amt_verifikasi_qr', 'amt_verifikasi_kode', 'amt_verifikasi_sukses', 'end_work'];
+const AMT_TOUR_SCREEN_ORDER = ['amt_home', 'start_end', 'start_work', 'checkin', 'checkout', 'amt_pti', 'amt_pti_form', 'amt_pti_hasil', 'amt_shipments', 'amt_shipment_detail', 'amt_spbu', 'amt_checklist_lo', 'amt_checklist', 'amt_verifikasi', 'amt_verifikasi_qr', 'amt_verifikasi_kode', 'amt_verifikasi_sukses', 'end_work'];
 
 const AMT_TOUR_SCREEN_LABELS = [
     'amt_home'   => 'Beranda AMT',
     'start_end'  => 'Start / End Work',
     'start_work' => 'Start Work',
     'checkin'    => 'Check-In',
+    'checkout'   => 'Check-Out',
     'amt_pti'      => 'Pre-Trip Inspection',
     'amt_pti_form' => 'Form Inspeksi',
     'amt_pti_hasil' => 'Hasil Inspeksi',
@@ -97,6 +98,8 @@ const AMT_TOUR_JOURNEYS = [
     'checklist' => ['label' => 'Checklist Pra-Pembongkaran', 'total' => 6],
     // Verifikasi Order: 1 pilih LO, 2 pilih metode, 3 konfirmasi ke Petugas SPBU + pindai QR / ketik kode, 4 hasil
     'verifikasi' => ['label' => 'Verifikasi Order', 'total' => 4],
+    // Check-Out: 1 buka menu Check-Out (setelah scan segel di AVM), 2 lokasi, 3 aktivitas, 4 foto, 5 kirim
+    'checkout' => ['label' => 'Check-Out', 'total' => 5],
 ];
 
 // Jeda (ms) sebelum tutorial DCU muncul di beranda setelah Check-In berhasil
@@ -399,18 +402,8 @@ function amt_tour_spbu_steps(): array
         if (amt_pbk_done($s['id'])) {
             return amt_tour_verif_spbu_pack($s);
         }
+        // Langsung arahkan ke kartu aktif "Isi Checklist" (membuka Daftar LO)
         $steps = [[
-            'no'       => null,
-            'label'    => 'Tiba di Lokasi',
-            'target'   => null,
-            'title'    => 'Kedatangan Anda tercatat ✅',
-            'text'     => 'Mobil tangki sudah tercatat tiba di SPBU ' . $s['spbu'] . '. Langkah berikutnya adalah “Isi Checklist” sebelum pembongkaran BBM.',
-            'button'   => 'Mengerti',
-            'remember' => true,    // tidak diulang bila halaman dimuat ulang sebelum "Isi Checklist" diketuk
-            'done'     => null,
-        ]];
-        // Arahkan ke kartu aktif "Isi Checklist" (membuka Daftar LO)
-        $steps[] = [
             'no'     => null,
             'label'  => 'Isi Checklist',
             'target' => '[data-tour="spbu-step-active"]',
@@ -418,7 +411,7 @@ function amt_tour_spbu_steps(): array
             'text'   => 'Sebelum BBM dibongkar, Anda mengisi Checklist Pra-Pembongkaran. Ketuk kartu biru “Isi Checklist” untuk membuka Daftar LO.',
             'hint'   => '👆 Ketuk kartu biru “Isi Checklist”',
             'done'   => null,
-        ];
+        ]];
         return ['journey' => 'kirim', 'subKey' => 'amt_spbu_arrived', 'steps' => $steps];
     }
 
@@ -594,21 +587,10 @@ function amt_tour_pbk_lo_steps(): array
     if ($hasDraft) {
         return ['journey' => 'checklist', 'subKey' => 'amt_pbl_draft', 'steps' => [
             [
-                'no'       => null,
-                'label'    => 'Checklist Tersimpan',
-                'target'   => '[data-tour="pbl-list"]',
-                'title'    => 'Checklist tersimpan sebagai Draft ✅',
-                'text'     => 'LO yang sudah selesai Anda isi berstatus “Draft”: jawabannya sudah tersimpan, tetapi BELUM dikirim ke SPBU.',
-                'hint'     => '👆 Ketuk “Mengerti” untuk lanjut',
-                'button'   => 'Mengerti',
-                'remember' => true,
-                'done'     => null,
-            ],
-            [
                 'no'     => null,
                 'target' => '[data-tour="pbl-list"]',
                 'title'  => 'Centang LO yang akan dikirim',
-                'text'   => 'Centang LO berstatus “Draft” yang ingin dikirim. Tombol “Kirim” baru menyala setelah ada LO Draft yang dicentang.',
+                'text'   => 'LO berstatus “Draft” sudah terisi tetapi BELUM dikirim ke SPBU. Centang LO Draft yang ingin dikirim. Tombol “Kirim” baru menyala setelah ada LO Draft yang dicentang.',
                 'hint'   => '👆 Centang LO berstatus Draft',
                 'done'   => '#pblSend:not(:disabled)',
                 'ok'     => '✅ LO sudah dipilih',
@@ -746,21 +728,9 @@ function amt_tour_pbk_steps(): array
                 'highlight' => '#pbkQrModal .pbk-modal__card',
                 'when'      => '#pbkQrModal:not([hidden])',
                 'title'     => 'QR Code Claim Loss',
-                'text'      => 'Tunjukkan QR ini kepada Petugas SPBU bila SPBU mengajukan Claim Losses. QR berlaku 3 menit; bila kedaluwarsa, ketuk “Regenerate” untuk membuat yang baru.',
-                'hint'      => '👆 Ketuk “Tutup” bila sudah selesai',
+                'text'      => 'Tunjukkan QR ini kepada Petugas SPBU hanya bila SPBU mengajukan Claim Losses. QR berlaku 3 menit; bila kedaluwarsa, ketuk “Regenerate” untuk membuat yang baru. Bila tidak ada Claim Losses, langsung tutup barcode ini dengan mengetuk “Tutup”.',
+                'hint'      => '👆 Tidak ada Claim Losses? Ketuk “Tutup”',
                 'done'      => '#pbkQrModal[hidden]',
-            ],
-            [
-                'no'       => null,
-                'label'    => 'Tombol QR Code',
-                'target'   => '#pbkQrFab',
-                'when'     => '#pbkQrFab',
-                'title'    => 'Tombol “QR Code”',
-                'text'     => 'Setelah QR Code dibuat, tombol biru “QR Code” muncul di kanan bawah. Ketuk kapan saja untuk menampilkan QR lagi, misalnya saat SPBU mengajukan Claim Losses.',
-                'hint'     => '👆 Ketuk “Mengerti”',
-                'button'   => 'Mengerti',
-                'remember' => true,
-                'done'     => null,
             ],
             $nextCard,
         ]];
@@ -800,35 +770,12 @@ function amt_tour_pbk_steps(): array
                 'done'   => $next,
                 'ok'     => '✅ Jawaban sudah dipilih',
             ],
-            [
-                'no'     => null,
-                'label'  => 'Foto Bukti',
-                'target' => '[data-pbk-photo]',
-                'title'  => 'Foto bukti (opsional)',
-                'text'   => 'Anda boleh memotret sebagai bukti pekerjaan: ketuk “Ambil Foto”, potret, lalu simpan. Bila tidak perlu, langsung ketuk “Mengerti”.',
-                'hint'   => '👆 Ketuk “Ambil Foto”, atau “Mengerti” untuk melewati',
-                'button' => 'Mengerti',
-                'done'   => null,
-            ],
             $nextCard,
         ]];
     }
 
     // ---- Verifikasi Tugas SPBU (tipe "spbu_task"); soal 1 diawali pengantar 14 soal ----
     $steps = [];
-    if ($step === 1) {
-        $steps[] = [
-            'no'       => null,
-            'label'    => 'Checklist Pra-Pembongkaran',
-            'target'   => '.pbk-top',
-            'title'    => 'Checklist 14 soal',
-            'text'     => 'Sebelum BBM dibongkar, Anda menjawab 14 soal pemeriksaan, satu soal per halaman. Garis dan angka di atas (mis. 01/14) menunjukkan posisi soal. Semua soal bertanda * wajib dijawab.',
-            'hint'     => '👆 Ketuk “Mengerti” untuk lanjut',
-            'button'   => 'Mengerti',
-            'remember' => true,
-            'done'     => null,
-        ];
-    }
     $steps[] = [
         'no'     => 3,
         'label'  => 'Soal Verifikasi Tugas SPBU',
@@ -865,21 +812,11 @@ function amt_tour_verif_spbu_pack(array $s): array
     }
     return ['journey' => 'kirim', 'subKey' => 'amt_spbu_verif', 'steps' => [
         [
-            'no'       => null,
-            'label'    => 'Checklist Terkirim',
-            'target'   => null,
-            'title'    => 'Checklist sudah terkirim ✅',
-            'text'     => 'Langkah berikutnya adalah “Verifikasi Order”: Anda dan Petugas SPBU memverifikasi serah terima BBM.',
-            'button'   => 'Mengerti',
-            'remember' => true,
-            'done'     => null,
-        ],
-        [
             'no'     => null,
             'label'  => 'Verifikasi Order',
             'target' => '[data-tour="spbu-step-active"]',
             'title'  => 'Ketuk “Verifikasi Order”',
-            'text'   => 'Ketuk kartu biru “Verifikasi Order” untuk membuka daftar LO yang akan diverifikasi.',
+            'text'   => 'Checklist sudah terkirim. Ketuk kartu biru “Verifikasi Order” untuk membuka daftar LO yang akan diverifikasi.',
             'hint'   => '👆 Ketuk kartu biru “Verifikasi Order”',
             'done'   => null,
         ],
@@ -1046,6 +983,11 @@ function amt_tour_steps_for(string $screen, bool $running, int $checkins = 0): a
         // aplikasi, jadi tutorial ini hanya pemberitahuan (kartu di tengah).
         // Muncul AMT_TOUR_DCU_DELAY_MS setelah halaman dibuka.
         if ($running && $checkins > 0) {
+            // Order sudah diselesaikan -> scan segel di AVM dulu (bukan di aplikasi), lalu Check-Out
+            $outPack = amt_out_tour_pack();
+            if ($outPack !== null) {
+                return $outPack;
+            }
             // Hasil inspeksi PTI baru dikirim -> tahapan berikutnya + arahkan ke Shipments
             if (amt_flow_get('pti_done') && amt_pti_is_done()) {
                 return amt_tour_pti_done_pack($checkins);
@@ -1083,6 +1025,11 @@ function amt_tour_steps_for(string $screen, bool $running, int $checkins = 0): a
             ];
         }
         if ($running) {
+            // Sesudah Check-Out: tutorial mengarahkan ke Start / End -> End Work.
+            $afterPack = amt_out_tour_after_pack();
+            if ($afterPack !== null) {
+                return $afterPack;
+            }
             return ['journey' => 'checkin', 'steps' => [[
                 'no'     => 1,
                 'target' => '[data-tour="amt-menu-checkin"]',
@@ -1114,6 +1061,17 @@ function amt_tour_steps_for(string $screen, bool $running, int $checkins = 0): a
 
     // ---- Start / End Work ----
     if ($screen === 'start_end') {
+        // Sesudah Check-Out: AMT diarahkan mengakhiri kerja (tanpa tombol "Mengerti", langsung End Work)
+        if ($running && amt_out_after_checkout()) {
+            return ['journey' => 'pulang', 'steps' => [[
+                'no'     => 1,
+                'target' => '[data-tour="btn-end-work"]',
+                'title'  => 'Ketuk “End Work”',
+                'text'   => 'Check-Out sudah selesai, jadi waktunya mengakhiri waktu kerja. Ketuk “End Work”, lalu isi form-nya.',
+                'hint'   => '👆 Ketuk tombol “End Work”',
+                'done'   => null,
+            ]]];
+        }
         if ($running) {
             return ['journey' => 'pulang', 'steps' => [[
                 'no'     => 1,
@@ -1170,6 +1128,11 @@ function amt_tour_steps_for(string $screen, bool $running, int $checkins = 0): a
         return ['journey' => $pack['journey'], 'steps' => $pack['steps'], 'subKey' => $pack['subKey']];
     }
 
+    // ---- Check-Out: lokasi, aktivitas, foto, kirim ----
+    if ($screen === AMT_OUT_SCREEN) {
+        return ['journey' => 'checkout', 'steps' => amt_out_tour_form_steps()];
+    }
+
     // ---- Hasil Inspeksi ----
     if ($screen === 'amt_pti_hasil') {
         $pack = amt_tour_pti_hasil_steps();
@@ -1223,7 +1186,7 @@ function amt_tour_config(string $screen): array
         // Layar SPBU sebelum tiba juga tidak dicatat selesai: bila pengguna keluar lalu kembali
         // sebelum menekan "Ya, pengiriman telah tiba", tutorial tampil lagi. Kartu "tercatat" (sesudah
         // tiba) tetap dicatat supaya hanya tampil sekali.
-        'persist'      => !in_array($screen, ['start_work', 'checkin', 'end_work', 'start_end'], true)
+        'persist'      => !in_array($screen, ['start_work', 'checkin', 'checkout', 'end_work', 'start_end'], true)
                           && !($screen === 'amt_spbu' && empty($pack['subKey'])),
         'screenOrder'  => AMT_TOUR_SCREEN_ORDER,
         'screenLabels' => AMT_TOUR_SCREEN_LABELS,

@@ -107,7 +107,7 @@
     }
     // Kamera layar penuh / pop up foto: tutorial disembunyikan supaya tidak menimpa.
     function overlayOpen() {
-        return !!(qs('.amtcam.is-open') || qs('#ci-modal:not([hidden])'));
+        return !!(qs('.amtcam.is-open') || qs('#ci-modal:not([hidden])') || qs('#sc-modal:not([hidden])'));
     }
     function el(tag, cls, html) {
         var n = document.createElement(tag);
