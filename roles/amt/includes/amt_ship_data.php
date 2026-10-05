@@ -59,7 +59,7 @@ function amt_ship_all(): array
         ];
     };
 
-    return [
+    $list = [
         array_merge($base, [
             'id'        => 'ONEFIS-1790826685639-WNKJL0',
             'status'    => 'sedang',
@@ -95,6 +95,17 @@ function amt_ship_all(): array
             'products'  => $products('8144837311', '8144837310'),
         ]),
     ];
+
+    // Pengiriman yang sudah diselesaikan lewat pop up "Menyelesaikan Order" (lihat amt_rating.php)
+    // otomatis berstatus "Selesai Dikirim" di semua layar.
+    foreach ($list as &$row) {
+        if (!empty($_SESSION['amt_spbu']['finished'][$row['id']])) {
+            $row['status'] = 'selesai';
+        }
+    }
+    unset($row);
+
+    return $list;
 }
 
 /** Cari pengiriman berdasarkan id; tanpa id -> pengiriman yang sedang berjalan (atau yang pertama). */

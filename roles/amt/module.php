@@ -9,6 +9,8 @@
  *   includes/amt_ship_data.php  Shipments: daftar, Detail Order, "Tiba di Lokasi"
  *   includes/amt_pbk.php   Checklist Pra-Pembongkaran (Daftar LO, 14 langkah, QR)
  *   includes/amt_verif_*.php    Verifikasi Order (Daftar LO, QR, Kode, Berhasil)
+ *   includes/amt_sj.php    Foto Surat Jalan (kamera belakang, 1 foto per Nomor LO)
+ *   includes/amt_rating.php Rating Petugas SPBU + Selesaikan Order
  *   includes/tutorial.php  tutorial terpandu (guided tour) AMT
  *   includes/work_ui.php   skrip beranda AMT (timer, kunci menu PTI)
  *   views/                 satu file per layar AMT (+ partials/header_home.php)
@@ -30,15 +32,18 @@ require_once AMT_INC_DIR . '/amt_pti_functions.php'; // PTI + aktivasi setelah C
 require_once AMT_INC_DIR . '/amt_ship_data.php';      // Shipments: daftar, Detail Order, SPBU
 require_once AMT_INC_DIR . '/amt_pbk.php';            // Checklist Pra-Pembongkaran AMT (Daftar LO, 14 langkah + QR Code)
 require_once AMT_INC_DIR . '/amt_verif_functions.php'; // Verifikasi Order (Daftar LO, QR, Kode, Berhasil)
+require_once AMT_INC_DIR . '/amt_sj.php';             // Foto Surat Jalan (kamera belakang)
+require_once AMT_INC_DIR . '/amt_rating.php';         // Rating Petugas SPBU + Selesaikan Order
 require_once AMT_INC_DIR . '/tutorial.php'; // tutorial terpandu (guided tour) peran AMT
 
 // Layar milik AMT selain beranda (amt_home)
 const AMT_EXTRA_SCREENS = ['start_end', 'start_work', 'end_work', 'checkin', 'amt_pti', 'amt_pti_form', 'amt_pti_hasil',
     'amt_shipments', 'amt_shipment_detail', 'amt_spbu', 'amt_checklist_lo', 'amt_checklist',
-    'amt_verifikasi', 'amt_verifikasi_qr', 'amt_verifikasi_kode', 'amt_verifikasi_sukses'];
+    'amt_verifikasi', 'amt_verifikasi_qr', 'amt_verifikasi_kode', 'amt_verifikasi_sukses',
+    'amt_surat_jalan', 'amt_rating'];
 
 // Aksi form (POST) milik AMT
-const AMT_POST_ACTIONS = ['submit_start_work', 'submit_end_work', 'submit_checkin', 'submit_spbu_arrive', 'submit_pbk'];
+const AMT_POST_ACTIONS = ['submit_start_work', 'submit_end_work', 'submit_checkin', 'submit_spbu_arrive', 'submit_pbk', 'submit_sj', 'submit_rating', 'finish_order'];
 
 /** Beranda AMT (mis. 'amt_home') */
 function amt_home_screen(): string
@@ -64,7 +69,8 @@ function amt_view_file(string $screen): string
     // Layar PTI: nama layar 'amt_pti' / 'amt_pti_form' -> file pti.php / pti_form.php
     $file = ['amt_pti' => 'pti', 'amt_pti_form' => 'pti_form', 'amt_pti_hasil' => 'pti_hasil',
              'amt_shipments' => 'shipments', 'amt_shipment_detail' => 'shipment_detail', 'amt_spbu' => 'spbu',
-             'amt_checklist_lo' => 'pra_bongkar_lo', 'amt_checklist' => 'pra_bongkar'][$screen] ?? $screen;
+             'amt_checklist_lo' => 'pra_bongkar_lo', 'amt_checklist' => 'pra_bongkar',
+             'amt_surat_jalan' => 'surat_jalan'][$screen] ?? $screen;
     return AMT_VIEW_DIR . '/' . $file . '.php';
 }
 
@@ -87,6 +93,12 @@ function amt_screen_title(string $screen): string
     }
     if ($screen === 'amt_verifikasi_qr') {
         return 'Pindai Kode QR';
+    }
+    if ($screen === 'amt_surat_jalan') {
+        return 'Surat Jalan';
+    }
+    if ($screen === 'amt_rating') {
+        return 'Beri Penilaian';
     }
     if (in_array($screen, AMT_VERIF_SCREENS, true)) {
         return 'Verifikasi Order';
@@ -111,6 +123,10 @@ function amt_prev_screen(string $screen): ?string
     }
     if ($screen === 'amt_checklist') {
         return 'amt_checklist_lo' . ($id !== '' ? '&id=' . rawurlencode($id) : '');
+    }
+    // Surat Jalan kembali ke Aktifitas di SPBU
+    if ($screen === 'amt_surat_jalan' || $screen === 'amt_rating') {
+        return 'amt_spbu' . ($id !== '' ? '&id=' . rawurlencode($id) : '');
     }
     // Verifikasi Order: Daftar LO & Berhasil -> kembali ke SPBU; QR / Kode -> kembali ke Daftar LO
     if (in_array($screen, AMT_VERIF_SCREENS, true)) {
@@ -161,6 +177,8 @@ function amt_guard_work(string $screen): void
         go_to('start_end');
     }
     amt_pbk_guard($screen);   // Daftar LO + Checklist Pra Bongkar: hanya setelah "Tiba di Lokasi"
+    amt_sj_guard($screen);    // Surat Jalan: hanya setelah semua LO terverifikasi
+    amt_rating_guard($screen); // Beri Penilaian: hanya setelah foto surat jalan tersimpan
 }
 
 /* ------------------------------------------------------------
@@ -297,6 +315,18 @@ function amt_handle_post(string $action): void
         case 'submit_pbk':
             amt_pbk_handle_post();   // lihat roles/amt/includes/amt_pbk.php
             break;
+
+        case 'submit_sj':
+            amt_sj_handle_post();    // lihat roles/amt/includes/amt_sj.php
+            break;
+
+        case 'submit_rating':
+            amt_rating_handle_post(); // lihat roles/amt/includes/amt_rating.php
+            break;
+
+        case 'finish_order':
+            amt_order_finish_post();  // pop up "Menyelesaikan Order" -> beranda AMT
+            break;
     }
 }
 
@@ -336,6 +366,8 @@ function amt_screen_css(string $screen): array
         'amt_verifikasi_qr'     => [AMT_URL . '/css/amt-verif.css'],
         'amt_verifikasi_kode'   => [AMT_URL . '/css/amt-verif.css'],
         'amt_verifikasi_sukses' => [AMT_URL . '/css/amt-verif.css'],
+        'amt_surat_jalan'       => [AMT_URL . '/css/amt-sj.css'],
+        'amt_rating'            => [AMT_URL . '/css/amt-rating.css'],
     ];
     return $map[$screen] ?? [];
 }

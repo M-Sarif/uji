@@ -7,6 +7,7 @@
      var cam = AmtCamera.create({
          facing: 'user',                 // 'user' = depan, 'environment' = belakang
          title:  'Foto Verifikasi',
+         maxSize: 1024,                  // opsional: sisi terpanjang hasil foto (px)
          onSave: function (dataUrl) { ... }   // dipanggil saat "Simpan Foto"
      });
      cam.open();   cam.close();
@@ -31,6 +32,7 @@
         var facing = opts.facing || 'user';
         var mirror = facing === 'user';
         var onSave = typeof opts.onSave === 'function' ? opts.onSave : function () {};
+        var maxSize = opts.maxSize || MAX_SIZE;   // sisi terpanjang hasil foto (px); dokumen perlu lebih besar
 
         var stream = null;
         var captured = null;      // dataURL foto yang sedang ditinjau
@@ -152,7 +154,7 @@
             if (!stream || !video.videoWidth) { return; }
 
             var vw = video.videoWidth, vh = video.videoHeight;
-            var scale = Math.min(1, MAX_SIZE / Math.max(vw, vh));
+            var scale = Math.min(1, maxSize / Math.max(vw, vh));
             var c = d.createElement('canvas');
             c.width = Math.round(vw * scale);
             c.height = Math.round(vh * scale);

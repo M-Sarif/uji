@@ -11,7 +11,11 @@
  *   Pilih LO -> "Mulai Checklist" -> amt_checklist (14 langkah) -> kembali ke Daftar LO ("Draft") -> "Kirim".
  *   Semua LO terkirim -> "Isi Checklist" hijau dan "Verifikasi Order" menjadi langkah aktif.
  * Setelah checklist terkirim, "Verifikasi Order" aktif dan membuka amt_verifikasi (Daftar LO, QR / Kode Konfirmasi).
- * Layar tujuan langkah lain (Foto Surat Jalan, dst) belum dibuat: kartunya belum membuka layar lain.
+ * Setelah semua LO terverifikasi, "Foto Surat Jalan" aktif dan membuka amt_surat_jalan (kamera belakang,
+ *   1 foto per Nomor LO). Setelah disimpan, "Foto Surat Jalan" hijau dan Status Surat Jalan = "Sudah Ditambahkan".
+ * Setelah foto surat jalan tersimpan, "Rating Petugas SPBU" aktif dan membuka amt_rating (Beri Penilaian).
+ *   Setelah rating terkirim kembali ke layar ini: semua langkah hijau dan tombol "Selesai" aktif.
+ *   "Selesai" -> pop up "Menyelesaikan Order" -> "Kirim" (POST finish_order) -> beranda AMT; "Batal" menutup pop up.
  *
  * Atribut data-tour dipakai tutorial AMT (roles/amt/includes/tutorial.php).
  * Konfirmasi tiba diproses amt_handle_post('submit_spbu_arrive') di roles/amt/includes/amt.php.
@@ -31,7 +35,9 @@ $steps    = amt_spbu_steps();
 $total    = count($steps);
 $pbkDone  = $arrived && amt_pbk_done($s['id']);          // checklist Pra Bongkar sudah dikirim
 $verDone  = $pbkDone && amt_verif_is_done($s);               // Verifikasi Order sudah selesai
-$doneN    = $active ? ($arrived ? ($pbkDone ? ($verDone ? 3 : 2) : 1) : 0) : $total;   // jumlah langkah selesai
+$sjDone   = $verDone && amt_sj_done($s['id']);                // foto surat jalan sudah disimpan
+$rateDone = $sjDone && amt_rating_done($s['id']);              // rating petugas SPBU sudah dikirim
+$doneN    = $active ? ($arrived ? ($pbkDone ? ($verDone ? ($sjDone ? ($rateDone ? 5 : 4) : 3) : 2) : 1) : 0) : $total;   // jumlah langkah selesai
 ?>
 
 <style id="amts-act-css">
@@ -98,7 +104,9 @@ $doneN    = $active ? ($arrived ? ($pbkDone ? ($verDone ? 3 : 2) : 1) : 0) : $to
                 $state  = $i < $doneN ? 'done' : ($i === $doneN ? 'active' : 'pending');
                 $isOpen = $canOpen && $state === 'active' && $st['key'] === 'tiba';
                 $isChk  = $arrived && !$pbkDone && $state === 'active' && $st['key'] === 'checklist';
-                $isVer  = $pbkDone && !$verDone && $state === 'active' && $st['key'] === 'verifikasi'; ?>
+                $isVer  = $pbkDone && !$verDone && $state === 'active' && $st['key'] === 'verifikasi';
+                $isSj   = $verDone && !$sjDone && $state === 'active' && $st['key'] === 'surat';
+                $isRate = $sjDone && !$rateDone && $state === 'active' && $st['key'] === 'rating'; ?>
                 <?php
                     // Garis penghubung ke langkah berikutnya: biru bila langkah ini aktif (seperti aplikasi asli),
                     // hijau bila sudah selesai, abu-abu bila belum sampai.
@@ -114,7 +122,9 @@ $doneN    = $active ? ($arrived ? ($pbkDone ? ($verDone ? 3 : 2) : 1) : 0) : $to
                     <div class="amts-act__row"
                          <?= $isOpen ? 'role="button" tabindex="0" data-spbu-open="arrSheet" aria-haspopup="dialog"' : '' ?>
                          <?= $isChk ? 'role="link" tabindex="0" data-spbu-href="' . amt_e(amt_pbk_lo_url($s)) . '"' : '' ?>
-                         <?= $isVer ? 'role="link" tabindex="0" data-spbu-href="' . amt_e(amt_ship_url('amt_verifikasi', $s)) . '"' : '' ?>>
+                         <?= $isVer ? 'role="link" tabindex="0" data-spbu-href="' . amt_e(amt_ship_url('amt_verifikasi', $s)) . '"' : '' ?>
+                         <?= $isSj ? 'role="link" tabindex="0" data-spbu-href="' . amt_e(amt_sj_url($s)) . '"' : '' ?>
+                         <?= $isRate ? 'role="link" tabindex="0" data-spbu-href="' . amt_e(amt_rating_url($s)) . '"' : '' ?>>
                         <img class="amts-act__icon" src="<?= amt_e($st['icon']) ?>" alt="">
                         <span class="amts-act__label"><?= amt_e($st['label']) ?></span>
                         <?php if ($state === 'active'): ?>
@@ -128,7 +138,8 @@ $doneN    = $active ? ($arrived ? ($pbkDone ? ($verDone ? 3 : 2) : 1) : 0) : $to
 
     <h2 class="amts-h2 amts-h2--list">Order List</h2>
     <?php foreach ($s['products'] as $p):
-        $loVerified = !$active || amt_verif_is_verified($p['lo']); ?>
+        $loVerified = !$active || amt_verif_is_verified($p['lo']);
+        $sjAdded    = !$active || amt_sj_lo_done($s['id'], (string) $p['lo']); ?>
         <article class="amts-card amts-order">
             <div class="amts-order__row">
                 <span class="amts-order__k">Nomor LO</span>
@@ -144,7 +155,7 @@ $doneN    = $active ? ($arrived ? ($pbkDone ? ($verDone ? 3 : 2) : 1) : 0) : $to
             </div>
             <div class="amts-order__row">
                 <span class="amts-order__k">Status Surat Jalan</span>
-                <span class="amts-order__v"><span class="amts-pill <?= $active ? 'is-warn' : 'is-ok' ?>"><?= $active ? 'Belum Ditambahkan' : 'Sudah Ditambahkan' ?></span></span>
+                <span class="amts-order__v"><span class="amts-pill <?= $sjAdded ? 'is-ok' : 'is-warn' ?>"><?= $sjAdded ? 'Sudah Ditambahkan' : 'Belum Ditambahkan' ?></span></span>
             </div>
             <button type="button" class="amts-btn amts-btn--outline">
                 <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6"/></svg>
@@ -157,7 +168,7 @@ $doneN    = $active ? ($arrived ? ($pbkDone ? ($verDone ? 3 : 2) : 1) : 0) : $to
 <?php if ($arrived): ?>
 <style>.amts-act__row[data-spbu-href] { cursor: pointer; } .amts-act__row[data-spbu-href]:focus-visible { outline: 3px solid rgba(37, 99, 235, .35); outline-offset: 2px; }</style>
 <script>
-/* Ketuk langkah aktif "Isi Checklist" (Daftar LO) atau "Verifikasi Order" -> buka layarnya */
+/* Ketuk langkah aktif "Isi Checklist" (Daftar LO), "Verifikasi Order", "Foto Surat Jalan" atau "Rating Petugas SPBU" -> buka layarnya */
 (function () {
     document.querySelectorAll('[data-spbu-href]').forEach(function (row) {
         function go() { window.location.href = row.getAttribute('data-spbu-href'); }
@@ -172,11 +183,75 @@ $doneN    = $active ? ($arrived ? ($pbkDone ? ($verDone ? 3 : 2) : 1) : 0) : $to
 
 <?php if ($active): ?>
 <div class="amts-footer">
-    <button type="button" class="amts-btn amts-btn--solid" disabled>
+    <button type="button" class="amts-btn amts-btn--solid" id="finOpen" <?= $rateDone ? 'aria-haspopup="dialog"' : 'disabled' ?>>
         <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H6a2 2 0 00-2 2v13a2 2 0 002 2h9a2 2 0 002-2v-2"/><rect x="9" y="2" width="6" height="4" rx="1"/><path d="M9 12h4M9 16h4"/></svg>
         Selesai
     </button>
 </div>
+<?php endif; ?>
+
+<?php if ($rateDone): ?>
+<style id="amts-fin-css">
+/* ---------- Pop up "Menyelesaikan Order" ---------- */
+.amts-fin {
+    position: fixed; inset: 0; z-index: 890; display: flex; align-items: center; justify-content: center;
+    padding: 20px; box-sizing: border-box; background: rgba(15, 23, 42, .5); animation: amtsFinFade .16s ease;
+}
+.amts-fin[hidden] { display: none; }
+.amts-fin__card {
+    width: 100%; max-width: 340px; box-sizing: border-box; padding: 20px 18px 14px;
+    background: #fff; border-radius: 16px; box-shadow: 0 20px 50px -12px rgba(15, 23, 42, .4);
+    animation: amtsFinUp .2s ease;
+}
+.amts-fin__title { margin: 0 0 8px; font-size: 15px; font-weight: 800; color: var(--amts-ink, #0f172a); }
+.amts-fin__ask   { margin: 0 0 10px; font-size: 12px; line-height: 1.45; color: var(--amts-muted, #64748b); }
+.amts-fin__note  { margin: 0 0 16px; font-size: 11px; line-height: 1.45; color: var(--amts-muted, #64748b); }
+.amts-fin__send  {
+    width: 100%; height: 42px; border: 0; border-radius: 10px; cursor: pointer;
+    font-family: inherit; font-size: 13px; font-weight: 700; color: #fff; background: #0f62f0;
+}
+.amts-fin__send:disabled { background: #9aa7bd; cursor: not-allowed; }
+.amts-fin__cancel {
+    display: block; width: 100%; margin-top: 4px; padding: 10px; border: 0; background: none; cursor: pointer;
+    font-family: inherit; font-size: 12px; font-weight: 500; color: #334155;
+}
+@keyframes amtsFinFade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes amtsFinUp   { from { transform: translateY(12px); opacity: 0; } to { transform: none; opacity: 1; } }
+body:has(.amts-fin.is-open) .amtt-fab { display: none; }
+@media (prefers-reduced-motion: reduce) { .amts-fin, .amts-fin__card { animation: none; } }
+</style>
+
+<div class="amts-fin" id="finSheet" hidden>
+    <div class="amts-fin__card" role="dialog" aria-modal="true" aria-labelledby="finTitle">
+        <h2 class="amts-fin__title" id="finTitle">Menyelesaikan Order</h2>
+        <p class="amts-fin__ask">Apakah Anda yakin ingin mengirim data menyelesaikan pengiriman ini?</p>
+        <p class="amts-fin__note">Note : Data yang telah dikirim tidak dapat diubah kembali.</p>
+        <form method="post" action="<?= amt_e(amt_ship_url('amt_spbu', $s)) ?>" id="finForm">
+            <input type="hidden" name="action" value="finish_order">
+            <input type="hidden" name="id" value="<?= amt_e($s['id']) ?>">
+            <button type="submit" class="amts-fin__send" id="finSend">Kirim</button>
+        </form>
+        <button type="button" class="amts-fin__cancel" id="finCancel">Batal</button>
+    </div>
+</div>
+
+<script>
+(function () {
+    var sheet = document.getElementById('finSheet'), open = document.getElementById('finOpen');
+    if (!sheet || !open) return;
+    document.body.appendChild(sheet);                 // di luar .content: tidak ikut tergulir / terpotong
+    var send = document.getElementById('finSend');
+    function show() { sheet.hidden = false; sheet.classList.add('is-open'); document.addEventListener('keydown', onKey); send.focus(); }
+    function hide() { sheet.classList.remove('is-open'); sheet.hidden = true; document.removeEventListener('keydown', onKey); open.focus(); }
+    function onKey(e) { if (e.key === 'Escape') hide(); }
+    open.addEventListener('click', show);
+    document.getElementById('finCancel').addEventListener('click', hide);
+    sheet.addEventListener('click', function (e) { if (e.target === sheet) hide(); });
+    document.getElementById('finForm').addEventListener('submit', function () {
+        send.disabled = true; send.textContent = 'Mengirim…';   // cegah kirim ganda
+    });
+})();
+</script>
 <?php endif; ?>
 
 <?php if ($canOpen): ?>
