@@ -1,17 +1,20 @@
 <?php
+/* ============================================================
+ * OneFIS - front controller / router (?screen=...).
+ *
+ * File ini SENGAJA tipis dan tidak berisi logika peran mana pun.
+ * Semua logika khusus peran dipanggil lewat hook (core/roles.php):
+ *   roles/spbu/module.php   -> peran SPBU
+ *   roles/amt/module.php    -> peran AMT
+ * ============================================================ */
 session_start();
 
-require __DIR__ . '/includes/data.php';
-require __DIR__ . '/includes/functions.php';
-require __DIR__ . '/includes/amt/amt.php'; // semua kode peran AMT: includes/amt, views/amt, assets/amt
+require __DIR__ . '/core/bootstrap.php';
 
 init_session_state();
 
-// Layar AMT tambahan (Start/End Work) tidak ada di HEADER_TITLES bawaan
-$validScreens = array_merge(array_keys(HEADER_TITLES), AMT_EXTRA_SCREENS);
-
-// Layar beranda milik peran AMT (di layar inilah menu Start/End, Check-In, dst tampil)
-$amtHome = ROLES['amt']['home'] ?? 'dashboard';
+// Layar valid = pilih peran + semua layar milik tiap peran.
+$validScreens = app_screens();
 
 // Layar awal = pilihan peran (SPBU / AMT), bukan langsung tampilan aplikasi.
 $screen = $_GET['screen'] ?? 'role_select';
@@ -22,413 +25,78 @@ if (!in_array($screen, $validScreens, true)) {
 /* Penjagaan akses berdasarkan peran:
  * - belum memilih peran -> paksa ke layar pilihan peran
  * - layar bukan milik perannya -> arahkan ke beranda perannya sendiri
- * Aksi POST selain "select_role" hanya dipakai alur SPBU,
- * kecuali start_work / end_work / checkin yang dipakai peran AMT. */
-$role = current_role();
+ * - aksi POST hanya boleh "select_role" atau aksi milik perannya sendiri */
+$role   = current_role();
 $isPost = $_SERVER['REQUEST_METHOD'] === 'POST';
+$owner  = screen_owner($screen);   // null = layar bersama (pilih peran)
 
 if ($isPost) {
-    $allowedPost = array_merge(['select_role'], AMT_POST_ACTIONS);
-    // pti_action = form PTI & ack tutorial (dikirim tanpa field 'action')
-    if (!in_array($_POST['action'] ?? '', $allowedPost, true) && !isset($_POST['pti_action']) && $role !== 'spbu') {
+    $postAction = (string) ($_POST['action'] ?? '');
+    if ($postAction !== 'select_role' && !role_accepts_post($role, $postAction)) {
         go_to(role_home($role));
     }
-} else {
-    $needRole = amt_owns_screen($screen) ? 'amt' : screen_role($screen);
-    if ($needRole !== null && $role !== $needRole) {
-        go_to(role_home($role));
-    }
+} elseif ($owner !== null && $role !== $owner) {
+    go_to(role_home($role));
 }
 
-/* Kembali ke halaman index (pilih peran) => AMT dimulai dari awal:
- * timer Waktu Kerja, Check-In, PTI, dan tutorial semuanya di-restart. */
+/* Kembali ke halaman pilih peran => tiap peran mulai dari awal (mis. AMT: timer, Check-In, PTI, tutorial). */
 if ($screen === 'role_select' && !$isPost) {
-    amt_reset_all();
+    foreach (role_keys() as $r) {
+        role_call($r, 'on_role_select_screen');
+    }
 }
 
-/* PTI: catat ack tutorial, jaga akses layar PTI, simpan jawaban inspeksi.
- * Harus sebelum ada output apa pun. */
-if ($role === 'amt') {
-    amt_pti_bootstrap($screen);
-    amt_verif_bootstrap($screen);   // Verifikasi Order AMT (redirect/timer, sebelum output)
-}
+/* Penjagaan khusus peran yang harus jalan SEBELUM ada output (redirect, simpan jawaban, dst). */
+role_call($role, 'bootstrap', $screen);
 
-/* Penjagaan menu kerja AMT: Check-In hanya saat timer berjalan (PTI &
- * Check-Out belum aktif, lihat WORK_LOCKED_MENUS); Start Work hanya saat timer belum jalan; End Work sebaliknya. */
+/* Penjagaan akses layar (GET) milik peran pemilik layar. */
 if (!$isPost) {
-    amt_guard_work($screen);
+    role_call($owner, 'guard', $screen);
 }
 
-/* Setiap kali pengguna kembali ke halaman utama (dashboard) -- baik lewat
- * tombol back di header/browser, mengetik ulang alamatnya, maupun link
- * lain -- seluruh progres alur order/checklist/verifikasi dimulai dari
- * awal lagi. Status jam kerja (Start/End Work) tetap dipertahankan.
- * $flowWasReset dipakai di includes/layout_bottom.php supaya tutorial
- * layar-layar setelah dashboard (shipments_list, shipment, dst) ikut
- * dianggap "belum pernah dilihat" lagi -- tapi HANYA saat momen ini,
- * bukan tiap kali pengguna balik langsung ke layar SPBU tanpa lewat
- * dashboard dulu (lihat tutorial.js). */
+/* Setiap kali pengguna kembali ke beranda peran -- lewat tombol back, mengetik ulang
+ * alamatnya, maupun link lain -- progres alurnya dimulai dari awal lagi (diatur peran
+ * masing-masing). $flowWasReset dipakai core/layout_bottom.php supaya tutorial layar-layar
+ * berikutnya ikut dianggap "belum pernah dilihat" -- HANYA pada momen ini. */
 $flowWasReset = false;
-if (in_array($screen, ['dashboard', $amtHome], true) && $_SERVER['REQUEST_METHOD'] !== 'POST') {
-    reset_flow_keep_work();
+if (!$isPost && role_call($owner, 'on_home', $screen)) {
     $flowWasReset = true;
 }
 
-/* --------------------------------------------------------------
- * Proses form (POST) - setiap layar yang punya form menangani
- * aksinya sendiri di sini, lalu redirect (pola Post/Redirect/Get)
- * -------------------------------------------------------------- */
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $action = $_POST['action'] ?? '';
+/* Proses form (POST) - pola Post/Redirect/Get. Tiap peran menangani aksinya sendiri. */
+if ($isPost) {
+    $action = (string) ($_POST['action'] ?? '');
 
-    switch ($action) {
-        case 'select_role':
-            // Layar awal: pengguna memilih SPBU atau AMT
-            $picked = (string) ($_POST['role'] ?? '');
-            if (!isset(ROLES[$picked])) {
-                go_to('role_select');
-            }
-            if ($picked !== current_role()) {
-                // Ganti peran -> mulai alur dari awal supaya state tidak bocor antar peran
-                reset_flow_state();
-                unset($_SESSION['work']);
-            }
-            $_SESSION['role'] = $picked;
-            go_to(ROLES[$picked]['home']);
-            break;
-
-        case 'submit_start_work':
-        case 'submit_end_work':
-        case 'submit_checkin':
-        case 'submit_spbu_arrive':
-        case 'submit_pbk':
-            amt_handle_post($action); // lihat includes/amt/amt.php
-            break;
-
-        case 'save_order_info':
-            $_SESSION['order']['jenis'] = ($_POST['jenis'] ?? 'Reguler') === 'Emergency' ? 'Emergency' : 'Reguler';
-            $_SESSION['order']['tanggal'] = trim($_POST['tanggal'] ?? $_SESSION['order']['tanggal']);
-            go_to('create_order_product');
-            break;
-
-        case 'apply_product':
-            $qty = (int) preg_replace('/[^0-9]/', '', $_POST['qty'] ?? '0');
-            $_SESSION['order']['qty'] = $qty > 0 ? $qty : $_SESSION['order']['qty'];
-            go_to('create_order_review');
-            break;
-
-        case 'submit_order':
-            go_to('track_order');
-            break;
-
-        case 'kirim_verifikasi':
-            // Simpan jawaban verifikasi Mobil Tangki, AMT 1, dan AMT 2
-            $belumDijawab = [];
-            foreach (ARRIVAL_SUBJECTS as $key => $subject) {
-                $jawaban = $_POST[$key] ?? null;
-                if ($jawaban !== 'ya' && $jawaban !== 'tidak') {
-                    $_SESSION[$key] = null;
-                    $belumDijawab[] = $subject['sub'];
-                    continue;
-                }
-                $_SESSION[$key] = ($jawaban === 'ya');
-            }
-            if (!empty($belumDijawab)) {
-                $_SESSION['arrival_error'] = 'Mohon jawab pertanyaan untuk: ' . implode(', ', $belumDijawab);
-                go_to('verification');
-            }
-            unset($_SESSION['arrival_error']);
-            set_activity_done(1); // langkah "Tiba di Lokasi" selesai
-            go_to('shipment');    // kembali ke halaman aktifitas SPBU
-            break;
-
-        case 'save_rating_step':
-            // Langkah 1: penilaian AMT 1. Tombol "Selanjutnya" -> disimpan
-            // ke session lalu lanjut ke langkah 2 (AMT 2).
-            $subjectKey = 'amt_ok';
-            $subject = ARRIVAL_SUBJECTS[$subjectKey];
-            $errors = [];
-
-            $overall = (int) ($_POST['rating'][$subjectKey]['overall'] ?? 0);
-            $_SESSION['ratings'][$subjectKey]['overall'] = $overall;
-            if ($overall < 1) {
-                $errors[] = 'Penilaian Keseluruhan ' . $subject['sub'];
-            }
-            foreach (RATING_CATEGORIES as $key => $cat) {
-                $val = (int) ($_POST['rating'][$subjectKey][$key] ?? 0);
-                $_SESSION['ratings'][$subjectKey][$key] = $val;
-                if ($val < 1) {
-                    $errors[] = $cat['title'];
-                }
-            }
-
-            if (!empty($errors)) {
-                $_SESSION['rating_error'] = 'Mohon beri bintang untuk: ' . implode(', ', $errors);
-                go_to('rating', ['step' => 1]);
-            }
-            unset($_SESSION['rating_error']);
-            go_to('rating', ['step' => 2]);
-            break;
-
-        case 'submit_rating':
-            // Langkah 2: penilaian AMT 2 + tombol "Kirim". AMT 1 seharusnya
-            // sudah lengkap lewat langkah 1, tapi tetap divalidasi ulang
-            // untuk jaga-jaga (mis. sesi lama / navigasi langsung ke step 2).
-            $subjectKey2 = 'amt2_ok';
-            $subject2 = ARRIVAL_SUBJECTS[$subjectKey2];
-            $errors2 = [];
-
-            $overall2 = (int) ($_POST['rating'][$subjectKey2]['overall'] ?? 0);
-            $_SESSION['ratings'][$subjectKey2]['overall'] = $overall2;
-            if ($overall2 < 1) {
-                $errors2[] = 'Penilaian Keseluruhan ' . $subject2['sub'];
-            }
-            foreach (RATING_CATEGORIES as $key => $cat) {
-                $val = (int) ($_POST['rating'][$subjectKey2][$key] ?? 0);
-                $_SESSION['ratings'][$subjectKey2][$key] = $val;
-                if ($val < 1) {
-                    $errors2[] = $cat['title'];
-                }
-            }
-            $_SESSION['ratings']['review'] = trim($_POST['review'] ?? '');
-
-            if (!empty($errors2)) {
-                $_SESSION['rating_error'] = 'Mohon beri bintang untuk: ' . implode(', ', $errors2);
-                go_to('rating', ['step' => 2]);
-            }
-
-            $errors1 = [];
-            if ((int) ($_SESSION['ratings']['amt_ok']['overall'] ?? 0) < 1) {
-                $errors1[] = 'Penilaian Keseluruhan AMT 1';
-            }
-            foreach (RATING_CATEGORIES as $key => $cat) {
-                if ((int) ($_SESSION['ratings']['amt_ok'][$key] ?? 0) < 1) {
-                    $errors1[] = $cat['title'] . ' (AMT 1)';
-                }
-            }
-            if (!empty($errors1)) {
-                $_SESSION['rating_error'] = 'Mohon lengkapi penilaian AMT 1 terlebih dahulu: ' . implode(', ', $errors1);
-                go_to('rating', ['step' => 1]);
-            }
-
-            unset($_SESSION['rating_error']);
-            // Penilaian selesai -> semua aktifitas di SPBU tuntas, lalu kembali
-            // ke Detail Order (tombol "Selesai" di sana yang menuju layar done).
-            set_activity_done(4);
-            go_to('shipment');
-            break;
-
-        case 'save_spp_produk':
-            // Hasil verifikasi kartu Produk pada langkah 6 checklist
-            $loId = (string) ($_POST['lo'] ?? '');
-            if (array_key_exists($loId, LO_LIST)) {
-                $_SESSION['spp_produk'][$loId] = [
-                    'kesesuaian' => ($_POST['kesesuaian'] ?? 'sesuai') === 'tidak' ? 'tidak' : 'sesuai',
-                ];
-            }
-            go_to('checklist', ['step' => 6]);
-            break;
-
-        case 'save_spp_segel':
-            // Hasil verifikasi kartu Segel pada langkah 6 checklist
-            $noSegel = (string) ($_POST['segel'] ?? '');
-            if (in_array($noSegel, SEGEL_LIST, true)) {
-                $_SESSION['spp_segel'][$noSegel] = [
-                    'kesesuaian' => ($_POST['kesesuaian'] ?? 'sesuai') === 'tidak' ? 'tidak' : 'sesuai',
-                    'kondisi'    => ($_POST['kondisi'] ?? 'baik') === 'rusak' ? 'rusak' : 'baik',
-                ];
-            }
-            go_to('checklist', ['step' => 6]);
-            break;
-
-        case 'generate_claim_loss':
-            // Tombol "Generate": hitung selisih kurang claim loss dari
-            // isian form, simpan sebagai DRAFT (belum final), lalu balik
-            // ke layar claim_loss dengan flag "hasil=1" supaya pop up
-            // "Hasil Generate Claim Losses" langsung tampil.
-            $loId = (string) ($_POST['lo'] ?? '');
-            $metode = array_key_exists($_POST['metode'] ?? '', MEASUREMENT_METHODS)
-                ? (string) $_POST['metode']
-                : 'ijkbout';
-
-            if (array_key_exists($loId, LO_LIST)) {
-                $nilai = [];
-                foreach (MEASUREMENT_METHODS[$metode]['fields'] as $field) {
-                    $raw = str_replace(',', '.', (string) ($_POST[$field['key']] ?? ''));
-                    $nilai[$field['key']] = (float) preg_replace('/[^0-9.\-]/', '', $raw);
-                }
-                $_SESSION['lo_form_draft'][$loId] = [
-                    'metode'     => $metode,
-                    'nilai'      => $nilai,
-                    'claim_loss' => hitung_claim_loss($metode, $nilai, $loId),
-                ];
-            }
-            go_to('claim_loss', ['lo' => $loId, 'metode' => $metode, 'hasil' => 1]);
-            break;
-
-        case 'save_claim_loss':
-            // Tombol pada pop up "Hasil Generate Claim Losses" (Simpan /
-            // Ajukan Claim Losses / Simpan Tanpa Klaim): jadikan draft
-            // hasil "Generate" final, lalu kembali ke langkah 7 checklist
-            // dengan status "Sudah Terisi".
-            $loId = (string) ($_POST['lo'] ?? '');
-            $metode = array_key_exists($_POST['metode'] ?? '', MEASUREMENT_METHODS)
-                ? (string) $_POST['metode']
-                : 'ijkbout';
-            // 'ajukan' = tombol "Ajukan Claim Losses"
-            // 'tanpa'  = tombol "Simpan Tanpa Klaim"
-            // ''       = tombol "Simpan" (dipakai saat tidak ada selisih)
-            $klaim = (string) ($_POST['klaim'] ?? '');
-
-            $draft = $_SESSION['lo_form_draft'][$loId] ?? null;
-            if (array_key_exists($loId, LO_LIST) && $draft !== null && $draft['metode'] === $metode) {
-                $_SESSION['lo_form'][$loId] = [
-                    'metode'     => $draft['metode'],
-                    'nilai'      => $draft['nilai'],
-                    'claim_loss' => $draft['claim_loss'],
-                    'diajukan'   => $klaim === 'ajukan',
-                ];
-                unset($_SESSION['lo_form_draft'][$loId]);
-            }
-            go_to('checklist', ['step' => 7]);
-            break;
-
-        case 'ajukan_claim_bulk':
-            // Tombol "Ajukan Claim Losses" di bawah Daftar LO (langkah 7):
-            // menandai SEKALIGUS semua LO yang dipilih (yang tadi punya
-            // selisih & belum diajukan) menjadi "diajukan" = true, supaya
-            // tombolnya tidak nyangkut/muncul lagi walau klaim-nya sudah
-            // diajukan (lihat $pendingClaimLoIds di views/checklist.php).
-            $loIdsToClaim = (array) ($_POST['lo_ids'] ?? []);
-            foreach ($loIdsToClaim as $idToClaim) {
-                $idToClaim = (string) $idToClaim;
-                if (array_key_exists($idToClaim, LO_LIST) && isset($_SESSION['lo_form'][$idToClaim])) {
-                    $_SESSION['lo_form'][$idToClaim]['diajukan'] = true;
-                }
-            }
-            go_to('checklist', ['step' => 7]);
-            break;
-
-        case 'kirim_checklist':
-            // Tombol "Kirim" di Daftar LO, dikonfirmasi lewat pop up
-            // "Ya, Kirim". Hanya LO yang dicentang DAN wizard-nya sudah
-            // dituntaskan ("Draft") yang benar-benar dikunci jadi "Sudah
-            // Diisi" -- LO yang belum sempat diisi sama sekali diabaikan.
-            foreach ($_SESSION['lo_checked'] as $id => $isChecked) {
-                if ($isChecked && !empty($_SESSION['lo_draft'][$id])) {
-                    $_SESSION['lo_done'][$id] = true;
-                    unset($_SESSION['lo_draft'][$id]);
-                }
-            }
-            set_activity_done(2); // checklist pra-pembongkaran selesai
-            // Notifikasi sukses ditampilkan sekali di halaman tujuan
-            // (Detail Order) via flash message, lalu otomatis hilang sendiri.
-            $_SESSION['flash_success'] = 'Checklist berhasil dikirim.';
-            go_to('shipment'); // kembali ke halaman Detail Order
-            break;
-
-        case 'reset_flow':
-            reset_flow_keep_work();
-            go_to('dashboard');
-            break;
-    }
-}
-
-/* --------------------------------------------------------------
- * Aksi sederhana lewat GET (toggle state tanpa perlu form)
- * -------------------------------------------------------------- */
-if ($screen === 'create_order_product' && isset($_GET['added'])) {
-    $_SESSION['order']['produk_added'] = true;
-}
-
-if ($screen === 'lo_list' && isset($_GET['toggle'])) {
-    // Centang/hilangkan centang SATU LO saja -- ini cuma menandai LO
-    // tersebut ikut dikerjakan di wizard checklist, belum berarti
-    // checklist-nya sudah selesai diisi.
-    $id = (string) $_GET['toggle'];
-    if (array_key_exists($id, LO_LIST)) {
-        $_SESSION['lo_checked'][$id] = empty($_SESSION['lo_checked'][$id]);
-    }
-}
-
-if ($screen === 'lo_list' && isset($_GET['toggle_all'])) {
-    // "Pilih Semua": kalau semua LO sudah tercentang -> lepas semua,
-    // kalau belum -> centang semua.
-    $checkedCount = count(array_filter($_SESSION['lo_checked']));
-    $allChecked = $checkedCount === count(LO_LIST);
-    foreach (array_keys(LO_LIST) as $id) {
-        $_SESSION['lo_checked'][$id] = !$allChecked;
-    }
-}
-
-if ($screen === 'lo_list' && isset($_GET['selesai'])) {
-    // Wizard checklist dituntaskan sampai langkah terakhir ("Konfirmasi
-    // LO" di step 15) -- LO yang sedang dikerjakan ditandai "Draft" di
-    // Daftar LO. Belum "Sudah Diisi": itu baru terjadi setelah pengguna
-    // menekan tombol "Kirim" & konfirmasi "Ya, Kirim".
-    foreach ($_SESSION['lo_checked'] as $id => $isChecked) {
-        if ($isChecked) {
-            $_SESSION['lo_draft'][$id] = true;
+    if ($action === 'select_role') {
+        // Layar awal: pengguna memilih SPBU atau AMT
+        $picked = (string) ($_POST['role'] ?? '');
+        if (!isset(ROLES[$picked])) {
+            go_to('role_select');
         }
-    }
-    // Notifikasi sekali-tampil setelah tombol "Konfirmasi LO" ditekan.
-    $_SESSION['flash_success'] = [
-        'title' => 'LO Dikonfirmasi',
-        'body'  => 'Status bongkar berhasil disimpan.',
-    ];
-}
-
-// Progres aktifitas di SPBU ikut naik saat pengguna mencapai layar berikutnya
-if ($screen === 'rating') {
-    set_activity_done(3); // verifikasi order selesai
-    // Penilaian dibagi 2 langkah: 1 = AMT 1, 2 = AMT 2 + kirim.
-    $step = isset($_GET['step']) ? (int) $_GET['step'] : ($_SESSION['rating_step'] ?? 1);
-    $step = max(1, min(2, $step));
-    $_SESSION['rating_step'] = $step;
-}
-
-if ($screen === 'done') {
-    set_activity_done(4); // rating AMT selesai
-}
-
-if ($screen === 'verification' && empty($_SESSION['arrival_time'])) {
-    // Waktu tiba dicatat saat pertama kali layar "Tiba di Lokasi" dibuka
-    $_SESSION['arrival_time'] = date('d/m/Y H:i:s');
-}
-
-if ($screen === 'checklist') {
-    $step = isset($_GET['step']) ? (int) $_GET['step'] : ($_SESSION['checklist_step'] ?? 1);
-    $step = max(1, min(15, $step));
-    $_SESSION['checklist_step'] = $step;
-
-    // Jawaban "Tidak Dilakukan" / "Ya, dilakukan" pada langkah checklist
-    if (isset($_GET['jawab']) && in_array($_GET['jawab'], ['ya', 'tidak'], true)) {
-        $_SESSION['checklist_answers'][$step] = $_GET['jawab'];
+        if ($picked !== current_role()) {
+            // Ganti peran -> mulai alur dari awal supaya state tidak bocor antar peran
+            foreach (role_keys() as $r) {
+                role_call($r, 'on_role_change');
+            }
+        }
+        $_SESSION['role'] = $picked;
+        go_to(ROLES[$picked]['home']);
     }
 
-    // Jawaban verifikasi Tugas Role Lawan (langkah bertipe 'dual_verif': 11, 13, 14)
-    if (isset($_GET['jawab_lawan']) && in_array($_GET['jawab_lawan'], ['ya', 'tidak'], true)
-        && (CHECKLIST_STEPS[$step]['type'] ?? '') === 'dual_verif'
-    ) {
-        $_SESSION['checklist_answers_lawan'][$step] = $_GET['jawab_lawan'];
-    }
-
-    // Langkah 15: status akhir tiap LO
-    if (isset($_GET['lo'], $_GET['status'])
-        && array_key_exists((string) $_GET['lo'], LO_LIST)
-        && in_array($_GET['status'], ['dibongkar', 'batal'], true)
-    ) {
-        $_SESSION['lo_bongkar'][(string) $_GET['lo']] = $_GET['status'];
-    }
+    role_call($role, 'handle_post', $action);
 }
 
-// Layar Start/End Work (AMT) tidak ada di data.php, jadi diambil dari folder AMT
-$headerTitle  = HEADER_TITLES[$screen]  ?? amt_screen_title($screen);
-$tutorialText = TUTORIAL_TEXTS[$screen] ?? '';
-$prevScreen   = PREV_SCREEN[$screen]    ?? amt_prev_screen($screen);
-$nextScreen   = NEXT_SCREEN[$screen]    ?? 'dashboard';
+/* Aksi sederhana lewat GET (toggle state tanpa form) milik peran pemilik layar. */
+role_call($owner, 'handle_get', $screen);
 
-require __DIR__ . '/includes/layout_top.php';
-require amt_view_file($screen);   // views/ bawaan, atau views/amt/ untuk layar AMT
-amt_after_view($screen);          // beranda AMT: menu Start/End, kunci menu, timer
-require __DIR__ . '/includes/layout_bottom.php';
+$headerTitle = (string) role_call($owner, 'screen_title', $screen);
+$prevScreen  = role_call($owner, 'prev_screen', $screen);
+
+require __DIR__ . '/core/layout_top.php';
+if ($owner !== null) {
+    require role_call($owner, 'view_file', $screen);   // views/ milik peran pemilik layar
+} else {
+    require CORE_DIR . '/views/role_select.php';       // layar bersama
+}
+role_call($owner, 'after_view', $screen);              // mis. beranda AMT: skrip timer
+require __DIR__ . '/core/layout_bottom.php';
