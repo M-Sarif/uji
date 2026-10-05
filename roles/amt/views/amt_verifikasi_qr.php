@@ -94,6 +94,12 @@ $payload   = 'ONEFIS-VERIF|' . (amt_verif_ship_id() ?: 'SIM') . '|' . implode(',
     setInterval(tick, 250);
     btn.addEventListener('click', scan);
     frame.addEventListener('click', scan);
-    if (autoMs > 0) setTimeout(scan, autoMs);
+    // Scan otomatis (simulasi) ditunda selama kartu tutorial tampil, supaya sempat dibaca.
+    function autoScan() {
+        if (finished) return;
+        if (document.body.classList.contains('amtt-on')) { setTimeout(autoScan, 500); return; }
+        scan();
+    }
+    if (autoMs > 0) setTimeout(autoScan, autoMs);
 })();
 </script>

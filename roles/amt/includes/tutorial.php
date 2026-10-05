@@ -59,7 +59,7 @@
  * ============================================================ */
 
 // Nama layar untuk label (dipakai bila langkah tidak punya alur bernomor)
-const AMT_TOUR_SCREEN_ORDER = ['amt_home', 'start_end', 'start_work', 'checkin', 'amt_pti', 'amt_pti_form', 'amt_pti_hasil', 'amt_shipments', 'amt_shipment_detail', 'amt_spbu', 'end_work'];
+const AMT_TOUR_SCREEN_ORDER = ['amt_home', 'start_end', 'start_work', 'checkin', 'amt_pti', 'amt_pti_form', 'amt_pti_hasil', 'amt_shipments', 'amt_shipment_detail', 'amt_spbu', 'amt_checklist_lo', 'amt_checklist', 'amt_verifikasi', 'amt_verifikasi_qr', 'amt_verifikasi_kode', 'amt_verifikasi_sukses', 'end_work'];
 
 const AMT_TOUR_SCREEN_LABELS = [
     'amt_home'   => 'Beranda AMT',
@@ -72,6 +72,12 @@ const AMT_TOUR_SCREEN_LABELS = [
     'amt_shipments' => 'Shipments',
     'amt_shipment_detail' => 'Detail Order',
     'amt_spbu' => 'Aktifitas di SPBU',
+    'amt_checklist_lo' => 'Daftar LO',
+    'amt_checklist' => 'Checklist Pra-Pembongkaran',
+    'amt_verifikasi' => 'Verifikasi Order',
+    'amt_verifikasi_qr' => 'Pindai Kode QR',
+    'amt_verifikasi_kode' => 'Kode Konfirmasi',
+    'amt_verifikasi_sukses' => 'Order Terverifikasi',
     'end_work'   => 'End Work',
 ];
 
@@ -86,6 +92,11 @@ const AMT_TOUR_JOURNEYS = [
     // Pengiriman: 1 buka Detail Order, 2 buka kartu SPBU, 3 ketuk Tiba di Lokasi,
     // 4 cek lokasi, 5 konfirmasi tiba (menu Shipments di Beranda = kartu tersendiri)
     'kirim'   => ['label' => 'Pengiriman', 'total' => 5],
+    // Checklist Pra-Pembongkaran: 1 pilih LO, 2 Mulai Checklist, 3 jawab soal, 4 buat QR Code (soal 7),
+    // 5 ketuk Kirim, 6 konfirmasi "Ya, Kirim"
+    'checklist' => ['label' => 'Checklist Pra-Pembongkaran', 'total' => 6],
+    // Verifikasi Order: 1 pilih LO, 2 pilih metode, 3 konfirmasi ke Petugas SPBU + pindai QR / ketik kode, 4 hasil
+    'verifikasi' => ['label' => 'Verifikasi Order', 'total' => 4],
 ];
 
 // Jeda (ms) sebelum tutorial DCU muncul di beranda setelah Check-In berhasil
@@ -384,15 +395,31 @@ function amt_tour_spbu_steps(): array
     }
 
     if (amt_spbu_arrived($s)) {
-        return ['journey' => 'kirim', 'subKey' => 'amt_spbu_arrived', 'steps' => [[
+        // Checklist sudah terkirim -> tutorial berpindah ke Verifikasi Order
+        if (amt_pbk_done($s['id'])) {
+            return amt_tour_verif_spbu_pack($s);
+        }
+        $steps = [[
+            'no'       => null,
+            'label'    => 'Tiba di Lokasi',
+            'target'   => null,
+            'title'    => 'Kedatangan Anda tercatat ✅',
+            'text'     => 'Mobil tangki sudah tercatat tiba di SPBU ' . $s['spbu'] . '. Langkah berikutnya adalah “Isi Checklist” sebelum pembongkaran BBM.',
+            'button'   => 'Mengerti',
+            'remember' => true,    // tidak diulang bila halaman dimuat ulang sebelum "Isi Checklist" diketuk
+            'done'     => null,
+        ]];
+        // Arahkan ke kartu aktif "Isi Checklist" (membuka Daftar LO)
+        $steps[] = [
             'no'     => null,
-            'label'  => 'Tiba di Lokasi',
-            'target' => null,
-            'title'  => 'Kedatangan Anda tercatat ✅',
-            'text'   => 'Mobil tangki sudah tercatat tiba di SPBU ' . $s['spbu'] . '. Langkah berikutnya adalah “Isi Checklist” sebelum pembongkaran BBM.',
-            'button' => 'Mengerti',
+            'label'  => 'Isi Checklist',
+            'target' => '[data-tour="spbu-step-active"]',
+            'title'  => 'Ketuk “Isi Checklist”',
+            'text'   => 'Sebelum BBM dibongkar, Anda mengisi Checklist Pra-Pembongkaran. Ketuk kartu biru “Isi Checklist” untuk membuka Daftar LO.',
+            'hint'   => '👆 Ketuk kartu biru “Isi Checklist”',
             'done'   => null,
-        ]]];
+        ];
+        return ['journey' => 'kirim', 'subKey' => 'amt_spbu_arrived', 'steps' => $steps];
     }
 
     return ['journey' => 'kirim', 'subKey' => null, 'steps' => [
@@ -541,6 +568,468 @@ function amt_tour_pti_done_pack(int $checkins): array
 }
 
 /**
+ * Tutorial "Daftar LO" (Checklist Pra-Pembongkaran), layar amt_checklist_lo.
+ * Berbasis keadaan: ada LO berstatus "Draft" -> tutorial mengirim checklist; bila tidak -> tutorial
+ * memilih LO lalu "Mulai Checklist". Elemen disorot lewat data-tour yang sudah ada di
+ * roles/amt/views/pra_bongkar_lo.php (pbl-list, pbl-start, pbl-send).
+ *
+ * @return array{steps:array, journey:string, subKey:?string}
+ */
+function amt_tour_pbk_lo_steps(): array
+{
+    $s = amt_ship_current();
+    if ($s === null || !amt_pbk_ship_ready($s)) {
+        return ['journey' => 'checklist', 'subKey' => null, 'steps' => []];
+    }
+
+    $hasDraft = false;
+    foreach (amt_pbk_lo_ids($s) as $lo) {
+        if (amt_pbk_lo_status($s['id'], $lo) === 'draft') {
+            $hasDraft = true;
+            break;
+        }
+    }
+
+    // ---- Ada LO "Draft": kirim checklist ----
+    if ($hasDraft) {
+        return ['journey' => 'checklist', 'subKey' => 'amt_pbl_draft', 'steps' => [
+            [
+                'no'       => null,
+                'label'    => 'Checklist Tersimpan',
+                'target'   => '[data-tour="pbl-list"]',
+                'title'    => 'Checklist tersimpan sebagai Draft ✅',
+                'text'     => 'LO yang sudah selesai Anda isi berstatus “Draft”: jawabannya sudah tersimpan, tetapi BELUM dikirim ke SPBU.',
+                'hint'     => '👆 Ketuk “Mengerti” untuk lanjut',
+                'button'   => 'Mengerti',
+                'remember' => true,
+                'done'     => null,
+            ],
+            [
+                'no'     => null,
+                'target' => '[data-tour="pbl-list"]',
+                'title'  => 'Centang LO yang akan dikirim',
+                'text'   => 'Centang LO berstatus “Draft” yang ingin dikirim. Tombol “Kirim” baru menyala setelah ada LO Draft yang dicentang.',
+                'hint'   => '👆 Centang LO berstatus Draft',
+                'done'   => '#pblSend:not(:disabled)',
+                'ok'     => '✅ LO sudah dipilih',
+            ],
+            [
+                'no'     => 5,
+                'target' => '[data-tour="pbl-send"]',
+                'title'  => 'Ketuk “Kirim”',
+                'text'   => 'Ketuk “Kirim”, lalu akan muncul pertanyaan konfirmasi sebelum checklist benar-benar dikirim.',
+                'hint'   => '👆 Ketuk tombol “Kirim”',
+                'done'   => '#pblModal:not([hidden])',
+            ],
+            [
+                // Pop up "Kirim Checklist" disorot penuh. Bila AMT mengetuk "Batal", kartu ini hilang dan
+                // kartu "Ketuk Kirim" muncul lagi; kartu ini muncul lagi saat pop up dibuka ulang.
+                'no'        => 6,
+                'target'    => '#pblYes',
+                'highlight' => '#pblModal .pbl-modal__card',
+                'when'      => '#pblModal:not([hidden])',
+                'title'     => 'Konfirmasi pengiriman',
+                'text'      => 'Pastikan semua jawaban sudah benar, karena data yang sudah dikirim tidak bisa diubah lagi. Ketuk “Ya, Kirim” untuk mengirim, atau “Batal” untuk memeriksa lagi.',
+                'hint'      => '👆 Ketuk “Ya, Kirim”',
+                'done'      => null,
+            ],
+        ]];
+    }
+
+    // ---- Belum ada Draft: pilih LO lalu mulai checklist ----
+    return ['journey' => 'checklist', 'subKey' => 'amt_pbl_belum', 'steps' => [
+        [
+            'no'     => 1,
+            'label'  => 'Daftar LO',
+            'target' => '[data-tour="pbl-list"]',
+            'title'  => 'Pilih LO yang akan diisi',
+            'text'   => 'Setiap kartu adalah satu LO yang dibawa mobil tangki. Centang LO yang akan dibongkar di SPBU ini, atau ketuk “Pilih Semua”. Status “Belum Diisi” berarti checklist LO itu belum dikerjakan.',
+            'hint'   => '👆 Centang minimal satu LO',
+            'done'   => '.pbl-card.is-selected',
+            'ok'     => '✅ LO sudah dipilih',
+        ],
+        [
+            'no'     => 2,
+            'label'  => 'Daftar LO',
+            'target' => '[data-tour="pbl-start"]',
+            'title'  => 'Ketuk “Mulai Checklist”',
+            'text'   => 'Anda akan mengisi 14 soal pemeriksaan sebelum pembongkaran BBM. Isi dengan jujur dan bertanggung jawab.',
+            'hint'   => '👆 Ketuk tombol biru “Mulai Checklist”',
+            'done'   => null,
+        ],
+    ]];
+}
+
+/**
+ * Tutorial Checklist Pra-Pembongkaran (14 soal, satu soal per halaman), layar amt_checklist.
+ *
+ * Mengikuti panduan OneFIS AMT: ada 2 tipe soal yang wajib dijawab.
+ *   - Verifikasi Tugas SPBU : tugas Petugas SPBU, AMT memeriksa lalu memilih "Tidak Dilakukan" / "Ya, Dilakukan".
+ *   - Tugas AMT             : verifikasi pekerjaan sendiri + foto bukti (opsional).
+ * Soal 7 membuat QR Code (Claim Losses; tombol "QR Code" muncul di kanan bawah sesudahnya).
+ * Soal 11 dan 14 punya dua bagian (mandiri + "Verifikasi Tugas Role Lawan").
+ *
+ * Tiap tipe soal dijelaskan SEKALI (kunci tutorial per tipe), jadi 14 soal tidak diulang-ulang.
+ * Tombol "?" menampilkan lagi penjelasan tipe soal yang sedang dibuka.
+ * Elemen disorot memakai selector yang sudah ada di roles/amt/views/pra_bongkar.php.
+ *
+ * @return array{steps:array, journey:string, subKey:?string}
+ */
+function amt_tour_pbk_steps(): array
+{
+    $s = amt_ship_current();
+    if ($s === null || !amt_pbk_ship_ready($s)) {
+        return ['journey' => 'checklist', 'subKey' => null, 'steps' => []];
+    }
+
+    $defs  = amt_pbk_steps();
+    $total = count($defs);
+    $step  = isset($_GET['step']) ? (int) $_GET['step'] : 1;
+    $step  = max(1, min($total, $step));
+    $type  = $defs[$step]['type'];
+    $next  = '#pbkNext:not(.is-locked)';   // tombol lanjut aktif = soal ini sudah lengkap dijawab
+
+    // Kartu penutup tiap soal: ketuk "Selanjutnya" (tombol "Selesai" di soal terakhir)
+    $nextCard = [
+        'no'     => null,
+        'label'  => 'Checklist Pra-Pembongkaran',
+        'target' => '#pbkNext',
+        'title'  => 'Ketuk “Selanjutnya”',
+        'text'   => 'Ketuk “Selanjutnya” untuk ke soal berikutnya. Tombol “Sebelumnya” dipakai bila ingin memperbaiki jawaban.',
+        'hint'   => '👆 Ketuk “Selanjutnya”',
+        'done'   => null,
+    ];
+
+    // ---- Soal terakhir (14): dua bagian, lalu "Selesai" ----
+    if ($step === $total) {
+        return ['journey' => 'checklist', 'subKey' => 'amt_pbk_last', 'steps' => [
+            [
+                'no'     => 3,
+                'label'  => 'Soal Terakhir',
+                'target' => '[data-tour="pbk-card"]',
+                'title'  => 'Soal terakhir',
+                'text'   => 'Jawab kedua bagian soal ini: verifikasi pekerjaan Anda sendiri, dan “Verifikasi Tugas Role Lawan” untuk tugas Petugas SPBU.',
+                'hint'   => '👆 Jawab kedua bagian soal',
+                'done'   => $next,
+                'ok'     => '✅ Semua jawaban sudah dipilih',
+            ],
+            [
+                'no'     => null,
+                'label'  => 'Soal Terakhir',
+                'target' => '#pbkNext',
+                'title'  => 'Ketuk “Selesai”',
+                'text'   => 'Jawaban tersimpan dan Anda kembali ke Daftar LO. LO yang baru diisi berstatus “Draft” dan baru terkirim setelah Anda mengetuk “Kirim”.',
+                'hint'   => '👆 Ketuk tombol biru “Selesai”',
+                'done'   => null,
+            ],
+        ]];
+    }
+
+    // ---- Soal 7: Generate QR Code ----
+    if ($type === 'qr') {
+        return ['journey' => 'checklist', 'subKey' => 'amt_pbk_qr', 'steps' => [
+            [
+                'no'     => 4,
+                'label'  => 'Buat QR Code',
+                'target' => '#pbkGen',
+                'title'  => 'Buat QR Code',
+                'text'   => 'Soal ini adalah tugas AMT yang diverifikasi SPBU lewat QR Code. Ketuk “Generate QR Code”. QR ini dipakai Petugas SPBU bila mengajukan Claim Losses (BBM yang diterima kurang atau tidak sesuai order).',
+                'hint'   => '👆 Ketuk “Generate QR Code”',
+                'done'   => '#pbkForm[data-qr="1"]',
+            ],
+            [
+                // Pop up QR terbuka otomatis setelah Generate/Regenerate. Selesai bila pop up tertutup
+                // (lewat "Tutup", ketukan di luar kartu, atau tombol Esc).
+                'no'        => null,
+                'label'     => 'QR Code Claim Loss',
+                'target'    => '#pbkQrClose',
+                'highlight' => '#pbkQrModal .pbk-modal__card',
+                'when'      => '#pbkQrModal:not([hidden])',
+                'title'     => 'QR Code Claim Loss',
+                'text'      => 'Tunjukkan QR ini kepada Petugas SPBU bila SPBU mengajukan Claim Losses. QR berlaku 3 menit; bila kedaluwarsa, ketuk “Regenerate” untuk membuat yang baru.',
+                'hint'      => '👆 Ketuk “Tutup” bila sudah selesai',
+                'done'      => '#pbkQrModal[hidden]',
+            ],
+            [
+                'no'       => null,
+                'label'    => 'Tombol QR Code',
+                'target'   => '#pbkQrFab',
+                'when'     => '#pbkQrFab',
+                'title'    => 'Tombol “QR Code”',
+                'text'     => 'Setelah QR Code dibuat, tombol biru “QR Code” muncul di kanan bawah. Ketuk kapan saja untuk menampilkan QR lagi, misalnya saat SPBU mengajukan Claim Losses.',
+                'hint'     => '👆 Ketuk “Mengerti”',
+                'button'   => 'Mengerti',
+                'remember' => true,
+                'done'     => null,
+            ],
+            $nextCard,
+        ]];
+    }
+
+    // ---- Soal dengan dua bagian (11) ----
+    if ($type === 'dual') {
+        return ['journey' => 'checklist', 'subKey' => 'amt_pbk_dual', 'steps' => [
+            [
+                'no'     => 3,
+                'label'  => 'Soal Dua Bagian',
+                'target' => '[data-tour="pbk-card"]',
+                'title'  => 'Soal dengan dua bagian',
+                'text'   => 'Soal ini punya dua bagian yang wajib dijawab:',
+                'list'   => [
+                    'Bagian atas: verifikasi pekerjaan Anda sendiri. Pilih “Ya, dilakukan” atau “Tidak Dilakukan”. Foto bukti boleh dilewati.',
+                    'Bagian bawah “Verifikasi Tugas Role Lawan”: pilih apakah Petugas SPBU sudah mengerjakan tugasnya.',
+                ],
+                'hint'   => '👆 Jawab kedua bagian soal',
+                'done'   => $next,
+                'ok'     => '✅ Semua jawaban sudah dipilih',
+            ],
+            $nextCard,
+        ]];
+    }
+
+    // ---- Tugas AMT (tipe "self"): jawab + foto bukti opsional ----
+    if ($type === 'self') {
+        return ['journey' => 'checklist', 'subKey' => 'amt_pbk_self', 'steps' => [
+            [
+                'no'     => 3,
+                'label'  => 'Soal Tugas AMT',
+                'target' => '[data-tour="pbk-card"]',
+                'title'  => 'Soal Tugas AMT',
+                'text'   => 'Soal ini adalah tugas Anda sendiri. Kerjakan tugasnya, lalu pilih “Ya, Dilakukan” bila sudah, atau “Tidak Dilakukan” bila belum. Jawab sesuai kenyataan.',
+                'hint'   => '👆 Pilih salah satu jawaban',
+                'done'   => $next,
+                'ok'     => '✅ Jawaban sudah dipilih',
+            ],
+            [
+                'no'     => null,
+                'label'  => 'Foto Bukti',
+                'target' => '[data-pbk-photo]',
+                'title'  => 'Foto bukti (opsional)',
+                'text'   => 'Anda boleh memotret sebagai bukti pekerjaan: ketuk “Ambil Foto”, potret, lalu simpan. Bila tidak perlu, langsung ketuk “Mengerti”.',
+                'hint'   => '👆 Ketuk “Ambil Foto”, atau “Mengerti” untuk melewati',
+                'button' => 'Mengerti',
+                'done'   => null,
+            ],
+            $nextCard,
+        ]];
+    }
+
+    // ---- Verifikasi Tugas SPBU (tipe "spbu_task"); soal 1 diawali pengantar 14 soal ----
+    $steps = [];
+    if ($step === 1) {
+        $steps[] = [
+            'no'       => null,
+            'label'    => 'Checklist Pra-Pembongkaran',
+            'target'   => '.pbk-top',
+            'title'    => 'Checklist 14 soal',
+            'text'     => 'Sebelum BBM dibongkar, Anda menjawab 14 soal pemeriksaan, satu soal per halaman. Garis dan angka di atas (mis. 01/14) menunjukkan posisi soal. Semua soal bertanda * wajib dijawab.',
+            'hint'     => '👆 Ketuk “Mengerti” untuk lanjut',
+            'button'   => 'Mengerti',
+            'remember' => true,
+            'done'     => null,
+        ];
+    }
+    $steps[] = [
+        'no'     => 3,
+        'label'  => 'Soal Verifikasi Tugas SPBU',
+        'target' => '[data-tour="pbk-card"]',
+        'title'  => 'Soal Verifikasi Tugas SPBU',
+        'text'   => 'Soal ini adalah tugas yang dikerjakan Petugas SPBU. Periksa langsung di lapangan, lalu pilih “Ya, Dilakukan” bila sudah dikerjakan Petugas SPBU, atau “Tidak Dilakukan” bila belum.',
+        'hint'   => '👆 Pilih salah satu jawaban',
+        'done'   => $next,
+        'ok'     => '✅ Jawaban sudah dipilih',
+    ];
+    $steps[] = $nextCard;
+    return ['journey' => 'checklist', 'subKey' => 'amt_pbk_spbu', 'steps' => $steps];
+}
+
+/**
+ * Tutorial layar "Aktifitas di SPBU" SESUDAH checklist terkirim: arahkan ke "Verifikasi Order".
+ * Kunci tutorial dibedakan dari tahap sebelumnya supaya tidak dianggap "sudah selesai".
+ *
+ * @return array{steps:array, journey:string, subKey:string}
+ */
+function amt_tour_verif_spbu_pack(array $s): array
+{
+    if (amt_verif_is_done($s)) {
+        return ['journey' => 'kirim', 'subKey' => 'amt_spbu_verif_done', 'steps' => [[
+            'no'       => null,
+            'label'    => 'Verifikasi Order',
+            'target'   => null,
+            'title'    => 'Verifikasi Order selesai ✅',
+            'text'     => 'Semua LO sudah terverifikasi. Langkah berikutnya adalah “Foto Surat Jalan”.',
+            'button'   => 'Mengerti',
+            'remember' => true,
+            'done'     => null,
+        ]]];
+    }
+    return ['journey' => 'kirim', 'subKey' => 'amt_spbu_verif', 'steps' => [
+        [
+            'no'       => null,
+            'label'    => 'Checklist Terkirim',
+            'target'   => null,
+            'title'    => 'Checklist sudah terkirim ✅',
+            'text'     => 'Langkah berikutnya adalah “Verifikasi Order”: Anda dan Petugas SPBU memverifikasi serah terima BBM.',
+            'button'   => 'Mengerti',
+            'remember' => true,
+            'done'     => null,
+        ],
+        [
+            'no'     => null,
+            'label'  => 'Verifikasi Order',
+            'target' => '[data-tour="spbu-step-active"]',
+            'title'  => 'Ketuk “Verifikasi Order”',
+            'text'   => 'Ketuk kartu biru “Verifikasi Order” untuk membuka daftar LO yang akan diverifikasi.',
+            'hint'   => '👆 Ketuk kartu biru “Verifikasi Order”',
+            'done'   => null,
+        ],
+    ]];
+}
+
+/**
+ * Tutorial Verifikasi Order (AMT): amt_verifikasi, amt_verifikasi_qr, amt_verifikasi_kode, amt_verifikasi_sukses.
+ *
+ * Mengikuti panduan OneFIS AMT:
+ *   1) pilih LO yang sudah "Sudah Diisi" form bongkarnya (dipilih Petugas SPBU),
+ *   2) pilih metode: Pindai Kode QR atau Kode Konfirmasi (seperti OTP); bila satu bermasalah pakai yang lain,
+ *   3) konfirmasi langsung ke Petugas SPBU bahwa permintaan verifikasi (notifikasi terbaru) sudah terkirim,
+ *      lalu pindai QR / ketik kode,
+ *   4) hasil "Order Berhasil Diverifikasi" -> "Oke".
+ * Elemen disorot: wrapper data-tour="verif-list" dan "verif-methods" (roles/amt/views/amt_verifikasi.php)
+ * serta kelas/ID yang sudah ada di tiga layar lainnya.
+ *
+ * @return array{steps:array, journey:string, subKey:?string}
+ */
+function amt_tour_verif_steps(string $screen): array
+{
+    $none = ['journey' => 'verifikasi', 'subKey' => null, 'steps' => []];
+    $ship = amt_ship_find(amt_verif_ship_id() ?: null);
+    if ($ship === null || $ship['status'] !== 'sedang') {
+        return $none;
+    }
+    $sim = AMT_VERIF_SIM_NOTE;
+
+    // ---- Daftar LO + Metode Verifikasi ----
+    if ($screen === 'amt_verifikasi') {
+        if (amt_verif_is_done($ship)) {
+            return $none;
+        }
+        return ['journey' => 'verifikasi', 'subKey' => 'amt_verif_list', 'steps' => [
+            [
+                'no'        => 1,
+                'label'     => 'Verifikasi Order',
+                'target'    => '.verif-lo:not(.is-disabled)',
+                'highlight' => '[data-tour="verif-list"]',
+                'title'     => 'Pilih LO yang akan diverifikasi',
+                'text'      => 'Hanya LO yang “Form Bongkar”-nya sudah “Sudah Diisi” yang bisa dipilih. Ketuk kartu LO (atau kotak di kanan kartu) untuk mencentang. Bila daftar belum berubah, ketuk “Refresh”.',
+                'hint'      => '👆 Centang minimal satu LO',
+                'done'      => '.verif-lo.is-selected',
+            ],
+            [
+                'no'        => 2,
+                'label'     => 'Verifikasi Order',
+                'target'    => 'a.verif-method.is-on',
+                'highlight' => '[data-tour="verif-methods"]',
+                'title'     => 'Pilih metode verifikasi',
+                'text'      => 'Ada dua metode. “Pindai Kode QR”: Anda memindai QR dari HP Petugas SPBU. “Kode Konfirmasi”: Anda mengetik kode 6 angka seperti kode OTP. Bila satu metode bermasalah, pakai metode yang lain.',
+                'hint'      => '👆 Ketuk “Pindai Kode QR” atau “Kode Konfirmasi”',
+                'done'      => null,
+            ],
+        ]];
+    }
+
+    // ---- Pindai Kode QR ----
+    if ($screen === 'amt_verifikasi_qr') {
+        return ['journey' => 'verifikasi', 'subKey' => 'amt_verif_qr', 'steps' => [
+            [
+                'no'       => 3,
+                'label'    => 'Pindai Kode QR',
+                'target'   => '#vqrFrame',
+                'title'    => 'Konfirmasi ke Petugas SPBU',
+                'text'     => 'Minta Petugas SPBU membuka aplikasinya dan memastikan permintaan verifikasi (notifikasi terbaru) sudah terkirim. Lalu arahkan kamera ke kode QR di HP Petugas SPBU. Waktu pindai 2 menit, lihat hitungan mundur di bawah.',
+                'hint'     => '👆 Ketuk “Mengerti” bila Petugas SPBU sudah siap',
+                'button'   => 'Mengerti',
+                'skip'     => '.vqr.is-expired',
+                'done'     => null,
+            ],
+            [
+                'no'     => null,
+                'label'  => 'Pindai Kode QR',
+                'target' => '#vqrNow',
+                'title'  => $sim ? 'Simulasikan scan' : 'Pindai kode QR',
+                'text'   => $sim
+                    ? 'Aplikasi ini masih mode simulasi dan kamera tidak dinyalakan. Ketuk “Simulasikan Scan” sebagai pengganti memindai QR. Bila waktu habis, ketuk “Coba Lagi”.'
+                    : 'Arahkan kamera ke QR di HP Petugas SPBU. Bila waktu habis, ketuk “Coba Lagi”.',
+                'hint'   => '👆 Ketuk “Simulasikan Scan”',
+                'skip'   => '.vqr.is-expired',
+                'done'   => null,
+            ],
+        ]];
+    }
+
+    // ---- Kode Konfirmasi ----
+    if ($screen === 'amt_verifikasi_kode') {
+        return ['journey' => 'verifikasi', 'subKey' => 'amt_verif_kode', 'steps' => [
+            [
+                'no'        => 3,
+                'label'     => 'Kode Konfirmasi',
+                'target'    => '#vkodeBoxes',
+                'highlight' => '.vkode-card',
+                'title'     => 'Minta kode ke Petugas SPBU',
+                'text'      => 'Minta Petugas SPBU membuka aplikasinya dan memastikan permintaan verifikasi (notifikasi terbaru) sudah terkirim. Petugas SPBU akan menyebutkan kode 6 angka, seperti kode OTP. Kode berlaku 3 menit.',
+                'hint'      => '👆 Ketuk “Mengerti” bila kode sudah Anda terima',
+                'button'    => 'Mengerti',
+                'remember'  => true,    // tidak diulang bila halaman dimuat ulang setelah kode salah
+                'skip'      => '#vkodeExpired:not([hidden])',
+                'done'      => null,
+            ],
+            [
+                'no'        => null,
+                'label'     => 'Kode Konfirmasi',
+                'target'    => '#vkodeBoxes',
+                'highlight' => '.vkode-card',
+                'title'     => 'Ketik 6 angka kode',
+                'text'      => 'Ketuk kotak pertama lalu ketik semua angka. Setelah kotak terakhir terisi, kode terkirim otomatis.'
+                    . ($sim ? ' Mode simulasi: angka apa saja diterima.' : '')
+                    . ' Bila kode kedaluwarsa, ketuk “Kirim ulang kode” atau pakai metode Pindai Kode QR.',
+                'hint'      => '👆 Ketuk kotak angka, lalu ketik kode',
+                'skip'      => '#vkodeExpired:not([hidden])',
+                'done'      => null,
+            ],
+        ]];
+    }
+
+    // ---- Order Berhasil Diverifikasi ----
+    if ($screen === 'amt_verifikasi_sukses') {
+        $more = !amt_verif_is_done($ship);
+        return ['journey' => 'verifikasi', 'subKey' => 'amt_verif_sukses', 'steps' => [
+            [
+                'no'       => 4,
+                'label'    => 'Order Terverifikasi',
+                'target'   => '.vok-card',
+                'title'    => 'Verifikasi berhasil ✅',
+                'text'     => 'Nomor LO pada kartu ini sudah terverifikasi.'
+                    . ($more ? ' Masih ada LO yang belum diverifikasi: setelah “Oke”, ulangi langkah yang sama untuk LO tersebut.' : ''),
+                'button'   => 'Mengerti',
+                'remember' => true,
+                'done'     => null,
+            ],
+            [
+                'no'     => null,
+                'label'  => 'Order Terverifikasi',
+                'target' => '.vok-btn',
+                'title'  => 'Ketuk “Oke”',
+                'text'   => 'Ketuk “Oke” untuk kembali ke Aktifitas di SPBU.',
+                'hint'   => '👆 Ketuk tombol biru “Oke”',
+                'done'   => null,
+            ],
+        ]];
+    }
+
+    return $none;
+}
+
+/**
  * Data langkah untuk satu layar.
  *
  * @param string $screen   nama layar
@@ -666,6 +1155,18 @@ function amt_tour_steps_for(string $screen, bool $running, int $checkins = 0): a
     // ---- Aktifitas di SPBU (Tiba di Lokasi) ----
     if ($screen === 'amt_spbu') {
         $pack = amt_tour_spbu_steps();
+        return ['journey' => $pack['journey'], 'steps' => $pack['steps'], 'subKey' => $pack['subKey']];
+    }
+
+    // ---- Checklist Pra-Pembongkaran: Daftar LO + 14 soal ----
+    if ($screen === 'amt_checklist_lo' || $screen === 'amt_checklist') {
+        $pack = $screen === 'amt_checklist_lo' ? amt_tour_pbk_lo_steps() : amt_tour_pbk_steps();
+        return ['journey' => $pack['journey'], 'steps' => $pack['steps'], 'subKey' => $pack['subKey']];
+    }
+
+    // ---- Verifikasi Order ----
+    if (in_array($screen, AMT_VERIF_SCREENS, true)) {
+        $pack = amt_tour_verif_steps($screen);
         return ['journey' => $pack['journey'], 'steps' => $pack['steps'], 'subKey' => $pack['subKey']];
     }
 

@@ -11,6 +11,7 @@ $allDone  = amt_verif_is_done();
 ?>
 
 <section class="verif">
+    <div data-tour="verif-list">
     <div class="verif-head">
         <h2 class="verif-title">Daftar LO</h2>
         <a class="verif-refresh" href="<?= amt_e(amt_verif_url('amt_verifikasi')) ?>">
@@ -48,11 +49,13 @@ $allDone  = amt_verif_is_done();
             <?php endif; ?>
         </div>
     <?php endforeach; ?>
+    </div><!-- /data-tour=verif-list -->
 
     <?php if ($allDone): ?>
         <p class="verif-note">Semua LO sudah diverifikasi.</p>
         <a class="verif-method is-on" href="<?= amt_e(amt_verif_url(AMT_VERIF_RETURN_SCREEN)) ?>">Kembali ke Shipment</a>
     <?php else: ?>
+        <div data-tour="verif-methods">
         <h2 class="verif-title verif-title--gap">Metode Verifikasi</h2>
         <p class="verif-hint">Pilih metode untuk verifikasi order</p>
 
@@ -70,6 +73,7 @@ $allDone  = amt_verif_is_done();
             <span class="verif-method" aria-disabled="true">Kode Konfirmasi</span>
             <p class="verif-note">Centang LO di atas untuk memilih metode.</p>
         <?php endif; ?>
+        </div><!-- /data-tour=verif-methods -->
     <?php endif; ?>
 </section>
 
