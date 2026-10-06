@@ -3,7 +3,7 @@
  * Layar: ?screen=amt_rating&id=...  (role AMT)  -- "Beri Penilaian"
  * Letak: roles/amt/views/amt_rating.php
  *
- * Nama petugas SPBU (wajib) + 5 pertanyaan bintang (wajib) + Keterangan Lainnya (opsional).
+ * Nama petugas SPBU (wajib) + 5 pertanyaan bintang (wajib) + Ulasan dan Komentar (opsional).
  * Tombol "Kirim" aktif bila nama terisi dan semua bintang sudah dipilih -> POST submit_rating
  * (amt_rating_handle_post() di includes/amt_rating.php) -> kembali ke halaman SPBU / Detail Order.
  */
@@ -48,10 +48,10 @@ $v = function (string $f): int { return (int) @filemtime(AMT_ASSET_DIR . '/' . $
             </section>
         <?php endforeach; ?>
 
-        <label class="rt-field rt-field--note" for="rtNote">Keterangan Lainnya <span class="rt-opt">(optional)</span></label>
+        <label class="rt-field rt-field--note" for="rtNote">Ulasan dan Komentar Terhadap Pelayanan Kami <span class="rt-opt">(Optional)</span></label>
         <p class="rt-note-sub">Kritik dan saran akan sangat berharga untuk pelayanan yang lebih baik lagi.</p>
         <textarea class="rt-input rt-textarea" id="rtNote" name="note" rows="3" maxlength="<?= (int) AMT_RATING_NOTE_MAX ?>"
-                  placeholder="Contoh: Petugas SPBU sangat membantu."></textarea>
+                  placeholder="Contoh : Pelayanan SPBU sangat memuaskan."></textarea>
     </div>
 
     <div class="rt-footer">

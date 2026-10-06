@@ -23,7 +23,12 @@
 
   function refresh() {
     var ok = complete();
+    var rated = cards.filter(function (c) { return c.querySelector('.rt-star-in:checked') !== null; }).length;
     send.disabled = !ok;
+    // Penanda untuk tutorial (roles/amt/includes/tutorial.php): nama terisi, jumlah kartu berbintang
+    form.setAttribute('data-named', name.value.replace(/\s+/g, '') === '' ? '0' : '1');
+    form.setAttribute('data-rated', String(rated));
+    form.setAttribute('data-allrated', rated === cards.length ? '1' : '0');
     form.setAttribute('data-complete', ok ? '1' : '0');
   }
 

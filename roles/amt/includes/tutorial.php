@@ -59,7 +59,7 @@
  * ============================================================ */
 
 // Nama layar untuk label (dipakai bila langkah tidak punya alur bernomor)
-const AMT_TOUR_SCREEN_ORDER = ['amt_home', 'start_end', 'start_work', 'checkin', 'checkout', 'amt_pti', 'amt_pti_form', 'amt_pti_hasil', 'amt_shipments', 'amt_shipment_detail', 'amt_spbu', 'amt_checklist_lo', 'amt_checklist', 'amt_verifikasi', 'amt_verifikasi_qr', 'amt_verifikasi_kode', 'amt_verifikasi_sukses', 'end_work'];
+const AMT_TOUR_SCREEN_ORDER = ['amt_home', 'start_end', 'start_work', 'checkin', 'checkout', 'amt_pti', 'amt_pti_form', 'amt_pti_hasil', 'amt_shipments', 'amt_shipment_detail', 'amt_spbu', 'amt_checklist_lo', 'amt_checklist', 'amt_verifikasi', 'amt_verifikasi_qr', 'amt_verifikasi_kode', 'amt_verifikasi_sukses', 'amt_surat_jalan', 'amt_rating', 'end_work'];
 
 const AMT_TOUR_SCREEN_LABELS = [
     'amt_home'   => 'Beranda AMT',
@@ -79,6 +79,8 @@ const AMT_TOUR_SCREEN_LABELS = [
     'amt_verifikasi_qr' => 'Pindai Kode QR',
     'amt_verifikasi_kode' => 'Kode Konfirmasi',
     'amt_verifikasi_sukses' => 'Order Terverifikasi',
+    'amt_surat_jalan' => 'Foto Surat Jalan',
+    'amt_rating' => 'Beri Penilaian',
     'end_work'   => 'End Work',
 ];
 
@@ -98,6 +100,11 @@ const AMT_TOUR_JOURNEYS = [
     'checklist' => ['label' => 'Checklist Pra-Pembongkaran', 'total' => 6],
     // Verifikasi Order: 1 pilih LO, 2 pilih metode, 3 konfirmasi ke Petugas SPBU + pindai QR / ketik kode, 4 hasil
     'verifikasi' => ['label' => 'Verifikasi Order', 'total' => 4],
+    // Foto Surat Jalan: 1 buka kartu Foto Surat Jalan, 2 ambil foto tiap LO, 3 periksa hasil, 4 Simpan Foto
+    'suratjalan' => ['label' => 'Foto Surat Jalan', 'total' => 4],
+    // Rating Petugas SPBU: 1 buka kartu Rating, 2 nama petugas, 3 bintang (5 penilaian), 4 ulasan (opsional),
+    // 5 Kirim, 6 ketuk Selesai di Aktifitas di SPBU, 7 konfirmasi “Kirim” pada pop up Menyelesaikan Order
+    'rating' => ['label' => 'Rating Petugas SPBU', 'total' => 7],
     // Check-Out: 1 buka menu Check-Out (setelah scan segel di AVM), 2 lokasi, 3 aktivitas, 4 foto, 5 kirim
     'checkout' => ['label' => 'Check-Out', 'total' => 5],
 ];
@@ -800,21 +807,33 @@ function amt_tour_pbk_steps(): array
 function amt_tour_verif_spbu_pack(array $s): array
 {
     if (amt_verif_is_done($s)) {
-        // Semua LO sudah terverifikasi: TIDAK ada lagi kartu pemberitahuan "Verifikasi Order selesai".
-        // Tutorial langsung mengarahkan ke tutorial berikutnya: kartu aktif "Foto Surat Jalan".
+        // Semua LO sudah terverifikasi: TIDAK ada kartu pemberitahuan "Verifikasi Order selesai".
+        // Tutorial langsung mengarahkan ke kartu aktif "Foto Surat Jalan" (langkah 1 alur Foto Surat Jalan).
         if (!amt_sj_done($s['id'])) {
-            return ['journey' => 'kirim', 'subKey' => 'amt_spbu_sj', 'steps' => [[
-                'no'     => null,
+            return ['journey' => 'suratjalan', 'subKey' => 'amt_spbu_sj', 'steps' => [[
+                'no'     => 1,
                 'label'  => 'Foto Surat Jalan',
                 'target' => '[data-tour="spbu-step-active"]',
                 'title'  => 'Ketuk “Foto Surat Jalan”',
-                'text'   => 'Semua LO sudah terverifikasi. Langkah berikutnya adalah memotret surat jalan. Ketuk kartu biru “Foto Surat Jalan” untuk membuka kamera.',
+                'text'   => 'Semua LO sudah terverifikasi. Langkah berikutnya memotret surat jalan yang sudah dicap stempel atau ditandatangani pihak SPBU. Ketuk kartu biru “Foto Surat Jalan”.',
                 'hint'   => '👆 Ketuk kartu biru “Foto Surat Jalan”',
                 'done'   => null,
             ]]];
         }
-        // Foto surat jalan sudah tersimpan: tidak ada tutorial tambahan di layar ini.
-        return ['journey' => 'kirim', 'subKey' => 'amt_spbu_sj_done', 'steps' => []];
+        // Foto surat jalan sudah tersimpan -> Rating Petugas SPBU (langkah 1 alur Rating)
+        if (!amt_rating_done($s['id'])) {
+            return ['journey' => 'rating', 'subKey' => 'amt_spbu_rate', 'steps' => [[
+                'no'     => 1,
+                'label'  => 'Rating Petugas SPBU',
+                'target' => '[data-tour="spbu-step-active"]',
+                'title'  => 'Ketuk “Rating Petugas SPBU”',
+                'text'   => 'Foto surat jalan sudah tersimpan. Langkah terakhir adalah menilai pelayanan Petugas SPBU. Ketuk kartu biru “Rating Petugas SPBU”.',
+                'hint'   => '👆 Ketuk kartu biru “Rating Petugas SPBU”',
+                'done'   => null,
+            ]]];
+        }
+        // Rating terkirim -> semua langkah hijau: ketuk "Selesai", lalu konfirmasi "Kirim" di pop up
+        return amt_tour_finish_pack();
     }
     return ['journey' => 'kirim', 'subKey' => 'amt_spbu_verif', 'steps' => [
         [
@@ -970,6 +989,181 @@ function amt_tour_verif_steps(string $screen): array
     }
 
     return $none;
+}
+
+/**
+ * Tutorial "Selesai" di layar Aktifitas di SPBU (setelah Rating terkirim, semua langkah hijau):
+ *   6) ketuk tombol "Selesai"              -> selesai saat pop up "Menyelesaikan Order" terbuka (#finSheet.is-open)
+ *   7) ketuk "Kirim" di pop up              -> POST finish_order, kembali ke beranda AMT
+ * Bila pop up ditutup ("Batal"), langkah 6 tampil lagi.
+ * Elemen: #finOpen, #finSheet, .amts-fin__card, #finSend (roles/amt/views/spbu.php).
+ *
+ * @return array{steps:array, journey:string, subKey:string}
+ */
+function amt_tour_finish_pack(): array
+{
+    return ['journey' => 'rating', 'subKey' => 'amt_spbu_finish', 'steps' => [
+        [
+            'no'     => 6,
+            'label'  => 'Selesai di SPBU',
+            'target' => '#finOpen',
+            'title'  => 'Ketuk “Selesai”',
+            'text'   => 'Semua aktifitas di SPBU ini sudah hijau, jadi tombol “Selesai” sudah menyala. Ketuk untuk menandai serah terima BBM di SPBU ini sudah selesai.',
+            'hint'   => '👆 Ketuk tombol biru “Selesai”',
+            'done'   => '#finSheet.is-open',
+        ],
+        [
+            'no'        => 7,
+            'label'     => 'Selesai di SPBU',
+            'target'    => '#finSend',
+            'highlight' => '.amts-fin__card',
+            'when'      => '#finSheet.is-open',
+            'title'     => 'Ketuk “Kirim”',
+            'text'      => 'Pop up ini menanyakan apakah Anda yakin menyelesaikan pengiriman. Data yang sudah dikirim tidak bisa diubah. Ketuk “Kirim” bila semua sudah benar, atau “Batal” untuk kembali.',
+            'hint'      => '👆 Ketuk tombol biru “Kirim”',
+            'done'      => null,
+        ],
+    ]];
+}
+
+/**
+ * Tutorial Foto Surat Jalan (AMT): layar amt_surat_jalan (roles/amt/views/surat_jalan.php).
+ *
+ * Mengikuti panduan OneFIS AMT (bagian 4. Foto Surat Jalan):
+ *   Setelah Verifikasi Order, AMT memotret Surat Jalan yang sudah dicap stempel atau ditandatangani pihak SPBU
+ *   (tanda sudah diterima). Klik "Foto Surat Jalan", foto surat jalan MASING-MASING LO, lalu klik "Simpan Foto".
+ *
+ * Langkah (nomor 1 = kartu "Foto Surat Jalan" di layar Aktifitas di SPBU):
+ *   2) "Ambil Foto" untuk tiap Nomor LO   -> selesai saat SEMUA LO punya foto (#sjForm[data-complete="1"])
+ *   3) periksa hasil foto (Lihat Foto)      -> langkah baca, tombol "Mengerti"
+ *   4) "Simpan Foto"                        -> POST submit_sj, kembali ke Aktifitas di SPBU
+ * Penanda dari assets/js/surat-jalan.js: kelas .has-photo pada .sj-item, atribut data-filled / data-total / data-complete.
+ *
+ * @return array{steps:array, journey:string, subKey:?string}
+ */
+function amt_tour_sj_steps(): array
+{
+    $none = ['journey' => 'suratjalan', 'subKey' => null, 'steps' => []];
+    $s = amt_ship_current();
+    if ($s === null || !amt_sj_ship_ready($s) || amt_sj_done($s['id'])) {
+        return $none;
+    }
+    return ['journey' => 'suratjalan', 'subKey' => 'amt_sj', 'steps' => [
+        [
+            'no'        => 2,
+            'label'     => 'Foto Surat Jalan',
+            'target'    => '.sj-item:not(.has-photo) [data-act="take"]',
+            'highlight' => '.sj-item:not(.has-photo) .sj-card',
+            'title'     => 'Foto surat jalan tiap LO',
+            'text'      => 'Foto surat jalan yang sudah dicap stempel atau ditandatangani pihak SPBU. Setiap Nomor LO punya kartu sendiri dan wajib difoto semuanya.',
+            'list'      => [
+                'Ketuk “Ambil Foto” pada kartu LO yang menyala.',
+                'Arahkan kamera belakang ke surat jalan, pastikan tulisan jelas dan tidak blur.',
+                'Ketuk “Foto”, lalu “Simpan Foto” di layar kamera.',
+                'Ulangi untuk Nomor LO berikutnya sampai semua kartu berisi foto.',
+            ],
+            'hint'      => '👆 Ketuk “Ambil Foto” pada kartu yang menyala',
+            'done'      => '#sjForm[data-complete="1"]',
+            'ok'        => '✅ Semua surat jalan sudah difoto',
+            'okText'    => 'Setiap kartu LO kini menampilkan hasil fotonya.',
+            'hold'      => 1500,
+        ],
+        [
+            'no'        => 3,
+            'label'     => 'Foto Surat Jalan',
+            'target'    => '.sj-item.has-photo [data-act="view"]',
+            'highlight' => '.sj-list',
+            'title'     => 'Periksa hasil foto',
+            'text'      => 'Pastikan semua foto jelas dan tulisannya terbaca. Ketuk “Lihat Foto” untuk memperbesar. Bila foto buram, ketuk “Ambil Ulang” lalu foto lagi.',
+            'button'    => 'Mengerti',
+            'done'      => null,
+        ],
+        [
+            'no'     => 4,
+            'label'  => 'Foto Surat Jalan',
+            'target' => '#sjSave',
+            'title'  => 'Ketuk “Simpan Foto”',
+            'text'   => 'Semua LO sudah punya foto, jadi tombol biru di bawah sudah menyala. Ketuk untuk menyimpan. Status Surat Jalan tiap LO akan berubah menjadi “Sudah Ditambahkan”.',
+            'hint'   => '👆 Ketuk tombol biru “Simpan Foto”',
+            'done'   => null,
+        ],
+    ]];
+}
+
+/**
+ * Tutorial Rating Petugas SPBU (AMT): layar amt_rating (roles/amt/views/amt_rating.php).
+ *
+ * Mengikuti panduan OneFIS AMT (bagian 5. Rating Petugas SPBU):
+ *   AMT mengisi nama Petugas SPBU, menilai 5 aspek dengan bintang (Safety Petugas Bongkar, Sarfas, Komunikasi,
+ *   Operasional, Aspek Layanan), boleh menulis ulasan, lalu Kirim. Setelah itu tombol "Selesai" menyala.
+ *
+ * Langkah (nomor 1 = kartu "Rating Petugas SPBU" di layar Aktifitas di SPBU; 6-7 lihat amt_tour_finish_pack()):
+ *   2) nama Petugas SPBU    -> selesai saat nama terisi (#rtForm[data-named="1"])
+ *   3) bintang 5 penilaian  -> selesai saat semua kartu berbintang (#rtForm[data-allrated="1"])
+ *   4) ulasan (opsional)    -> langkah baca, tombol "Mengerti"
+ *   5) "Kirim"              -> POST submit_rating, kembali ke Aktifitas di SPBU
+ * Penanda dari assets/js/amt-rating.js: kelas .is-rated pada .rt-card, atribut data-named / data-rated / data-allrated.
+ *
+ * @return array{steps:array, journey:string, subKey:?string}
+ */
+function amt_tour_rating_steps(): array
+{
+    $none = ['journey' => 'rating', 'subKey' => null, 'steps' => []];
+    $s = amt_ship_current();
+    if ($s === null || !amt_rating_ship_ready($s) || amt_rating_done($s['id'])) {
+        return $none;
+    }
+    return ['journey' => 'rating', 'subKey' => 'amt_rating', 'steps' => [
+        [
+            'no'        => 2,
+            'label'     => 'Rating Petugas SPBU',
+            'target'    => '#rtOfficer',
+            'title'     => 'Isi nama Petugas SPBU',
+            'text'      => 'Ketik nama Petugas SPBU yang melayani pembongkaran BBM tadi. Kolom ini wajib diisi.',
+            'hint'      => '👆 Ketuk kolom nama, lalu ketik',
+            'done'      => '#rtForm[data-named="1"]',
+            'settle'    => 1500,
+            'ok'        => '✅ Nama petugas sudah terisi',
+        ],
+        [
+            'no'        => 3,
+            'label'     => 'Rating Petugas SPBU',
+            'target'    => '.rt-card:not(.is-rated) .rt-stars',
+            'highlight' => '.rt-card:not(.is-rated)',
+            'title'     => 'Beri bintang untuk 5 penilaian',
+            'text'      => 'Ketuk bintang pada tiap kartu: 1 bintang berarti sangat kurang, 5 bintang berarti luar biasa. Semua kartu wajib dinilai.',
+            'list'      => [
+                'Safety Petugas Bongkar: pembongkaran oleh petugas khusus dan memakai APD dengan benar.',
+                'Sarfas: sarana dan fasilitas SPBU aman untuk pembongkaran.',
+                'Komunikasi: SPBU transparan saat mengukur volume BBM bersama sebelum pembongkaran.',
+                'Operasional: penjualan pada tangki yang sedang dibongkar dihentikan.',
+                'Aspek Layanan: waktu tunggu bongkar.',
+            ],
+            'hint'      => '👆 Ketuk bintang pada kartu yang menyala',
+            'done'      => '#rtForm[data-allrated="1"]',
+            'ok'        => '✅ Kelima penilaian sudah terisi',
+            'okText'    => 'Tinggal kirim penilaian Anda.',
+            'hold'      => 1500,
+        ],
+        [
+            'no'        => 4,
+            'label'     => 'Rating Petugas SPBU',
+            'target'    => '#rtNote',
+            'title'     => 'Tulis ulasan (boleh dilewati)',
+            'text'      => 'Bagian ini opsional. Bila ada kritik atau saran untuk pelayanan SPBU, tulis di sini. Bila tidak ada, langsung ketuk “Mengerti”.',
+            'button'    => 'Mengerti',
+            'done'      => null,
+        ],
+        [
+            'no'     => 5,
+            'label'  => 'Rating Petugas SPBU',
+            'target' => '#rtSend',
+            'title'  => 'Ketuk “Kirim”',
+            'text'   => 'Nama dan kelima bintang sudah terisi, jadi tombol “Kirim” menyala. Setelah terkirim, Anda kembali ke Aktifitas di SPBU dan tombol “Selesai” menyala.',
+            'hint'   => '👆 Ketuk tombol biru “Kirim”',
+            'done'   => null,
+        ],
+    ]];
 }
 
 /**
@@ -1134,6 +1328,18 @@ function amt_tour_steps_for(string $screen, bool $running, int $checkins = 0): a
         return ['journey' => $pack['journey'], 'steps' => $pack['steps'], 'subKey' => $pack['subKey']];
     }
 
+    // ---- Foto Surat Jalan ----
+    if ($screen === AMT_SJ_SCREEN) {
+        $pack = amt_tour_sj_steps();
+        return ['journey' => $pack['journey'], 'steps' => $pack['steps'], 'subKey' => $pack['subKey']];
+    }
+
+    // ---- Rating Petugas SPBU ----
+    if ($screen === AMT_RATING_SCREEN) {
+        $pack = amt_tour_rating_steps();
+        return ['journey' => $pack['journey'], 'steps' => $pack['steps'], 'subKey' => $pack['subKey']];
+    }
+
     // ---- Check-Out: lokasi, aktivitas, foto, kirim ----
     if ($screen === AMT_OUT_SCREEN) {
         return ['journey' => 'checkout', 'steps' => amt_out_tour_form_steps()];
@@ -1187,12 +1393,12 @@ function amt_tour_config(string $screen): array
         'journey'      => AMT_TOUR_JOURNEYS[$pack['journey']] ?? null,
         'startDelay'   => (int) ($pack['startDelay'] ?? 0),
         'epoch'        => amt_tour_epoch(),
-        // Layar form/aksi: JANGAN catat "selesai" permanen (Kirim bisa ditolak server
-        // lalu halaman dimuat ulang) -> tutorial tampil lagi otomatis setiap dibuka.
+        // Layar form/aksi (termasuk Foto Surat Jalan & Rating): JANGAN catat "selesai" permanen (Kirim bisa
+        // ditolak server lalu halaman dimuat ulang) -> tutorial tampil lagi otomatis setiap dibuka.
         // Layar SPBU sebelum tiba juga tidak dicatat selesai: bila pengguna keluar lalu kembali
         // sebelum menekan "Ya, pengiriman telah tiba", tutorial tampil lagi. Kartu "tercatat" (sesudah
         // tiba) tetap dicatat supaya hanya tampil sekali.
-        'persist'      => !in_array($screen, ['start_work', 'checkin', 'checkout', 'end_work', 'start_end'], true)
+        'persist'      => !in_array($screen, ['start_work', 'checkin', 'checkout', 'end_work', 'start_end', 'amt_surat_jalan', 'amt_rating'], true)
                           && !($screen === 'amt_spbu' && empty($pack['subKey'])),
         'screenOrder'  => AMT_TOUR_SCREEN_ORDER,
         'screenLabels' => AMT_TOUR_SCREEN_LABELS,

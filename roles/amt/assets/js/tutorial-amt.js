@@ -21,7 +21,7 @@
  *  - DAFTAR BERNOMOR (list): kartu boleh memuat tahapan berurutan.
  *  - INGAT LANGKAH (remember): langkah yang sudah dibaca tidak diulang bila
  *    pengguna pindah halaman lalu kembali sebelum alur selesai.
- *  - Tersembunyi otomatis saat kamera / pop up foto terbuka. Popup konfirmasi PTI
+ *  - Tersembunyi otomatis saat kamera / pop up foto (check-in, Lihat Foto surat jalan) terbuka. Popup konfirmasi PTI
  *    justru DISOROT oleh langkah tutorial (lihat tutorial.php, 'when').
  *  - "Lewati" hanya menyembunyikan tutorial halaman ini (sesi ini); tombol
  *    "?" selalu bisa memulai lagi.
@@ -107,7 +107,7 @@
     }
     // Kamera layar penuh / pop up foto: tutorial disembunyikan supaya tidak menimpa.
     function overlayOpen() {
-        return !!(qs('.amtcam.is-open') || qs('#ci-modal:not([hidden])') || qs('#sc-modal:not([hidden])'));
+        return !!(qs('.amtcam.is-open') || qs('#ci-modal:not([hidden])') || qs('#sc-modal:not([hidden])') || qs('#sjModal:not([hidden])'));
     }
     function el(tag, cls, html) {
         var n = document.createElement(tag);
@@ -374,7 +374,7 @@
         }
 
         if (idx !== this.shown || !this.uiOn) { this.show(idx); }
-        else { this.sync(); }
+        else { this.refreshTargets(); this.sync(); }
     };
 
     /* ---------- tampilan ---------- */
@@ -453,6 +453,17 @@
                 self.ack(idx);
             }, st.autoHide);
         }
+    };
+
+    // Langkah yang sama bisa menyorot elemen berbeda dari waktu ke waktu (mis. kartu LO / kartu bintang
+    // berikutnya yang belum terisi). Cari ulang target dan sorotan setiap siklus agar tidak menempel pada elemen lama.
+    Tour.prototype.refreshTargets = function () {
+        var st = this.steps[this.shown];
+        if (!st || !st.target || this.okMode) { return; }
+        var tgt = qs(st.target);
+        var hl = qs(st.highlight) || tgt;
+        this.tgtEl = isShown(tgt) ? tgt : null;
+        this.hlEl  = isShown(hl) ? hl : null;
     };
 
     Tour.prototype.showOk = function (idx) {

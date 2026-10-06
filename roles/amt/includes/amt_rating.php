@@ -16,7 +16,7 @@
  */
 
 const AMT_RATING_SCREEN   = 'amt_rating';
-const AMT_RATING_NOTE_MAX = 500;   // panjang maksimal "Keterangan Lainnya"
+const AMT_RATING_NOTE_MAX = 500;   // panjang maksimal "Ulasan dan Komentar"
 const AMT_RATING_NAME_MAX = 100;   // panjang maksimal nama petugas SPBU
 
 /** Teks apresiasi per jumlah bintang (tampil begitu bintang diketuk). */
@@ -27,10 +27,10 @@ const AMT_RATING_THANKS = 'Terima kasih! Penilaian ini sangat berarti bagi kami.
 function amt_rating_questions(): array
 {
     return [
-        'safety'      => ['q' => 'Apakah pembongkaran BBM dilakukan oleh petugas khusus pembongkaran dan menggunakan APD dengan benar ?', 'tag' => 'Safety Petugas Bongkar', 'req' => true],
-        'sarfas'      => ['q' => 'Apakah sarana dan fasilitas SPBU/Pertashop safety untuk dilakukan proses pembongkaran BBM ?',          'tag' => 'Sarfas',                 'req' => true],
-        'komunikasi'  => ['q' => 'Apakah SPBU/Pertashop transparan dalam pengukuran bersama volume BBM sebelum pembongkaran ?',        'tag' => 'Komunikasi',             'req' => true],
-        'operasional' => ['q' => 'Apakah SPBU/Pertashop melakukan stop penjualan pada tangka BBM yang sedang dilakukan proses pembongkaran ?', 'tag' => 'Operasional',     'req' => true],
+        'safety'      => ['q' => 'Apakah pembongkaran BBM dilakukan oleh petugas khusus pembongkaran dan menggunakan APD dengan benar?', 'tag' => 'Safety Petugas Bongkar', 'req' => true],
+        'sarfas'      => ['q' => 'Apakah sarana dan fasilitas SPBU/Pertashop safety untuk dilakukan proses pembongkaran BBM?',          'tag' => 'Sarfas',                 'req' => true],
+        'komunikasi'  => ['q' => 'Apakah SPBU/Pertashop transparan dalam pengukuran bersama volume BBM sebelum pembongkaran?',        'tag' => 'Komunikasi',             'req' => true],
+        'operasional' => ['q' => 'Apakah SPBU/Pertashop melakukan stop penjualan pada tangki BBM yang sedang dilakukan proses pembongkaran?', 'tag' => 'Operasional',     'req' => true],
         'layanan'     => ['q' => 'Waktu tunggu bongkar',                                                                                   'tag' => 'Aspek Layanan',          'req' => true],
     ];
 }

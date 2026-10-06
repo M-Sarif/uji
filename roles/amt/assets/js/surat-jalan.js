@@ -39,8 +39,16 @@
   }
 
   function refresh() {
-    var all = items.every(function (it) { return it.querySelector('input[type=hidden]').value !== ''; });
+    var filled = 0;
+    items.forEach(function (it) {
+      var has = it.querySelector('input[type=hidden]').value !== '';
+      it.classList.toggle('has-photo', has);   // dipakai tutorial untuk menyorot kartu yang belum difoto
+      if (has) { filled++; }
+    });
+    var all = filled === items.length;
     save.disabled = !all;
+    form.setAttribute('data-filled', String(filled));
+    form.setAttribute('data-total', String(items.length));
     form.setAttribute('data-complete', all ? '1' : '0');
   }
 
