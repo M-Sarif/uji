@@ -41,6 +41,10 @@
     var LS_DONE  = 'onefis_amt_tour_v2_done';    // daftar tutorial yang sudah selesai
     var SS_SKIP  = 'onefis_amt_tour_v2_skip:';   // + kunci -> dilewati (sesi ini)
     var LS_EPOCH = 'onefis_amt_tour_v2_epoch';   // penanda siklus dari server
+    // Tutorial DIMATIKAN untuk semua layar: pengguna menekan "Lewati", atau sudah memakai tutorial sampai
+    // alur selesai (langkah bertanda 'final'). Tidak ikut terhapus oleh siklus baru (resetAll). Tutorial hanya
+    // tampil lagi bila pengguna menekan tombol "?" (per halaman).
+    var LS_OFF   = 'onefis_amt_tour_v2_off';
     var OLD_KEYS = ['onefis_amt_tour_seen_screens', 'onefis_amt_tour_skipped'];
 
     /* ---------- penyimpanan (semua dibungkus try/catch) ---------- */
@@ -65,6 +69,12 @@
     function forgetRemembered(key) {
         var d = readDone().filter(function (k) { return k.indexOf(key + '#') !== 0; });
         try { localStorage.setItem(LS_DONE, JSON.stringify(d)); } catch (e) {}
+    }
+    function isOff() {
+        try { return localStorage.getItem(LS_OFF) === '1'; } catch (e) { return false; }
+    }
+    function setOff() {
+        try { localStorage.setItem(LS_OFF, '1'); } catch (e) {}
     }
     function isSkipped(key) {
         try { return sessionStorage.getItem(SS_SKIP + key) === '1'; } catch (e) { return false; }
@@ -156,6 +166,7 @@
 
     Tour.prototype.start = function (force) {
         if (!this.steps.length) { return; }
+        this.forced = !!force;   // dibuka lewat tombol "?" / ?tour=restart: tetap tampil walau tutorial dimatikan
         if (!force && (isDone(this.key) || isSkipped(this.key))) { return; }
         if (force) { setSkipped(this.key, false); forgetRemembered(this.key); }
 
@@ -251,9 +262,10 @@
 
         panel.querySelector('[data-skip]').addEventListener('click', function () {
             setSkipped(self.key, true);
+            setOff();                                   // "Lewati" = matikan tutorial di SEMUA layar
             announce(self.key, { skipped: true });
             self.destroy();
-            toast('Tutorial disembunyikan. Ketuk tombol “?” untuk membukanya lagi.');
+            toast('Tutorial dimatikan. Ketuk tombol “?” bila ingin membukanya lagi.');
         });
         panel.querySelector('[data-primary]').addEventListener('click', function () {
             if (self.shown >= 0) { self.ack(self.shown); }
@@ -330,6 +342,10 @@
     // Kirim bisa ditolak server lalu halaman dimuat ulang: tutorial harus muncul lagi.
     Tour.prototype.finish = function () {
         if (this.persist) { markDone(this.key); }
+        // Langkah terakhir bertanda 'final' (mis. pop up sukses Check-Out / End Work): pengguna sudah memakai
+        // tutorial sampai selesai -> tidak perlu muncul otomatis lagi di layar mana pun.
+        var last = this.steps[this.steps.length - 1];
+        if (last && last.final) { setOff(); }
     };
 
     // Pengguna melakukan langkah aksi ke-i (ketuk target / tekan tombol kartu).
@@ -351,6 +367,13 @@
     /* ---------- siklus utama ---------- */
     Tour.prototype.tick = function () {
         if (this.dead || !this.ready) { return; }
+
+        // Tutorial sudah dimatikan ("Lewati" / sudah dipakai sampai selesai), mis. dari halaman atau tab lain, atau
+        // halaman ini dipulihkan dari cache tombol Kembali: hanya PEMBERITAHUAN ('notice') yang boleh tetap tampil.
+        if (!this.forced && isOff()) {
+            var cs0 = this.steps[this.firstIncomplete()];
+            if (!cs0 || !cs0.notice) { this.destroy(); return; }
+        }
 
         // Kamera layar penuh / pop up foto menyembunyikan tutorial, KECUALI langkah yang memang dipandu di dalamnya
         // (langkah 'camera' di kamera, langkah 'over' di pop up sukses).
@@ -458,6 +481,7 @@
 
         d.panel.classList.remove('is-ok');
         d.ring.classList.remove('is-ok');
+        d.ring.classList.toggle('is-nodim', !!st.nodim);   // langkah 'nodim': area lain tidak digelapkan
         this.setOver(st);
         d.panel.classList.toggle('is-center', center);
         d.dim.classList.toggle('is-on', center);
@@ -804,8 +828,25 @@
             syncEpoch(config.epoch);
             if (forceRestart) { resetAll(); }
 
-            activeTour = new Tour(config);
-            activeTour.start(forceRestart);
+            // Tutorial dimatikan ("Lewati" / sudah dipakai sampai selesai): tampilkan HANYA langkah bertanda 'notice'
+            // (pemberitahuan DCU, setelah PTI, pengembalian segel). Selebihnya tidak muncul otomatis.
+            var cfg = config;
+            if (!forceRestart && isOff()) {
+                cfg = {};
+                Object.keys(config).forEach(function (k) { cfg[k] = config[k]; });
+                cfg.steps = (config.steps || []).filter(function (st) { return st && st.notice; });
+            }
+            activeTour = new Tour(cfg);
+            if (cfg.steps && cfg.steps.length) {
+                activeTour.start(forceRestart);
+            } else if (!forceRestart && (config.steps || []).some(function (st) { return st && st.announce; })) {
+                // Halaman menunggu kabar "pemberitahuan sudah ditutup" untuk menyalakan menu berikutnya -> kabari.
+                setTimeout(function () { announce(config.subKey || config.screen, { skipped: true }); }, 400);
+            }
+            // Halaman dipulihkan dari cache (tombol Kembali) / status dimatikan dari tab lain: periksa ulang.
+            window.addEventListener('pageshow', function (e) { if (e.persisted && activeTour) { activeTour.tick(); } });
+            window.addEventListener('storage', function (e) { if (e.key === LS_OFF && activeTour) { activeTour.tick(); } });
+            document.addEventListener('visibilitychange', function () { if (!document.hidden && activeTour) { activeTour.tick(); } });
 
             // Tombol "?": mulai lagi tutorial HALAMAN INI (tidak pindah halaman).
             if (config.screen !== 'role_select') {

@@ -204,6 +204,7 @@ function amt_out_tour_pack(): ?array
                 'no'       => null,
                 'label'    => 'Order Selesai',
                 'target'   => null,
+                'notice'   => true,                                // pemberitahuan: tetap tampil walau tutorial dimatikan
                 'title'    => 'Scan segel di AVM dulu 🔖',
                 'text'     => 'Order sudah selesai. Kembali ke depot, lalu scan segel bekas di mesin AVM terlebih dahulu. Scan segel dilakukan di AVM, bukan di aplikasi ini. Setelah segel discan, barulah Check-Out bisa dilakukan. Menu Check-Out akan menyala setelah kartu ini ditutup.',
                 'button'   => 'Mengerti',

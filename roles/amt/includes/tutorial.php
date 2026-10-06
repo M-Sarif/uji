@@ -105,8 +105,8 @@ const AMT_TOUR_JOURNEYS = [
     'checklist' => ['label' => 'Checklist Pra-Pembongkaran', 'total' => 6],
     // Verifikasi Order: 1 pilih LO, 2 pilih metode, 3 konfirmasi ke Petugas SPBU + pindai QR / ketik kode, 4 hasil
     'verifikasi' => ['label' => 'Verifikasi Order', 'total' => 4],
-    // Foto Surat Jalan: 1 buka kartu Foto Surat Jalan, 2 ambil foto tiap LO, 3 periksa hasil, 4 Simpan Foto
-    'suratjalan' => ['label' => 'Foto Surat Jalan', 'total' => 4],
+    // Foto Surat Jalan: 1 buka kartu Foto Surat Jalan, 2 ambil foto tiap LO, 3 Simpan Foto
+    'suratjalan' => ['label' => 'Foto Surat Jalan', 'total' => 3],
     // Rating Petugas SPBU: 1 buka kartu Rating, 2 nama petugas, 3 bintang (5 penilaian),
     // 4 Kirim, 5 ketuk Selesai di Aktifitas di SPBU, 6 konfirmasi “Kirim” pada pop up Menyelesaikan Order
     'rating' => ['label' => 'Rating Petugas SPBU', 'total' => 6],
@@ -179,6 +179,9 @@ function amt_tour_success_step(int $no, string $mode): array
     ][$mode] ?? 'Ketuk “Lanjutkan ke Homepage” untuk kembali ke beranda.';
     return [
         'no'        => $no,
+        // Check-Out / End Work selesai = tutorial sudah dipakai sampai akhir -> tidak muncul otomatis lagi
+        // (hanya lewat tombol "?"). Lihat Tour.finish() di tutorial-amt.js.
+        'final'     => in_array($mode, ['checkout', 'end'], true),
         'over'      => true,
         'target'    => '#wk-success-go',
         'highlight' => '.wk-modal-card',
@@ -596,6 +599,7 @@ function amt_tour_pti_done_pack(int $checkins): array
             'no'     => null,
             'label'  => 'PTI Selesai',
             'target' => null,
+            'notice' => true,                             // pemberitahuan: tetap tampil walau tutorial dimatikan
             'title'  => 'Hasil inspeksi: NO GO',
             'text'   => 'Mobil tangki belum layak beroperasi. Laporkan ke pengawas sebelum berangkat.',
             'button' => 'Mengerti',
@@ -608,6 +612,7 @@ function amt_tour_pti_done_pack(int $checkins): array
             'no'       => null,
             'label'    => 'PTI Selesai',
             'target'   => null,
+            'notice'   => true,                           // pemberitahuan: tetap tampil walau tutorial dimatikan
             'title'    => 'PTI selesai ✅',
             'text'     => 'PTI sudah selesai. Lanjutkan dengan tahapan berikut:',
             'list'     => [
@@ -1095,8 +1100,8 @@ function amt_tour_finish_pack(): array
  *
  * Langkah (nomor 1 = kartu "Foto Surat Jalan" di layar Aktifitas di SPBU):
  *   2) "Ambil Foto" untuk tiap Nomor LO   -> selesai saat SEMUA LO punya foto (#sjForm[data-complete="1"])
- *   3) periksa hasil foto (Lihat Foto)      -> langkah baca, tombol "Mengerti"
- *   4) "Simpan Foto"                        -> POST submit_sj, kembali ke Aktifitas di SPBU
+ *   3) "Simpan Foto"                        -> POST submit_sj, kembali ke Aktifitas di SPBU
+ *   (langkah "Periksa hasil foto" sudah dihapus: mengganggu dan tidak terlalu penting)
  * Penanda dari assets/js/surat-jalan.js: kelas .has-photo pada .sj-item, atribut data-filled / data-total / data-complete.
  *
  * @return array{steps:array, journey:string, subKey:?string}
@@ -1129,17 +1134,7 @@ function amt_tour_sj_steps(): array
             'hold'      => 1500,
         ],
         [
-            'no'        => 3,
-            'label'     => 'Foto Surat Jalan',
-            'target'    => '.sj-item.has-photo [data-act="view"]',
-            'highlight' => '.sj-list',
-            'title'     => 'Periksa hasil foto',
-            'text'      => 'Pastikan semua foto jelas dan tulisannya terbaca. Ketuk “Lihat Foto” untuk memperbesar. Bila foto buram, ketuk “Ambil Ulang” lalu foto lagi.',
-            'button'    => 'Mengerti',
-            'done'      => null,
-        ],
-        [
-            'no'     => 4,
+            'no'     => 3,
             'label'  => 'Foto Surat Jalan',
             'target' => '#sjSave',
             'title'  => 'Ketuk “Simpan Foto”',
@@ -1159,7 +1154,8 @@ function amt_tour_sj_steps(): array
  *
  * Langkah (nomor 1 = kartu "Rating Petugas SPBU" di layar Aktifitas di SPBU; 5-6 lihat amt_tour_finish_pack()):
  *   2) nama Petugas SPBU    -> selesai saat nama terisi (#rtForm[data-named="1"])
- *   3) bintang 5 penilaian  -> selesai saat semua kartu berbintang (#rtForm[data-allrated="1"])
+ *   3) bintang 5 penilaian  -> (a) penjelasan SATU KALI, selesai saat satu kartu berbintang; (b) "isi semua rating yang
+ *                              tersisa", selesai saat semua kartu berbintang (#rtForm[data-allrated="1"])
  *   4) "Kirim"              -> POST submit_rating, kembali ke Aktifitas di SPBU
  * Penanda dari assets/js/amt-rating.js: kelas .is-rated pada .rt-card, atribut data-named / data-rated / data-allrated.
  *
@@ -1184,6 +1180,8 @@ function amt_tour_rating_steps(): array
             'settle'    => 1500,
             'ok'        => '✅ Nama petugas sudah terisi',
         ],
+        // 3a) Penjelasan bintang: tampil SATU KALI, menyorot kartu pertama yang belum dinilai.
+        //     Selesai begitu SATU kartu sudah berbintang.
         [
             'no'        => 3,
             'label'     => 'Rating Petugas SPBU',
@@ -1199,6 +1197,19 @@ function amt_tour_rating_steps(): array
                 'Aspek Layanan: waktu tunggu bongkar.',
             ],
             'hint'      => '👆 Ketuk bintang pada kartu yang menyala',
+            'done'      => '.rt-card.is-rated',
+        ],
+        // 3b) Lanjutan: arahan "isi semua rating yang tersisa". Sorotan di tombol Kirim (selalu terlihat di bawah),
+        //     BUKAN di kartu yang belum dinilai, jadi kartu tersebut tidak tertutup panel tutorial dan
+        //     tutorial tidak macet minta pengguna menggulir. Nomor langkah sama (3) agar bilah kemajuan tidak melompat.
+        [
+            'no'        => 3,
+            'label'     => 'Rating Petugas SPBU',
+            'target'    => '#rtSend',
+            'nodim'     => true,   // kartu penilaian tidak digelapkan, supaya mudah dilihat & diketuk
+            'title'     => 'Isi semua rating yang tersisa',
+            'text'      => 'Masih ada kartu penilaian yang belum diberi bintang. Gulir halaman, lalu ketuk bintang pada setiap kartu yang masih kosong sampai kelimanya terisi. Tombol “Kirim” akan menyala setelah semuanya terisi.',
+            'hint'      => '👆 Isi bintang di semua kartu yang masih kosong',
             'done'      => '#rtForm[data-allrated="1"]',
             'ok'        => '✅ Kelima penilaian sudah terisi',
             'okText'    => 'Tinggal kirim penilaian Anda.',
@@ -1247,6 +1258,7 @@ function amt_tour_steps_for(string $screen, bool $running, int $checkins = 0): a
                 'no'       => null,
                 'label'    => 'Check-In Berhasil',
                 'target'   => null,
+                'notice'   => true,                                   // pemberitahuan: tetap tampil walau tutorial dimatikan
                 'title'    => 'Lakukan DCU dulu 🩺',
                 'text'     => 'Check-In berhasil. Sekarang lakukan DCU (cek kesehatan) terlebih dahulu. DCU dilakukan langsung di tempat, bukan lewat aplikasi ini. Menu PTI akan menyala setelah kartu ini ditutup.',
                 'button'   => 'Mengerti',
