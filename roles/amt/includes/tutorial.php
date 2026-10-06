@@ -552,9 +552,10 @@ function amt_tour_pti_done_pack(int $checkins): array
             'target' => '[data-tour="amt-menu-shipments"]',
             'when'   => '[data-tour="amt-menu-shipments"]',
             'delay'  => AMT_PTI_DONE_SHIPMENT_DELAY,     // muncul 3 detik setelah kartu 1 tertutup
-            'title'  => 'Buka menu “Shipments”',
-            'text'   => 'Ketuk menu Shipments untuk membuka daftar pengiriman Anda.',
-            'hint'   => '👆 Ketuk menu “Shipments” di kotak yang menyala',
+            // Keterangan: menu ini dipakai SETELAH AMT sampai di SPBU tujuan (bukan sekarang).
+            'title'  => 'Sudah tiba di SPBU? Buka “Shipments”',
+            'text'   => 'Jika Anda sudah tiba di SPBU tujuan, ketuk menu Shipments ini untuk membuka daftar pengiriman dan melanjutkan ke tahap berikutnya. Bila belum tiba di SPBU, lanjutkan dulu tahapan sebelumnya.',
+            'hint'   => '👆 Jika sudah tiba di SPBU, ketuk menu “Shipments” yang menyala',
             'done'   => null,
         ],
     ]];
@@ -799,16 +800,21 @@ function amt_tour_pbk_steps(): array
 function amt_tour_verif_spbu_pack(array $s): array
 {
     if (amt_verif_is_done($s)) {
-        return ['journey' => 'kirim', 'subKey' => 'amt_spbu_verif_done', 'steps' => [[
-            'no'       => null,
-            'label'    => 'Verifikasi Order',
-            'target'   => null,
-            'title'    => 'Verifikasi Order selesai ✅',
-            'text'     => 'Semua LO sudah terverifikasi. Langkah berikutnya adalah “Foto Surat Jalan”.',
-            'button'   => 'Mengerti',
-            'remember' => true,
-            'done'     => null,
-        ]]];
+        // Semua LO sudah terverifikasi: TIDAK ada lagi kartu pemberitahuan "Verifikasi Order selesai".
+        // Tutorial langsung mengarahkan ke tutorial berikutnya: kartu aktif "Foto Surat Jalan".
+        if (!amt_sj_done($s['id'])) {
+            return ['journey' => 'kirim', 'subKey' => 'amt_spbu_sj', 'steps' => [[
+                'no'     => null,
+                'label'  => 'Foto Surat Jalan',
+                'target' => '[data-tour="spbu-step-active"]',
+                'title'  => 'Ketuk “Foto Surat Jalan”',
+                'text'   => 'Semua LO sudah terverifikasi. Langkah berikutnya adalah memotret surat jalan. Ketuk kartu biru “Foto Surat Jalan” untuk membuka kamera.',
+                'hint'   => '👆 Ketuk kartu biru “Foto Surat Jalan”',
+                'done'   => null,
+            ]]];
+        }
+        // Foto surat jalan sudah tersimpan: tidak ada tutorial tambahan di layar ini.
+        return ['journey' => 'kirim', 'subKey' => 'amt_spbu_sj_done', 'steps' => []];
     }
     return ['journey' => 'kirim', 'subKey' => 'amt_spbu_verif', 'steps' => [
         [

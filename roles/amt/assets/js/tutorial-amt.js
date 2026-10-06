@@ -138,6 +138,9 @@
         this.hlEl    = null;    // elemen yang disorot (ring)
         this.tgtEl   = null;    // elemen yang harus diketuk
         this.side    = 'bottom';// posisi kartu terakhir: 'bottom' | 'top'
+        this.hasExplain = false; // langkah ini punya penjelasan untuk lembar baca
+        this.isInfo = false;     // langkah baca (ada tombol Mengerti): teksnya tampil 3 baris
+        this.needMore = false;   // teks langkah baca terpotong
         this.okMode  = false;   // sedang menampilkan pesan "sudah benar"
         this.baseHint = '';
         this.whenAt  = {};      // kapan syarat 'when' sebuah langkah mulai terpenuhi
@@ -179,20 +182,69 @@
         panel.setAttribute('role', 'dialog');
         panel.setAttribute('aria-live', 'polite');
         panel.innerHTML =
-            '<div class="amtt-eyebrow" data-progress></div>' +
+            '<div class="amtt-head">' +
+            '  <div class="amtt-eyebrow" data-progress></div>' +
+            '  <div class="amtt-tools">' +
+            '    <button type="button" class="amtt-min amtt-aa" data-size aria-label="Ubah ukuran huruf">Aa</button>' +
+            '    <button type="button" class="amtt-min" data-min aria-label="Kecilkan kartu tutorial">Kecilkan ▾</button>' +
+            '  </div>' +
+            '</div>' +
             '<div class="amtt-bar" aria-hidden="true"><span></span></div>' +
-            '<h3 class="amtt-title" data-title></h3>' +
-            '<p class="amtt-text" data-text></p>' +
-            '<ol class="amtt-list" data-list hidden></ol>' +
-            '<p class="amtt-hint" data-hint></p>' +
+            '<div class="amtt-bodywrap">' +
+            '  <div class="amtt-body" data-body>' +
+            '    <h3 class="amtt-title" data-title></h3>' +
+            '    <p class="amtt-text" data-text></p>' +
+            '    <ol class="amtt-list" data-list hidden></ol>' +
+            '    <p class="amtt-hint" data-hint></p>' +
+            '  </div>' +
+            '  <div class="amtt-more" data-more aria-hidden="true">⌄ Geser ke bawah</div>' +
+            '</div>' +
             '<div class="amtt-actions">' +
             '  <button type="button" class="amtt-btn" data-primary hidden></button>' +
-            '  <button type="button" class="amtt-skip" data-skip>Lewati</button>' +
+            '  <div class="amtt-row2">' +
+            '    <button type="button" class="amtt-ghost" data-explain hidden>📖 Penjelasan</button>' +
+            '    <button type="button" class="amtt-skip" data-skip>Lewati</button>' +
+            '  </div>' +
             '</div>';
+        // Lembar baca: penjelasan lengkap, huruf besar, tidak ikut kartu (tidak perlu menggeser kartu)
+        var sheet = el('div', 'amtt-sheet');
+        sheet.hidden = true;
+        sheet.innerHTML =
+            '<div class="amtt-sheet__card" role="dialog" aria-modal="true" aria-label="Penjelasan lengkap">' +
+            '  <div class="amtt-sheet__eyebrow" data-s-eyebrow></div>' +
+            '  <div class="amtt-sheet__body">' +
+            '    <h3 class="amtt-sheet__title" data-s-title></h3>' +
+            '    <p class="amtt-sheet__text" data-s-text></p>' +
+            '    <ol class="amtt-sheet__list" data-s-list hidden></ol>' +
+            '  </div>' +
+            '  <div class="amtt-sheet__tools">' +
+            '    <button type="button" class="amtt-ghost" data-s-speak>🔊 Dengarkan</button>' +
+            '    <button type="button" class="amtt-ghost" data-s-size>Aa Ukuran huruf</button>' +
+            '  </div>' +
+            '  <button type="button" class="amtt-btn" data-s-close>Tutup</button>' +
+            '</div>';
+        document.body.appendChild(sheet);
         document.body.appendChild(dim);
         document.body.appendChild(ring);
         document.body.appendChild(panel);
-        this.dom = { dim: dim, ring: ring, panel: panel };
+        this.dom = { dim: dim, ring: ring, panel: panel, sheet: sheet };
+        this.applyScale();
+
+        var minBtn = panel.querySelector('[data-min]');
+        minBtn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            self.setMin(!panel.classList.contains('is-min'));
+        });
+        panel.querySelector('.amtt-head').addEventListener('click', function () {
+            if (panel.classList.contains('is-min')) { self.setMin(false); }   // ketuk pil kecil = buka lagi
+        });
+        panel.querySelector('[data-size]').addEventListener('click', function (e) { e.stopPropagation(); self.cycleScale(); });
+        panel.querySelector('[data-explain]').addEventListener('click', function (e) { e.stopPropagation(); self.openExplain(); });
+        sheet.querySelector('[data-s-close]').addEventListener('click', function () { self.closeExplain(); });
+        sheet.querySelector('[data-s-size]').addEventListener('click', function () { self.cycleScale(); });
+        sheet.querySelector('[data-s-speak]').addEventListener('click', function () { self.speak(); });
+        sheet.addEventListener('click', function (e) { if (e.target === sheet) { self.closeExplain(); } });   // ketuk area gelap = tutup
+        panel.querySelector('[data-body]').addEventListener('scroll', function () { self.updateMore(); }, { passive: true });
 
         panel.querySelector('[data-skip]').addEventListener('click', function () {
             setSkipped(self.key, true);
@@ -227,7 +279,9 @@
         this._on(document, 'amt:state', soon, false);
 
         var raf = null;
-        var relayout = function () {
+        var relayout = function (ev) {
+            // Gulir DI DALAM kartu tutorial tidak boleh memicu penataan ulang (dulu membuat gulir terpental ke atas).
+            if (ev && ev.target && ev.target.nodeType === 1 && panel.contains(ev.target)) { return; }
             if (raf) { return; }
             raf = requestAnimationFrame(function () { raf = null; self.sync(); });
         };
@@ -351,6 +405,8 @@
         this.okMode = !!forOk;
         this.applyHint();
 
+        this.hasExplain = !forOk && !!((st.text && st.text.length) || items.length);
+        this.isInfo = !forOk && !!st.button;
         var btn = p.querySelector('[data-primary]');
         btn.textContent = st.button || '';
         btn.hidden = forOk || !st.button;
@@ -362,6 +418,11 @@
         this.shown = idx;
         this.uiOn = true;
         this.fill(st, false);
+
+        this.closeExplain();
+        this.setMin(false);
+        var bodyEl = d.panel.querySelector('[data-body]');
+        if (bodyEl) { bodyEl.scrollTop = 0; }
 
         this.okDone[idx] = false;          // langkah tampil lagi -> pesan "sudah benar" boleh muncul lagi
 
@@ -469,17 +530,126 @@
     Tour.prototype.sync = function () {
         if (!this.uiOn || !this.dom) { return; }
         this.applyHint();
+        this.applyCompact();
         this.layoutPanel();
         this.reposition();
     };
 
+    // Kartu RINGKAS (bukan kartu tengah): hanya judul + instruksi + tombol, jadi tidak perlu digeser.
+    // Langkah baca (ada tombol Mengerti) menampilkan teksnya 3 baris. Selebihnya ada di tombol "Penjelasan".
+    Tour.prototype.applyCompact = function () {
+        var p = this.dom.panel;
+        var center = p.classList.contains('is-center');
+        var ok = p.classList.contains('is-ok');
+        var compact = !center && !ok;
+        p.classList.toggle('is-compact', compact);
+        p.classList.toggle('is-info', compact && this.isInfo);
+        var btn = p.querySelector('[data-explain]');
+        if (!compact) { btn.hidden = true; return; }
+        var show = this.hasExplain;
+        if (this.isInfo && !p.classList.contains('is-big')) {
+            var t = p.querySelector('[data-text]');
+            var hasList = !p.querySelector('[data-list]').hidden;
+            this.needMore = hasList || (t.scrollHeight - t.clientHeight > 2);
+            show = this.needMore;
+        }
+        btn.hidden = !show;
+    };
+
+    /* ---------- ukuran huruf (untuk pengguna lanjut usia) ---------- */
+    var SCALES = [1, 1.25, 1.5];
+    function readScale() {
+        try { var v = parseFloat(localStorage.getItem('onefis_amt_tour_v2_scale')); return SCALES.indexOf(v) !== -1 ? v : 1; }
+        catch (e) { return 1; }
+    }
+    Tour.prototype.applyScale = function () {
+        if (!this.dom) { return; }
+        var v = String(readScale());
+        this.dom.panel.style.setProperty('--amtt-scale', v);
+        this.dom.sheet.style.setProperty('--amtt-scale', v);
+        this.dom.panel.classList.toggle('is-big', parseFloat(v) > 1);
+    };
+    Tour.prototype.cycleScale = function () {
+        var i = SCALES.indexOf(readScale());
+        var v = SCALES[(i + 1) % SCALES.length];
+        try { localStorage.setItem('onefis_amt_tour_v2_scale', String(v)); } catch (e) {}
+        this.applyScale();
+        toast(v === 1 ? 'Ukuran huruf: normal' : (v === 1.25 ? 'Ukuran huruf: besar' : 'Ukuran huruf: sangat besar'));
+        this.sync();
+    };
+
+    /* ---------- lembar baca (penjelasan lengkap) ---------- */
+    Tour.prototype.openExplain = function () {
+        var st = this.steps[this.shown];
+        if (!st || !this.dom) { return; }
+        var sh = this.dom.sheet;
+        var j = this.journey;
+        var label = st.label || (j && j.label) || this.labels[this.screen] || '';
+        sh.querySelector('[data-s-eyebrow]').textContent = (st.no && j) ? (label + ' · Langkah ' + st.no + ' dari ' + j.total) : label;
+        sh.querySelector('[data-s-title]').textContent = st.title || '';
+        sh.querySelector('[data-s-text]').textContent = st.text || '';
+        var ol = sh.querySelector('[data-s-list]');
+        ol.innerHTML = '';
+        (st.list || []).forEach(function (t) { ol.appendChild(el('li', '', '')).textContent = t; });
+        ol.hidden = !(st.list && st.list.length);
+        sh.querySelector('[data-s-speak]').hidden = !window.speechSynthesis;
+        sh.querySelector('[data-s-speak]').textContent = '🔊 Dengarkan';
+        sh.hidden = false;
+        sh.querySelector('.amtt-sheet__body').scrollTop = 0;
+    };
+    Tour.prototype.closeExplain = function () {
+        if (!this.dom) { return; }
+        try { if (window.speechSynthesis) { window.speechSynthesis.cancel(); } } catch (e) {}
+        this.dom.sheet.hidden = true;
+    };
+    // Bacakan penjelasan dengan suara (bahasa Indonesia). Ketuk lagi untuk berhenti.
+    Tour.prototype.speak = function () {
+        var ss = window.speechSynthesis;
+        if (!ss || !this.dom) { return; }
+        var btn = this.dom.sheet.querySelector('[data-s-speak]');
+        if (ss.speaking) { ss.cancel(); btn.textContent = '🔊 Dengarkan'; return; }
+        var sh = this.dom.sheet;
+        var parts = [sh.querySelector('[data-s-title]').textContent, sh.querySelector('[data-s-text]').textContent];
+        [].forEach.call(sh.querySelectorAll('[data-s-list] li'), function (li, i) { parts.push('Nomor ' + (i + 1) + '. ' + li.textContent); });
+        var u = new SpeechSynthesisUtterance(parts.join('. ').replace(/[“”👆👇⏳✅]/g, ''));
+        u.lang = 'id-ID';
+        u.rate = 0.9;
+        u.onend = u.onerror = function () { btn.textContent = '🔊 Dengarkan'; };
+        btn.textContent = '⏹ Berhenti';
+        ss.speak(u);
+    };
+
+    // Kecilkan / buka kartu. Saat kecil, kartu jadi pil mungil supaya bagian halaman di bawahnya bisa diketuk.
+    Tour.prototype.setMin = function (on) {
+        if (!this.dom) { return; }
+        var p = this.dom.panel;
+        p.classList.toggle('is-min', !!on);
+        var b = p.querySelector('[data-min]');
+        b.textContent = on ? 'Buka tutorial ▴' : 'Kecilkan ▾';
+        b.setAttribute('aria-label', on ? 'Buka kartu tutorial' : 'Kecilkan kartu tutorial');
+        this.sync();
+    };
+
+    // Tampilkan penanda "geser" bila isi kartu masih ada di bawah.
+    Tour.prototype.updateMore = function () {
+        if (!this.dom) { return; }
+        var p = this.dom.panel;
+        var b = p.querySelector('[data-body]');
+        var more = !p.classList.contains('is-min') && (b.scrollHeight - b.scrollTop - b.clientHeight > 6);
+        p.classList.toggle('has-more', more);
+    };
+
     // Halaman TIDAK digeser. Kartu menempel di bawah bingkai aplikasi, dan
     // pindah ke atas isi halaman bila di bawah akan menutupi bagian yang disorot.
+    // Isi kartu (judul + teks) bisa DIGULIR; tombol "Mengerti"/"Lewati" selalu terlihat di bawah kartu.
+    // Penting: tinggi alami dihitung dari scrollHeight, TANPA mengosongkan max-height, supaya posisi gulir tidak ter-reset.
     Tour.prototype.layoutPanel = function () {
         if (!this.uiOn) { return; }
         var p = this.dom.panel;
+        var body = p.querySelector('[data-body]');
         if (p.classList.contains('is-center')) {
-            p.style.left = p.style.width = p.style.top = p.style.bottom = p.style.maxHeight = '';
+            p.style.left = p.style.width = p.style.top = p.style.bottom = p.style.right = p.style.maxHeight = '';
+            this.updateMore();
             return;
         }
         var vw = window.innerWidth, vh = window.innerHeight;
@@ -489,15 +659,31 @@
         var cr = c ? c.getBoundingClientRect() : ab;
 
         var left = Math.max(0, ab.left), right = Math.min(vw, ab.right);
-        var width = Math.min(380, right - left - 20);
-        p.style.width = width + 'px';
-        p.style.left = (left + (right - left - width) / 2) + 'px';
-        p.style.maxHeight = '';                       // kembali ke batas bawaan CSS
-
         var botEdge = Math.min(vh, ab.bottom) - GAP;  // y batas bawah kartu
         var topEdge = Math.max(0, cr.top) + GAP;      // y batas atas kartu
-        var ph = p.offsetHeight;
         var box = this.hlBox();
+
+        // ---- Mode kecil: pil di pojok kanan, di sisi yang jauh dari bagian yang disorot ----
+        if (p.classList.contains('is-min')) {
+            p.style.width = 'auto';
+            p.style.left = 'auto';
+            p.style.maxHeight = 'none';
+            p.style.right = Math.max(GAP, vw - right + GAP) + 'px';
+            var lowerHalf = box && (box.top + box.height / 2) > (topEdge + botEdge) / 2;
+            if (lowerHalf) { p.style.bottom = 'auto'; p.style.top = topEdge + 'px'; this.side = 'top'; }
+            else { p.style.top = 'auto'; p.style.bottom = 'calc(' + Math.max(0, vh - botEdge) + 'px + env(safe-area-inset-bottom, 0px))'; this.side = 'bottom'; }
+            return;
+        }
+
+        var width = Math.min(380, right - left - 20);
+        p.style.width = width + 'px';
+        p.style.right = 'auto';
+        p.style.left = (left + (right - left - width) / 2) + 'px';
+
+        var cap = Math.floor(vh * 0.58);                                   // batas tinggi bawaan
+        var natural = p.offsetHeight - body.clientHeight + body.scrollHeight;   // tinggi sesuai isi saat ini
+        var limit = cap;
+        var ph = Math.min(natural, limit);
         var side = 'bottom';
 
         if (box) {
@@ -507,14 +693,15 @@
             else if (this.side === 'bottom' && fitsBottom) { side = 'bottom'; }
             else if (fitsBottom)                          { side = 'bottom'; }
             else if (fitsTop)                             { side = 'top'; }
-            else {                                        // tak ada yang muat: pilih sisi lebih lega, kartu diperkecil
+            else {                                        // tak ada yang muat: pilih sisi lebih lega, isi kartu jadi bisa digulir
                 var roomBottom = botEdge - box.bottom - 4;
                 var roomTop    = box.top - 4 - topEdge;
                 side = roomBottom >= roomTop ? 'bottom' : 'top';
-                p.style.maxHeight = Math.max(110, Math.floor(side === 'bottom' ? roomBottom : roomTop)) + 'px';
+                limit = Math.max(170, Math.min(cap, Math.floor(side === 'bottom' ? roomBottom : roomTop)));
             }
         }
         this.side = side;
+        p.style.maxHeight = limit + 'px';
 
         if (side === 'bottom') {
             p.style.top = 'auto';
@@ -523,6 +710,7 @@
             p.style.bottom = 'auto';
             p.style.top = topEdge + 'px';
         }
+        this.updateMore();
     };
 
     // Kotak sorotan (ring) mengikuti elemen; bagian di luar area isi dipotong.
@@ -540,13 +728,14 @@
 
     Tour.prototype.destroy = function () {
         this.dead = true;
+        try { if (window.speechSynthesis) { window.speechSynthesis.cancel(); } } catch (e) {}
         clearInterval(this.tickTimer);
         this.timers.forEach(clearTimeout);
         this.handlers.forEach(function (h) { h.t.removeEventListener(h.e, h.f, h.c); });
         this.handlers = [];
         document.body.classList.remove('amtt-on');
         if (this.dom) {
-            [this.dom.dim, this.dom.ring, this.dom.panel].forEach(function (n) {
+            [this.dom.dim, this.dom.ring, this.dom.panel, this.dom.sheet].forEach(function (n) {
                 if (n && n.parentNode) { n.parentNode.removeChild(n); }
             });
             this.dom = null;
