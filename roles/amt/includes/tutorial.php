@@ -44,6 +44,11 @@
  *   'hold'      => (opsional) lama pesan 'ok' tampil sebelum pindah langkah
  *                  (milidetik; bawaan 1000)
  *   'button'    => (opsional) label tombol di kartu (mis. "Mulai")
+ *   'skipLabel' => (opsional) teks tautan "Lewati" di kartu (mis. "Sudah cukup sampai di sini")
+ *   'camera'    => (opsional) true = langkah ini dipandu DI DALAM kamera layar penuh (.amtcam). Biasanya kartu
+ *                  tutorial disembunyikan saat kamera terbuka; langkah bertanda ini tetap tampil di atas kamera.
+ *   'over'      => (opsional) true = kartu + sorotan ditampilkan di atas pop up/kamera (z-index lebih tinggi),
+ *                  mis. pop up sukses "Lanjutkan ke Homepage". 'camera' otomatis ikut 'over'.
  *
  * Halaman TIDAK digulir otomatis oleh tutorial. Kartu yang menyesuaikan
  * posisinya (atas / bawah) supaya tidak menutupi bagian yang disorot.
@@ -102,9 +107,9 @@ const AMT_TOUR_JOURNEYS = [
     'verifikasi' => ['label' => 'Verifikasi Order', 'total' => 4],
     // Foto Surat Jalan: 1 buka kartu Foto Surat Jalan, 2 ambil foto tiap LO, 3 periksa hasil, 4 Simpan Foto
     'suratjalan' => ['label' => 'Foto Surat Jalan', 'total' => 4],
-    // Rating Petugas SPBU: 1 buka kartu Rating, 2 nama petugas, 3 bintang (5 penilaian), 4 ulasan (opsional),
-    // 5 Kirim, 6 ketuk Selesai di Aktifitas di SPBU, 7 konfirmasi “Kirim” pada pop up Menyelesaikan Order
-    'rating' => ['label' => 'Rating Petugas SPBU', 'total' => 7],
+    // Rating Petugas SPBU: 1 buka kartu Rating, 2 nama petugas, 3 bintang (5 penilaian),
+    // 4 Kirim, 5 ketuk Selesai di Aktifitas di SPBU, 6 konfirmasi “Kirim” pada pop up Menyelesaikan Order
+    'rating' => ['label' => 'Rating Petugas SPBU', 'total' => 6],
     // Check-Out: 1 buka menu Check-Out (setelah scan segel di AVM), 2 lokasi, 3 aktivitas, 4 foto, 5 kirim
     'checkout' => ['label' => 'Check-Out', 'total' => 5],
 ];
@@ -112,6 +117,78 @@ const AMT_TOUR_JOURNEYS = [
 // Jeda (ms) sebelum tutorial DCU muncul di beranda setelah Check-In berhasil
 // (nilainya diatur di roles/amt/includes/amt_pti_data.php)
 const AMT_TOUR_DCU_DELAY_MS = AMT_DCU_SHOW_DELAY;
+
+/**
+ * Langkah foto selfie (dipakai Start Work, Check-In, End Work, dan Check-Out). Tiga aksi berurutan, semuanya
+ * bernomor sama ($no) supaya bilah kemajuan tidak melompat:
+ *   A) ketuk kartu selfie           -> selesai saat kamera terbuka (atau foto sudah tersimpan)
+ *   B) ketuk "Foto" di kamera       -> selesai saat hasil foto tampil (mode tinjau)
+ *   C) ketuk "Simpan Foto"          -> selesai saat foto tersimpan (data-photo="1"); "Ambil Ulang" memunculkan B lagi
+ * B dan C tampil DI ATAS kamera layar penuh ('camera' => true; lihat tutorial-amt.js).
+ *
+ * @return array<int,array>
+ */
+function amt_tour_photo_steps(int $no): array
+{
+    $shot = '.amtcam.is-open .amtcam-shot:not([hidden])';   // hasil foto sedang ditinjau
+    return [
+        [
+            'no'        => $no,
+            'target'    => '#wk-box',
+            'highlight' => '#wk-photo-box',
+            'title'     => 'Ambil foto selfie',
+            'text'      => 'Ketuk kartu selfie (“Ambil Foto”) untuk membuka kamera depan.',
+            'hint'      => '👆 Ketuk kartu selfie',
+            'done'      => '#wk-form[data-photo="1"], .amtcam.is-open',
+        ],
+        [
+            'no'        => $no,
+            'camera'    => true,
+            'target'    => '.amtcam [data-act="shoot"]',
+            'title'     => 'Ketuk “Foto”',
+            'text'      => 'Hadapkan wajah ke kamera depan dan pastikan wajah terlihat jelas. Lalu ketuk tombol “Foto”.',
+            'hint'      => '👆 Ketuk tombol “Foto”',
+            'done'      => $shot . ', #wk-form[data-photo="1"]',
+        ],
+        [
+            'no'        => $no,
+            'camera'    => true,
+            'target'    => '.amtcam [data-act="save"]',
+            'title'     => 'Ketuk “Simpan Foto”',
+            'text'      => 'Periksa hasil fotonya. Bila wajah sudah jelas, ketuk “Simpan Foto”. Bila kurang bagus, ketuk “Ambil Ulang”.',
+            'hint'      => '👆 Ketuk “Simpan Foto”',
+            'done'      => '#wk-form[data-photo="1"]',
+            'ok'        => '✅ Foto sudah tersimpan',
+        ],
+    ];
+}
+
+/**
+ * Langkah sesudah "Kirim": pop up sukses ("Lanjutkan ke Homepage"), lihat roles/amt/views/_work_form.php.
+ * Kartu baru muncul setelah pop up tampil ('when'), dan tampil di atasnya ('over').
+ *
+ * @param string $mode 'start' | 'checkin' | 'end' | 'checkout'
+ */
+function amt_tour_success_step(int $no, string $mode): array
+{
+    $text = [
+        'start'    => 'Absen masuk berhasil dan Waktu Kerja sudah berjalan. Ketuk “Lanjutkan ke Homepage” untuk kembali ke beranda.',
+        'checkin'  => 'Check-In sudah tercatat. Ketuk “Lanjutkan ke Homepage”. Berikutnya lakukan DCU, lalu menu PTI akan menyala.',
+        'end'      => 'Waktu kerja Anda sudah berakhir. Ketuk “Lanjutkan ke Homepage” untuk kembali ke beranda.',
+        'checkout' => 'Check-Out sudah tercatat dan Riwayat Check-In direset. Ketuk “Lanjutkan ke Homepage” untuk kembali ke beranda.',
+    ][$mode] ?? 'Ketuk “Lanjutkan ke Homepage” untuk kembali ke beranda.';
+    return [
+        'no'        => $no,
+        'over'      => true,
+        'target'    => '#wk-success-go',
+        'highlight' => '.wk-modal-card',
+        'when'      => '#wk-success:not([hidden])',
+        'title'     => 'Ketuk “Lanjutkan ke Homepage”',
+        'text'      => $text,
+        'hint'      => '👆 Ketuk tombol hijau “Lanjutkan ke Homepage”',
+        'done'      => null,
+    ];
+}
 
 /**
  * Langkah-langkah form (lokasi, aktivitas, foto, kirim).
@@ -174,18 +251,9 @@ function amt_tour_form_steps(string $mode): array
         ];
     }
 
-    // 3) Foto selfie
+    // 3) Foto selfie: ketuk kartu -> "Foto" -> "Simpan Foto"
     $n++;
-    $steps[] = [
-        'no'        => $n,
-        'target'    => '#wk-take',
-        'highlight' => '#wk-photo-box',
-        'title'     => 'Ambil foto selfie',
-        'text'      => 'Ketuk “Ambil Foto”, hadapkan wajah ke kamera depan, ketuk tombol potret, lalu ketuk “Simpan Foto”.',
-        'hint'      => '👆 Ketuk “Ambil Foto”',
-        'done'      => '#wk-form[data-photo="1"]',
-        'ok'        => '✅ Foto sudah tersimpan',
-    ];
+    foreach (amt_tour_photo_steps($n) as $ps) { $steps[] = $ps; }
 
     // 4) Kirim
     $n++;
@@ -201,6 +269,9 @@ function amt_tour_form_steps(string $mode): array
         'hint'   => '👆 Ketuk tombol biru “Kirim”',
         'done'   => null,
     ];
+
+    // 5) Pop up sukses: Lanjutkan ke Homepage
+    $steps[] = amt_tour_success_step($n, $mode);
 
     return $steps;
 }
@@ -318,7 +389,7 @@ function amt_tour_pti_steps(string $screen): array
             'target'    => '#ptiNote',
             'highlight' => '[data-tour="pti-note"]',
             'title'     => 'Tulis catatan dulu',
-            'text'      => 'Kolom Catatan wajib diisi. Tuliskan kondisi mobil tangki, misalnya “MT dalam kondisi baik.” Tombol Kirim baru menyala setelah catatan terisi.',
+            'text'      => 'Kolom Catatan wajib diisi. Tuliskan kondisi mobil tangki, misalnya “MT baik.” Tombol Kirim baru menyala setelah catatan terisi.',
             'hint'      => '👆 Ketuk kolom Catatan, lalu ketik',
             'done'      => $next,
             'settle'    => 1500,
@@ -993,9 +1064,9 @@ function amt_tour_verif_steps(string $screen): array
 
 /**
  * Tutorial "Selesai" di layar Aktifitas di SPBU (setelah Rating terkirim, semua langkah hijau):
- *   6) ketuk tombol "Selesai"              -> selesai saat pop up "Menyelesaikan Order" terbuka (#finSheet.is-open)
- *   7) ketuk "Kirim" di pop up              -> POST finish_order, kembali ke beranda AMT
- * Bila pop up ditutup ("Batal"), langkah 6 tampil lagi.
+ *   5) ketuk tombol "Selesai"              -> selesai saat pop up "Menyelesaikan Order" terbuka (#finSheet.is-open)
+ *   6) ketuk "Kirim" di pop up              -> POST finish_order, kembali ke beranda AMT
+ * Bila pop up ditutup ("Batal"), langkah 5 tampil lagi.
  * Elemen: #finOpen, #finSheet, .amts-fin__card, #finSend (roles/amt/views/spbu.php).
  *
  * @return array{steps:array, journey:string, subKey:string}
@@ -1004,7 +1075,7 @@ function amt_tour_finish_pack(): array
 {
     return ['journey' => 'rating', 'subKey' => 'amt_spbu_finish', 'steps' => [
         [
-            'no'     => 6,
+            'no'     => 5,
             'label'  => 'Selesai di SPBU',
             'target' => '#finOpen',
             'title'  => 'Ketuk “Selesai”',
@@ -1013,7 +1084,7 @@ function amt_tour_finish_pack(): array
             'done'   => '#finSheet.is-open',
         ],
         [
-            'no'        => 7,
+            'no'        => 6,
             'label'     => 'Selesai di SPBU',
             'target'    => '#finSend',
             'highlight' => '.amts-fin__card',
@@ -1097,11 +1168,10 @@ function amt_tour_sj_steps(): array
  *   AMT mengisi nama Petugas SPBU, menilai 5 aspek dengan bintang (Safety Petugas Bongkar, Sarfas, Komunikasi,
  *   Operasional, Aspek Layanan), boleh menulis ulasan, lalu Kirim. Setelah itu tombol "Selesai" menyala.
  *
- * Langkah (nomor 1 = kartu "Rating Petugas SPBU" di layar Aktifitas di SPBU; 6-7 lihat amt_tour_finish_pack()):
+ * Langkah (nomor 1 = kartu "Rating Petugas SPBU" di layar Aktifitas di SPBU; 5-6 lihat amt_tour_finish_pack()):
  *   2) nama Petugas SPBU    -> selesai saat nama terisi (#rtForm[data-named="1"])
  *   3) bintang 5 penilaian  -> selesai saat semua kartu berbintang (#rtForm[data-allrated="1"])
- *   4) ulasan (opsional)    -> langkah baca, tombol "Mengerti"
- *   5) "Kirim"              -> POST submit_rating, kembali ke Aktifitas di SPBU
+ *   4) "Kirim"              -> POST submit_rating, kembali ke Aktifitas di SPBU
  * Penanda dari assets/js/amt-rating.js: kelas .is-rated pada .rt-card, atribut data-named / data-rated / data-allrated.
  *
  * @return array{steps:array, journey:string, subKey:?string}
@@ -1146,16 +1216,7 @@ function amt_tour_rating_steps(): array
             'hold'      => 1500,
         ],
         [
-            'no'        => 4,
-            'label'     => 'Rating Petugas SPBU',
-            'target'    => '#rtNote',
-            'title'     => 'Tulis ulasan (boleh dilewati)',
-            'text'      => 'Bagian ini opsional. Bila ada kritik atau saran untuk pelayanan SPBU, tulis di sini. Bila tidak ada, langsung ketuk “Mengerti”.',
-            'button'    => 'Mengerti',
-            'done'      => null,
-        ],
-        [
-            'no'     => 5,
+            'no'     => 4,
             'label'  => 'Rating Petugas SPBU',
             'target' => '#rtSend',
             'title'  => 'Ketuk “Kirim”',
@@ -1239,15 +1300,30 @@ function amt_tour_steps_for(string $screen, bool $running, int $checkins = 0): a
                 'done'   => null,
             ]]];
         }
-        return ['journey' => 'masuk', 'steps' => [
-            [
+        // Sesi kerja sudah berakhir (End Work berhasil) = pengguna sudah menyelesaikan seluruh alur tutorial.
+        // Kartu sambutan diganti ucapan selamat: "Mulai" = ulangi dari awal, "Sudah cukup" = tutup.
+        $tourFinished = !empty(work_data()['ended_at']);
+        $welcome = $tourFinished
+            ? [
+                'no'        => null,
+                'label'     => 'Tutorial Selesai',
+                'target'    => null,
+                'title'     => 'Selamat! Tutorial selesai 🎉',
+                'text'      => 'Selamat, Anda telah menyelesaikan sesi tutorial ini. Klik “Mulai” untuk memulai dari awal, atau pilih “Sudah cukup sampai di sini”.',
+                'button'    => 'Mulai',
+                'skipLabel' => 'Sudah cukup sampai di sini',
+                'done'      => null,
+            ]
+            : [
                 'no'     => null,
                 'target' => null,
                 'title'  => 'Selamat datang di OneFIS 👋',
                 'text'   => 'Kita mulai dari absen masuk kerja. Ikuti saja kotak yang menyala, hanya 6 langkah singkat.',
                 'button' => 'Mulai',
                 'done'   => null,
-            ],
+            ];
+        return ['journey' => 'masuk', 'steps' => [
+            $welcome,
             [
                 'no'     => 1,
                 'target' => '[data-tour="amt-menu-start_end"]',

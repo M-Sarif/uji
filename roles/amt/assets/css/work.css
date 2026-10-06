@@ -69,3 +69,38 @@
 .wk-geo { margin-top: 6px; padding: 6px 8px; border-radius: 6px; font-size: 11px; line-height: 1.35; background: #f3f4f6; color: #374151; }
 .wk-geo.ok  { background: #dcfce7; color: #166534; }
 .wk-geo.bad { background: #fee2e2; color: #991b1b; }
+
+/* ---- Seluruh kartu selfie adalah tombol (ketuk di mana saja untuk membuka kamera) ---- */
+.wk-photo:not(.taken) { cursor: pointer; -webkit-tap-highlight-color: transparent; transition: border-color .15s, background .15s, box-shadow .15s; }
+.wk-photo:not(.taken):hover { border-color: #93c5fd; }
+.wk-photo:not(.taken):active { background: #f8fafc; box-shadow: inset 0 0 0 3px rgba(37, 99, 235, .12); }
+.wk-idle { outline: none; }
+.wk-idle:focus-visible { outline: 2px solid #2563eb; outline-offset: 6px; border-radius: 10px; }
+.wk-cta { display: inline-flex; gap: 6px; align-items: center; color: #2563eb; font-weight: 600; font-size: 12px; }
+
+/* ---- Pop up sukses (Work Start / Work End / Check-In / Check-Out) ---- */
+.wk-modal {
+  position: absolute; inset: 0; z-index: 1200;
+  display: flex; align-items: center; justify-content: center; padding: 24px;
+  background: rgba(15, 23, 42, .55); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);
+}
+.wk-modal[hidden] { display: none; }
+.wk-modal.is-fixed { position: fixed; }
+.wk-modal-card {
+  width: 100%; max-width: 320px; box-sizing: border-box; text-align: center;
+  background: #fff; border-radius: 16px; padding: 24px 20px 20px;
+  box-shadow: 0 20px 40px -12px rgba(15, 23, 42, .35);
+  animation: wk-pop .18s ease-out;
+}
+.wk-modal-ico {
+  width: 44px; height: 44px; border-radius: 50%; background: #10b981; margin: 0 auto 14px;
+  display: flex; align-items: center; justify-content: center;
+}
+.wk-modal-title { margin: 0 0 6px; font-size: 15px; font-weight: 700; color: #0f172a; }
+.wk-modal-body  { margin: 0 0 18px; font-size: 12px; line-height: 1.5; color: #6b7280; }
+.wk-modal-btn {
+  display: block; width: 100%; box-sizing: border-box; padding: 11px 12px; border-radius: 8px;
+  background: #10b981; color: #fff; font-size: 13px; font-weight: 700; text-decoration: none;
+}
+.wk-modal-btn:active { background: #059669; }
+@keyframes wk-pop { from { transform: scale(.94); opacity: 0; } to { transform: scale(1); opacity: 1; } }

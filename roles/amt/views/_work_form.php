@@ -62,15 +62,15 @@ $activity  = $w['activity'] ?? '';        // End Work: mengikuti pilihan saat St
   <div id="wk-photo-box">
   <span class="wk-label"><?= $photoName ?><span style="color:#dc2626"> *</span> <span style="color:#2563eb">&#9432;</span></span>
   <div class="wk-photo" id="wk-box">
-    <!-- Sebelum diambil: ikon AMT + tombol Ambil Foto -->
-    <div class="wk-idle">
+    <!-- Sebelum diambil: ikon AMT + ajakan Ambil Foto. SELURUH kartu ini (#wk-box) bisa diketuk untuk membuka kamera. -->
+    <div class="wk-idle" role="button" tabindex="0" aria-label="Ambil Foto selfie untuk Verifikasi <?= $label ?>">
       <?= work_avatar_html(120) ?>
       <b>Selfie untuk Verifikasi <?= $label ?></b>
       <p>Arahkan wajah anda ke kamera depan handphone</p>
-      <button type="button" id="wk-take">
+      <span class="wk-cta">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
         Ambil Foto
-      </button>
+      </span>
     </div>
     <!-- Setelah diambil: ikon hilang, tampil status terverifikasi -->
     <div class="wk-done">
@@ -86,10 +86,22 @@ $activity  = $w['activity'] ?? '';        // End Work: mengikuti pilihan saat St
 
   <button type="submit" class="wk-submit" id="wk-submit" disabled>
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></svg>
-    <?= $isOut ? 'Kirim Check-Out' : 'Kirim' ?>
+    <span id="wk-submit-label"><?= $isOut ? 'Kirim Check-Out' : 'Kirim' ?></span>
   </button>
 
 </form>
+
+<!-- Pop up sukses (muncul setelah Kirim berhasil; dipindah ke dalam .app-container oleh skrip di bawah) -->
+<div class="wk-modal" id="wk-success" role="dialog" aria-modal="true" aria-labelledby="wk-success-title" hidden>
+  <div class="wk-modal-card">
+    <div class="wk-modal-ico">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+    </div>
+    <h3 class="wk-modal-title" id="wk-success-title"></h3>
+    <p class="wk-modal-body" id="wk-success-body"></p>
+    <a class="wk-modal-btn" id="wk-success-go" href="index.php?screen=<?= htmlspecialchars(amt_home_screen(), ENT_QUOTES) ?>">Lanjutkan ke Homepage</a>
+  </div>
+</div>
 
 <script src="<?= AMT_URL ?>/js/camera.js?v=<?= (int) @filemtime(AMT_ASSET_DIR . '/js/camera.js') ?>"></script>
 <script>
@@ -132,8 +144,58 @@ $activity  = $w['activity'] ?? '';        // End Work: mengikuti pilihan saat St
     }
   });
 
-  document.getElementById('wk-take').addEventListener('click', function () { cam.open(); });
+  // SELURUH kartu selfie (#wk-box) adalah tombol: ketuk di mana saja pada kartu = buka kamera.
+  // Setelah foto diambil kartu berubah jadi "Foto Terverifikasi"; hanya "Ambil Ulang" yang membuka kamera lagi.
+  box.addEventListener('click', function () {
+    if (!box.classList.contains('taken')) { cam.open(); }
+  });
+  box.querySelector('.wk-idle').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') { e.preventDefault(); cam.open(); }
+  });
   document.getElementById('wk-redo').addEventListener('click', function () { cam.open(); });
+
+  // ---- Kirim: tanpa pindah halaman; hasil sukses tampil sebagai pop up, lalu "Lanjutkan ke Homepage" ----
+  var okModal = document.getElementById('wk-success');
+  var appHost = document.querySelector('.app-container');
+  if (okModal && appHost) { appHost.appendChild(okModal); } else if (okModal) { okModal.classList.add('is-fixed'); }
+  var submitLabel = document.getElementById('wk-submit-label');
+  var sending = false;
+
+  function showSuccess(d) {
+    document.getElementById('wk-success-title').textContent = d.title || 'Berhasil';
+    document.getElementById('wk-success-body').textContent  = d.body || '';
+    var go = document.getElementById('wk-success-go');
+    if (d.next) { go.setAttribute('href', d.next); }
+    okModal.hidden = false;
+    go.focus();
+    document.dispatchEvent(new CustomEvent('amt:state'));
+  }
+
+  form.addEventListener('submit', function (e) {
+    if (!window.fetch || !window.FormData) { return; }   // peramban lama: kirim biasa (server mengalihkan ke beranda)
+    e.preventDefault();
+    if (sending || submit.disabled) { return; }
+    sending = true;
+    submit.disabled = true;
+    submitLabel.textContent = 'Mengirim…';
+    // PENTING: pakai getAttribute('action'), BUKAN form.action. Form ini punya <input name="action">
+    // yang menimpa properti form.action (hasilnya elemen input, bukan alamat), sehingga POST nyasar ke
+    // "/[object HTMLInputElement]" (404 di hosting) lalu halaman dimuat ulang = kembali ke form.
+    fetch(form.getAttribute('action'), {
+      method: 'POST', body: new FormData(form), credentials: 'same-origin',
+      headers: { 'Accept': 'application/json' }
+    }).then(function (r) {
+      // Server menjawab JSON bila sukses. Bila ditolak (mis. lokasi di luar jangkauan) server mengalihkan
+      // kembali ke form -> jawabannya HTML -> muat ulang form seperti sebelumnya.
+      if ((r.headers.get('Content-Type') || '').indexOf('application/json') === -1) { throw new Error('ditolak'); }
+      return r.json();
+    }).then(function (d) {
+      if (!d || !d.ok) { throw new Error('ditolak'); }
+      showSuccess(d);
+    }).catch(function () {
+      window.location.reload();
+    });
+  });
 
   // ---- Lokasi (simulasi) + peta Google Maps + batas jangkauan ----
   var BASE = { lat: <?= WORK_LAT ?>, lng: <?= WORK_LNG ?> }, RADIUS = <?= WORK_RADIUS_M ?>;

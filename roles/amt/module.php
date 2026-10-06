@@ -220,6 +220,34 @@ function amt_reset_all(): void
     amt_tour_bump();
 }
 
+/** Permintaan dari JS (fetch) yang meminta jawaban JSON, bukan redirect? */
+function amt_wants_json(): bool
+{
+    return stripos((string) ($_SERVER['HTTP_ACCEPT'] ?? ''), 'application/json') !== false;
+}
+
+/**
+ * Form kerja (Start/End Work, Check-In, Check-Out) berhasil dikirim.
+ *  - Lewat JS (fetch): jawab JSON -> form menampilkan pop up sukses + tombol "Lanjutkan ke Homepage".
+ *  - Tanpa JS: simpan notifikasi (toast) lalu redirect ke beranda seperti biasa.
+ */
+function amt_work_success(string $title, string $body): void
+{
+    if (amt_wants_json()) {
+        header('Content-Type: application/json; charset=utf-8');
+        header('Cache-Control: no-store');
+        echo json_encode([
+            'ok'    => true,
+            'title' => $title,
+            'body'  => $body,
+            'next'  => 'index.php?screen=' . rawurlencode(amt_home_screen()),
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+    $_SESSION['flash_success'] = ['title' => $title, 'body' => $body];
+    go_to(amt_home_screen());
+}
+
 /** Proses form Start Work / End Work (pola Post/Redirect/Get) */
 function amt_handle_post(string $action): void
 {
@@ -246,7 +274,7 @@ function amt_handle_post(string $action): void
                 'start_photo' => true,
                 'end_photo'   => false,
             ];
-            go_to(amt_home_screen());
+            amt_work_success('Work Start Berhasil!', 'Anda dapat melakukan check-in sekarang.');
             break;
 
         case 'submit_end_work':
@@ -261,7 +289,7 @@ function amt_handle_post(string $action): void
             amt_tour_bump();
             $_SESSION['work']['ended_at'] = time();
             $_SESSION['work']['end_photo'] = true;
-            go_to(amt_home_screen());
+            amt_work_success('Work End Berhasil!', 'Waktu kerja Anda sudah berakhir. Terima kasih atas kerja keras Anda hari ini.');
             break;
 
         case 'submit_checkin':
@@ -289,11 +317,11 @@ function amt_handle_post(string $action): void
                 'photo'    => $photo,
             ];
             amt_flow_checkin_success(); // mulai alur: tutorial DCU -> PTI aktif
-            $_SESSION['flash_success'] = [
-                'title' => 'Check-In Berhasil',
-                'body'  => 'Check-In ke-' . count($_SESSION['work']['checkins']) . ' tercatat di Riwayat Check-In.',
-            ];
-            go_to(amt_home_screen());
+            $nCheckin = count($_SESSION['work']['checkins']);
+            amt_work_success(
+                'Berhasil Check-In ' . ucfirst(amt_out_ordinal($nCheckin)),
+                'Silakan lakukan pre-trip MT yang akan dikendarai untuk pengiriman.'
+            );
             break;
 
         case 'submit_spbu_arrive':

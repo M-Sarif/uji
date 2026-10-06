@@ -182,11 +182,7 @@ function amt_out_handle_post(): void
     $_SESSION['amt_out']['after_at'] = time();   // beranda menampilkan tutorial langkah berikutnya
     amt_tour_bump();
 
-    $_SESSION['flash_success'] = [
-        'title' => 'Check-Out Berhasil',
-        'body'  => 'Check-Out tercatat. Riwayat Check-In sudah direset.',
-    ];
-    go_to(amt_home_screen());
+    amt_work_success('Berhasil Check-Out', 'Check-Out tercatat. Riwayat Check-In sudah direset.');
 }
 
 /* ------------------------------------------------------------
@@ -284,16 +280,8 @@ function amt_out_tour_form_steps(): array
             'done'      => '#wk-form[data-act="1"]',
             'ok'        => '✅ Aktivitas sudah dipilih',
         ],
-        [
-            'no'        => 4,
-            'target'    => '#wk-take',
-            'highlight' => '#wk-photo-box',
-            'title'     => 'Ambil foto selfie',
-            'text'      => 'Ketuk “Ambil Foto”, hadapkan wajah ke kamera depan, ketuk tombol potret, lalu ketuk “Simpan Foto”.',
-            'hint'      => '👆 Ketuk “Ambil Foto”',
-            'done'      => '#wk-form[data-photo="1"]',
-            'ok'        => '✅ Foto sudah tersimpan',
-        ],
+        // Foto selfie: ketuk kartu -> "Foto" -> "Simpan Foto" (3 aksi, nomor sama)
+        ...amt_tour_photo_steps(4),
         [
             'no'     => 5,
             'target' => '#wk-submit',
@@ -302,5 +290,7 @@ function amt_out_tour_form_steps(): array
             'hint'   => '👆 Ketuk tombol biru “Kirim Check-Out”',
             'done'   => null,
         ],
+        // Pop up sukses: Lanjutkan ke Homepage
+        amt_tour_success_step(5, 'checkout'),
     ];
 }

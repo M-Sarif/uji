@@ -106,8 +106,9 @@
         return r.width > 0 && r.height > 0;
     }
     // Kamera layar penuh / pop up foto: tutorial disembunyikan supaya tidak menimpa.
-    function overlayOpen() {
-        return !!(qs('.amtcam.is-open') || qs('#ci-modal:not([hidden])') || qs('#sc-modal:not([hidden])') || qs('#sjModal:not([hidden])'));
+    // allowCam = true bila langkah yang sedang tampil memang dipandu DI DALAM kamera ('camera': true).
+    function overlayOpen(allowCam) {
+        return !!((!allowCam && qs('.amtcam.is-open')) || qs('#ci-modal:not([hidden])') || qs('#sc-modal:not([hidden])') || qs('#sjModal:not([hidden])') || (!allowCam && qs('#wk-success:not([hidden])')));
     }
     function el(tag, cls, html) {
         var n = document.createElement(tag);
@@ -146,6 +147,7 @@
         this.whenAt  = {};      // kapan syarat 'when' sebuah langkah mulai terpenuhi
         this.autoTimers = {};   // pewaktu 'autoHide' per langkah (dipasang sekali)
         this.lastInputAt = 0;   // kapan pengguna terakhir mengetik (untuk 'settle')
+        this.lastInputEl = null; // elemen yang terakhir diketik (untuk 'settle')
         this.dom     = null;
         this.timers  = [];
         this.handlers = [];
@@ -272,7 +274,13 @@
 
         // Perubahan form / ketukan apa pun -> periksa keadaan halaman segera.
         var soon = function () { self._later(function () { self.tick(); }, 60); };
-        this._on(document, 'input', function () { self.lastInputAt = Date.now(); }, true);
+        // Catat WAKTU dan ELEMEN input terakhir. Penting: ketukan bintang (radio) / centang juga memicu
+        // event 'input'; kalau hanya waktunya yang dicatat, langkah "nama terisi" ikut dianggap sedang
+        // diketik lagi dan tutorial bolak-balik ke langkah nama setiap kali bintang diketuk.
+        this._on(document, 'input', function (e) {
+            self.lastInputAt = Date.now();
+            self.lastInputEl = (e && e.target) || null;
+        }, true);
         this._on(document, 'input', soon, true);
         this._on(document, 'change', soon, true);
         this._on(document, 'click', soon, true);
@@ -298,7 +306,13 @@
         if (st.done) {
             var cond = !!qs(st.done);
             // Kolom teks: tunggu pengguna berhenti mengetik sebentar (jangan lompat di tengah ketikan).
-            if (cond && st.settle && (Date.now() - this.lastInputAt) < st.settle) { cond = false; }
+            // 'settle' HANYA berlaku bila yang baru diketik adalah kolom milik langkah ini (target-nya),
+            // bukan kolom/bintang lain di halaman yang sama.
+            if (cond && st.settle && (Date.now() - this.lastInputAt) < st.settle) {
+                var le = this.lastInputEl;
+                var own = !!(le && st.target && le.closest && le.closest(st.target));
+                if (own) { cond = false; }
+            }
             return st.needTap ? (cond && !!this.acked[i]) : cond;
         }
         return !!this.acked[i];
@@ -337,7 +351,13 @@
     Tour.prototype.tick = function () {
         if (this.dead || !this.ready) { return; }
 
-        if (overlayOpen()) { this.hideUI(); return; }
+        // Kamera layar penuh / pop up foto menyembunyikan tutorial, KECUALI langkah yang memang dipandu di dalamnya
+        // (langkah 'camera' di kamera, langkah 'over' di pop up sukses).
+        if (overlayOpen(false)) {
+            var cs = this.steps[this.firstIncomplete()];
+            // overlayOpen(true) = ada pop up LAIN (foto, dll) yang terbuka -> selalu sembunyikan.
+            if (overlayOpen(true) || !(cs && (cs.camera || cs.over))) { this.hideUI(); return; }
+        }
 
         // Sedang menahan pesan "✅ sudah benar" -> biarkan tampil sebentar.
         if (this.okUntil && Date.now() < this.okUntil) { return; }
@@ -410,6 +430,9 @@
         var btn = p.querySelector('[data-primary]');
         btn.textContent = st.button || '';
         btn.hidden = forOk || !st.button;
+        // Teks tautan "Lewati" bisa diganti per langkah (mis. "Sudah cukup sampai di sini").
+        var skipBtn = p.querySelector('[data-skip]');
+        if (skipBtn) { skipBtn.textContent = (!forOk && st.skipLabel) ? st.skipLabel : 'Lewati'; }
     };
 
     Tour.prototype.show = function (idx) {
@@ -434,6 +457,7 @@
 
         d.panel.classList.remove('is-ok');
         d.ring.classList.remove('is-ok');
+        this.setOver(st);
         d.panel.classList.toggle('is-center', center);
         d.dim.classList.toggle('is-on', center);
         d.panel.classList.add('is-on');
@@ -466,9 +490,17 @@
         this.hlEl  = isShown(hl) ? hl : null;
     };
 
+    // Langkah di dalam kamera / pop up: kartu + sorotan harus berada DI ATAS lapisan itu.
+    Tour.prototype.setOver = function (st) {
+        var on = !!(st && (st.over || st.camera));
+        this.dom.panel.classList.toggle('is-over', on);
+        this.dom.ring.classList.toggle('is-over', on);
+    };
+
     Tour.prototype.showOk = function (idx) {
         var d = this.dom;
         this.uiOn = true;
+        this.setOver(this.steps[idx]);
         this.fill(this.steps[idx], true);
         d.panel.classList.remove('is-center');
         d.panel.classList.add('is-on', 'is-ok');

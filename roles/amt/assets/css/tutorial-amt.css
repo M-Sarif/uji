@@ -272,3 +272,8 @@ body:has(input:focus, textarea:focus, select:focus) .amtt-fab { display: none; }
 
 /* Cegah halaman "melompat" saat tooltip tutorial membuka/menutup */
 .content { overflow-anchor: none; }
+
+/* Langkah di dalam kamera layar penuh / pop up sukses: kartu & sorotan harus di atas lapisan itu
+   (kamera z-index 1000, pop up sukses 1200 -> lihat camera.css & work.css) */
+.amtt-ring.is-over  { z-index: 1301; }
+.amtt-panel.is-over { z-index: 1302; }
