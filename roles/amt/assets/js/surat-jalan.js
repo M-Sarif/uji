@@ -1,7 +1,7 @@
 /* ============================================================
    OneFIS - AMT - surat-jalan.js
    Layar "Surat Jalan" (roles/amt/views/surat_jalan.php):
-   - tiap Nomor LO: Ambil Foto -> kamera BELAKANG layar penuh (camera.js)
+   - tiap Nomor LO: ketuk SELURUH kartu (Ambil Foto) -> kamera BELAKANG layar penuh (camera.js)
    - hasil foto tampil di kartu + "Lihat Foto" (pop up, bisa Ambil Ulang)
    - tombol "Simpan Foto" aktif bila SEMUA LO sudah punya foto
    File ini HANYA berisi JavaScript.
@@ -73,7 +73,13 @@
 
   /* ---------- Tombol di kartu ---------- */
   items.forEach(function (item) {
-    item.querySelector('[data-act=take]').addEventListener('click', function () { open(item); });
+    // SELURUH kartu foto (.sj-card) adalah tombol "Ambil Foto" selama kartu ini belum berisi foto: ketuk di mana saja
+    // pada kartu = buka kamera. Tombol "Ambil Foto" di dalamnya ikut bekerja lewat klik yang naik ke kartu
+    // (jadi akses keyboard tetap jalan). Setelah ada foto, kartu tidak lagi membuka kamera: pakai "Lihat Foto" -> "Ambil Ulang".
+    var emptyState = item.querySelector('.sj-empty-state');
+    item.querySelector('.sj-card').addEventListener('click', function () {
+      if (!emptyState.hidden) { open(item); }
+    });
     item.querySelector('[data-act=view]').addEventListener('click', function () { openModal(item); });
 
     // ikon (i): tampilkan / sembunyikan nama order LO

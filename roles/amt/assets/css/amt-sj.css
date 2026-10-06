@@ -44,6 +44,11 @@
     font-size: 12px; font-weight: 600; color: var(--sj-blue);
 }
 .sj-link:active { opacity: .6; }
+
+/* Seluruh kartu foto = tombol Ambil Foto (selama belum ada foto; kelas .has-photo dipasang oleh surat-jalan.js) */
+.sj-item:not(.has-photo) .sj-card { cursor: pointer; -webkit-tap-highlight-color: transparent; transition: border-color .15s, box-shadow .15s, background .15s; }
+.sj-item:not(.has-photo) .sj-card:hover { border-color: #93c5fd; }
+.sj-item:not(.has-photo) .sj-card:active { background: #f8fafc; box-shadow: 0 6px 20px rgba(15, 23, 42, .07), inset 0 0 0 3px rgba(37, 99, 235, .12); }
 .sj-link:focus-visible, .sj-save:focus-visible { outline: 3px solid rgba(37, 99, 235, .3); outline-offset: 2px; border-radius: 8px; }
 
 /* ---------- Tombol Simpan Foto (menempel di bawah) ---------- */

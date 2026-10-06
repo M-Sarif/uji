@@ -13,7 +13,9 @@ const AMT_VERIF_SCREENS = ['amt_verifikasi', 'amt_verifikasi_qr', 'amt_verifikas
 const AMT_VERIF_QR_SECONDS     = 120;  // batas waktu pindai kode QR (2 menit)
 const AMT_VERIF_CODE_SECONDS   = 180;  // batas waktu kode konfirmasi (3 menit, sesuai tampilan 02:53)
 const AMT_VERIF_CODE_LENGTH    = 6;    // jumlah kotak angka
-const AMT_VERIF_QR_AUTOSCAN_MS = 3000; // simulasi: QR "terpindai" otomatis setelah 3 detik (0 = hanya lewat tombol)
+// Pemindaian QR berjalan OTOMATIS (tidak ada tombol simulasi):
+const AMT_VERIF_QR_SCAN_MS      = 3000; // TANPA tutorial: QR terpindai 3 detik setelah layar Pindai Kode QR dibuka (tombol "Pindai Kode QR" diketuk)
+const AMT_VERIF_QR_SCAN_TOUR_MS = 4000; // MODE TUTORIAL: QR terpindai 4 detik setelah pengguna mengetuk "Mengerti"
 const AMT_VERIF_SIM_NOTE       = true; // tampilkan catatan "mode simulasi"
 const AMT_VERIF_ORDER_TYPE     = 'Produk'; // tulisan pada kartu halaman berhasil
 

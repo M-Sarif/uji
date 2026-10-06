@@ -57,8 +57,9 @@
         announce(key);
     }
     // Beri tahu halaman (mis. beranda AMT) bahwa sebuah tutorial sudah selesai/ditutup.
-    function announce(key) {
-        try { document.dispatchEvent(new CustomEvent('amt:tour-done', { detail: { key: key } })); } catch (e) {}
+    // extra.skipped = true bila tutorial ditutup lewat "Lewati" (bukan diselesaikan).
+    function announce(key, extra) {
+        try { document.dispatchEvent(new CustomEvent('amt:tour-done', { detail: { key: key, skipped: !!(extra && extra.skipped) } })); } catch (e) {}
     }
     // Hapus catatan langkah-langkah 'remember' milik sebuah tutorial (mulai ulang dari awal).
     function forgetRemembered(key) {
@@ -250,7 +251,7 @@
 
         panel.querySelector('[data-skip]').addEventListener('click', function () {
             setSkipped(self.key, true);
-            announce(self.key);
+            announce(self.key, { skipped: true });
             self.destroy();
             toast('Tutorial disembunyikan. Ketuk tombol “?” untuk membukanya lagi.');
         });
@@ -826,6 +827,9 @@
         },
         // Hapus catatan "sudah selesai" (dipakai saat pengguna memilih peran).
         reset: function () { resetAll(); },
+        // true bila tutorial layar ini sedang berjalan (kartu tampil / akan tampil). Dipakai layar yang
+        // waktunya bergantung pada mode tutorial (mis. Pindai Kode QR).
+        isActive: function () { return !!(activeTour && activeTour.dom && !activeTour.dead); },
         // Halaman lain boleh meminta pemeriksaan ulang keadaan.
         rescan: function () { if (activeTour) { activeTour.tick(); } }
     };

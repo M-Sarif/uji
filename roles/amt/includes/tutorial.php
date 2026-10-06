@@ -979,23 +979,12 @@ function amt_tour_verif_steps(string $screen): array
                 'label'    => 'Pindai Kode QR',
                 'target'   => '#vqrFrame',
                 'title'    => 'Konfirmasi ke Petugas SPBU',
-                'text'     => 'Minta Petugas SPBU membuka aplikasinya dan memastikan permintaan verifikasi (notifikasi terbaru) sudah terkirim. Lalu arahkan kamera ke kode QR di HP Petugas SPBU. Waktu pindai 2 menit, lihat hitungan mundur di bawah.',
+                'text'     => 'Minta Petugas SPBU membuka aplikasinya dan memastikan permintaan verifikasi (notifikasi terbaru) sudah terkirim. Lalu arahkan kamera ke kode QR di HP Petugas SPBU. Waktu pindai 2 menit, lihat hitungan mundur di bawah. Setelah Anda ketuk “Mengerti”, kode QR dipindai otomatis dalam ' . (int) (AMT_VERIF_QR_SCAN_TOUR_MS / 1000) . ' detik.',
                 'hint'     => '👆 Ketuk “Mengerti” bila Petugas SPBU sudah siap',
                 'button'   => 'Mengerti',
+                'announce' => true,   // layar Pindai Kode QR mulai memindai otomatis saat "Mengerti" diketuk (amt_verifikasi_qr.php)
                 'skip'     => '.vqr.is-expired',
                 'done'     => null,
-            ],
-            [
-                'no'     => null,
-                'label'  => 'Pindai Kode QR',
-                'target' => '#vqrNow',
-                'title'  => $sim ? 'Simulasikan scan' : 'Pindai kode QR',
-                'text'   => $sim
-                    ? 'Aplikasi ini masih mode simulasi dan kamera tidak dinyalakan. Ketuk “Simulasikan Scan” sebagai pengganti memindai QR. Bila waktu habis, ketuk “Coba Lagi”.'
-                    : 'Arahkan kamera ke QR di HP Petugas SPBU. Bila waktu habis, ketuk “Coba Lagi”.',
-                'hint'   => '👆 Ketuk “Simulasikan Scan”',
-                'skip'   => '.vqr.is-expired',
-                'done'   => null,
             ],
         ]];
     }

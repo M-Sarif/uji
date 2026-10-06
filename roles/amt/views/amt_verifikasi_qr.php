@@ -1,6 +1,6 @@
 <?php
 /**
- * Layar: ?screen=amt_verifikasi_qr  (Pindai Kode QR - SIMULASI, kamera tidak dihidupkan)
+ * Layar: ?screen=amt_verifikasi_qr  (Pindai Kode QR - pemindaian disimulasikan otomatis, kamera tidak dihidupkan)
  * Letak: roles/amt/views/amt_verifikasi_qr.php
  */
 $remaining = amt_verif_remaining('qr');
@@ -25,11 +25,6 @@ $payload   = 'ONEFIS-VERIF|' . (amt_verif_ship_id() ?: 'SIM') . '|' . implode(',
         <p class="vqr-note">Kode QR akan kadaluwarsa dalam waktu...</p>
         <p class="vqr-timer" id="vqrTimer"><?= sprintf('%02d:%02d', intdiv($remaining, 60), $remaining % 60) ?></p>
 
-        <button type="button" class="vqr-btn" id="vqrNow">Simulasikan Scan</button>
-        <?php if (AMT_VERIF_SIM_NOTE): ?>
-            <p class="vqr-sim">Mode simulasi: kamera tidak dinyalakan.</p>
-        <?php endif; ?>
-
         <div class="vqr-expired" id="vqrExpired" hidden>
             <p class="vqr-expired__title">Kode QR kedaluwarsa</p>
             <p class="vqr-expired__text">Waktu pemindaian sudah habis.</p>
@@ -44,13 +39,12 @@ $payload   = 'ONEFIS-VERIF|' . (amt_verif_ship_id() ?: 'SIM') . '|' . implode(',
 (function () {
     var remaining = <?= (int) $remaining ?>;
     var scanUrl = <?= json_encode($scanUrl) ?>;
-    var autoMs = <?= (int) AMT_VERIF_QR_AUTOSCAN_MS ?>;
+    var scanMs = <?= (int) AMT_VERIF_QR_SCAN_MS ?>;           // tanpa tutorial: 3 detik
+    var scanTourMs = <?= (int) AMT_VERIF_QR_SCAN_TOUR_MS ?>;  // mode tutorial: 4 detik setelah "Mengerti"
     var root = document.getElementById('vqr');
     var timer = document.getElementById('vqrTimer');
     var status = document.getElementById('vqrStatus');
     var expired = document.getElementById('vqrExpired');
-    var btn = document.getElementById('vqrNow');
-    var frame = document.getElementById('vqrFrame');
     var end = Date.now() + remaining * 1000;
     var finished = false;
 
@@ -71,7 +65,6 @@ $payload   = 'ONEFIS-VERIF|' . (amt_verif_ship_id() ?: 'SIM') . '|' . implode(',
         finished = true;
         root.classList.add('is-expired');
         status.textContent = 'Waktu habis';
-        btn.disabled = true;
         expired.hidden = false;
     }
     function scan() {
@@ -79,7 +72,6 @@ $payload   = 'ONEFIS-VERIF|' . (amt_verif_ship_id() ?: 'SIM') . '|' . implode(',
         finished = true;
         root.classList.add('is-found');
         status.textContent = 'Kode QR terbaca ✓';
-        btn.disabled = true;
         setTimeout(function () { window.location.href = scanUrl; }, 700);
     }
     function tick() {
@@ -92,14 +84,26 @@ $payload   = 'ONEFIS-VERIF|' . (amt_verif_ship_id() ?: 'SIM') . '|' . implode(',
     show(remaining);
     if (remaining <= 0) { expire(); return; }
     setInterval(tick, 250);
-    btn.addEventListener('click', scan);
-    frame.addEventListener('click', scan);
-    // Scan otomatis (simulasi) ditunda selama kartu tutorial tampil, supaya sempat dibaca.
-    function autoScan() {
-        if (finished) return;
-        if (document.body.classList.contains('amtt-on')) { setTimeout(autoScan, 500); return; }
-        scan();
+
+    /* Pemindaian otomatis (simulasi) - tidak ada tombol; waktunya bergantung pada mode tutorial:
+     *  - mode tutorial : 4 detik SETELAH pengguna mengetuk "Mengerti" di kartu tutorial,
+     *  - tanpa tutorial: 3 detik setelah layar ini dibuka (yaitu setelah tombol "Pindai Kode QR" diketuk). */
+    var armed = false;
+    function arm(ms) {
+        if (armed || finished) return;
+        armed = true;
+        setTimeout(scan, ms);
     }
-    if (autoMs > 0) setTimeout(autoScan, autoMs);
+    function decide() {
+        var tour = window.OneFISTour;
+        if (!(tour && tour.isActive && tour.isActive())) { arm(scanMs); return; }   // tutorial tidak tampil
+        document.addEventListener('amt:tour-done', function (e) {
+            if (!e.detail || e.detail.key !== 'amt_verif_qr') return;
+            // "Mengerti" -> 4 detik. "Lewati" (tutorial ditutup tanpa Mengerti) -> sama seperti tanpa tutorial.
+            arm(e.detail.skipped ? scanMs : scanTourMs);
+        });
+    }
+    // Mesin tutorial dimuat di akhir halaman (core/layout_bottom.php), jadi tunggu halaman selesai dimuat.
+    if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', decide); } else { decide(); }
 })();
 </script>
