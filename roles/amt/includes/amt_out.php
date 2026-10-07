@@ -13,9 +13,11 @@
  *      diklik hilang sendiri setelah 20 detik). Menu Check-Out masih terkunci selama kartu tampil.
  *   3. Kartu tertutup -> 0,3 detik kemudian menu Check-Out menyala; 1 detik kemudian tutorial
  *      menyorot menu Check-Out. Failsafe: menyala sendiri 30 detik setelah order selesai.
- *   4. Layar Check-Out: Riwayat Check-In + form (lokasi di depot, aktivitas, foto, Kirim Check-Out);
- *      logikanya sama seperti Check-In.
- *   5. Check-Out berhasil -> Riwayat Check-In dikosongkan -> beranda menampilkan TUTORIAL yang mengarahkan
+ *   4. Layar Check-Out: Riwayat Check-In + form (lokasi di depot, aktivitas, foto Check-Out, Kirim Check-Out);
+ *      logikanya sama seperti Check-In. Foto yang sudah diambil tampil sebagai pratinjau + "Hapus Foto";
+ *      tombol kirim menempel di bawah layar (terkunci "Lakukan Check-In Terlebih Dahulu" bila tak ada Check-In).
+ *   5. Check-Out berhasil -> pop up "Check-Out Berhasil" (tombol OK) -> Riwayat Check-In dikosongkan
+ *      -> beranda menampilkan TUTORIAL yang mengarahkan
  *      AMT mengakhiri kerja: menu Start / End -> End Work -> form End Work -> selesai.
  *      (Hanya tutorial; aplikasi tidak menanyakan apa pun ke pengguna.)
  *
@@ -178,11 +180,13 @@ function amt_out_handle_post(): void
     amt_pti_reset();
     amt_spbu_reset();
     amt_verif_reset();
+    amt_kendala_reset();   // ritase selesai: laporan kendala ritase ini dibersihkan (tutorial "Laporkan Kendala" tampil lagi di ritase berikutnya)
     amt_out_reset();
     $_SESSION['amt_out']['after_at'] = time();   // beranda menampilkan tutorial langkah berikutnya
     amt_tour_bump();
 
-    amt_work_success('Berhasil Check-Out', 'Check-Out tercatat. Riwayat Check-In sudah direset.');
+    // Pop up sesuai desain: "Check-Out Berhasil" + tombol "OK" (OK membawa ke beranda, tempat tutorial arahan End Work).
+    amt_work_success('Check-Out Berhasil', 'Anda berhasil melakukan Check-Out. Selamat beristirahat!', 'OK');
 }
 
 /* ------------------------------------------------------------
@@ -253,12 +257,22 @@ function amt_out_tour_after_pack(): ?array
     ];
 }
 
-/** Langkah tutorial form Check-Out (lokasi, aktivitas, foto, kirim). */
+/** Langkah tutorial layar Check-Out (riwayat, lokasi, aktivitas, foto, kirim, pop up OK). */
 function amt_out_tour_form_steps(): array
 {
     return [
+        // 2) Riwayat Check-In (bagian atas layar)
         [
             'no'        => 2,
+            'target'    => '.co-hist',
+            'title'     => 'Riwayat Check-In',
+            'text'      => 'Di atas ada daftar Check-In yang Anda lakukan pada ritase ini. Daftar ini otomatis kosong setelah Check-Out berhasil.',
+            'button'    => 'Mengerti',
+            'done'      => null,
+        ],
+        // 3) Lokasi
+        [
+            'no'        => 3,
             'target'    => '#wk-refresh',
             'highlight' => '#wk-loc',
             'title'     => 'Cek lokasi Anda',
@@ -271,8 +285,9 @@ function amt_out_tour_form_steps(): array
             'loadHint'  => '⏳ Memeriksa lokasi… tunggu pin muncul di peta',
             'condHint'  => '✅ Lokasi sudah sesuai. Pastikan pin tepat di area depot.',
         ],
+        // 4) Aktivitas
         [
-            'no'        => 3,
+            'no'        => 4,
             'target'    => '#wk-akt',
             'highlight' => '#wk-act-box',
             'title'     => 'Pilih aktivitas',
@@ -281,17 +296,18 @@ function amt_out_tour_form_steps(): array
             'done'      => '#wk-form[data-act="1"]',
             'ok'        => '✅ Aktivitas sudah dipilih',
         ],
-        // Foto selfie: ketuk kartu -> "Foto" -> "Simpan Foto" (3 aksi, nomor sama)
-        ...amt_tour_photo_steps(4),
+        // 5) Foto Check-Out: ketuk kartu -> "Foto" -> "Simpan Foto" (3 aksi, nomor sama); sesudahnya foto tampil + "Hapus Foto"
+        ...amt_tour_photo_steps(5, true),
+        // 6) Kirim (tombol menempel di bawah layar)
         [
-            'no'     => 5,
+            'no'     => 6,
             'target' => '#wk-submit',
             'title'  => 'Kirim Check-Out',
-            'text'   => 'Semua sudah lengkap. Ketuk “Kirim Check-Out”. Riwayat Check-In akan direset setelah Check-Out berhasil.',
+            'text'   => 'Semua sudah lengkap. Ketuk “Kirim Check-Out” di bagian bawah layar. Riwayat Check-In akan direset setelah Check-Out berhasil.',
             'hint'   => '👆 Ketuk tombol biru “Kirim Check-Out”',
             'done'   => null,
         ],
-        // Pop up sukses: Lanjutkan ke Homepage
-        amt_tour_success_step(5, 'checkout'),
+        // Pop up "Check-Out Berhasil": ketuk OK
+        amt_tour_success_step(6, 'checkout'),
     ];
 }

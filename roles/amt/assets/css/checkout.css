@@ -1,13 +1,15 @@
 /* ============================================================
    OneFIS - AMT - checkout.css
    Layar Check-Out (roles/amt/views/checkout.php): Riwayat Check-In.
-   Form-nya memakai gaya work.css (.wk-*) dan checkin.css (.ci-page).
+   Form-nya memakai gaya work.css (blok .wk-v2 = tampilan baru).
    File ini HANYA berisi CSS.
    ============================================================ */
 
+.co-page { padding-bottom: 0; }
+
 /* ---------- Riwayat Check-In ---------- */
-.co-hist { padding: 16px 16px 0; }
-.co-h { margin: 0 0 10px; font-size: 15px; font-weight: 700; color: #0f172a; }
+.co-hist { padding: 14px 14px 0; }
+.co-h { margin: 0 0 10px; font-size: 13px; font-weight: 700; color: #0f172a; }
 .co-hist-card {
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
   background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;
@@ -17,10 +19,7 @@
 .co-hist-time { color: #374151; }
 .co-hist-n { font-size: 12px; font-weight: 700; color: #0f172a; text-align: right; }
 .co-hist-empty {
-  background: #fff; border: 1px dashed #cbd5e1; border-radius: 12px;
-  padding: 18px 12px; text-align: center; color: #94a3b8; font-size: 12px;
+  background: rgba(255, 255, 255, .7); border: 1px solid #e5e7eb; border-radius: 12px;
+  padding: 24px 12px; text-align: center; color: #6b7280; font-size: 11px;
 }
-.co-form { margin-top: 6px; }
-
-
-.co-info { margin: 12px 16px 0; }
+.co-form { margin-top: 0; }

@@ -99,7 +99,9 @@ const AMT_TOUR_SCREEN_LABELS = [
 const AMT_TOUR_JOURNEYS = [
     'masuk'   => ['label' => 'Absen Masuk',  'total' => 6],
     'checkin' => ['label' => 'Check-In',     'total' => 5],
-    'pulang'  => ['label' => 'Absen Pulang', 'total' => 4],
+    // Absen pulang: 1 ketuk End Work (Start / End), 2 total waktu kerja, 3 lokasi, 4 foto End Work,
+    // 5 ketuk "Akhiri Pekerjaan", 6 konfirmasi "Ya" pada dialog (pop up sukses memakai nomor 6 juga)
+    'pulang'  => ['label' => 'Absen Pulang', 'total' => 6],
     'dcu'     => ['label' => 'Check-In Berhasil', 'total' => 1],   // pemberitahuan DCU (tanpa nomor langkah)
     // Inspeksi PTI: 1 buka menu, 2-3 ringkasan, 4-5 jawab item, 6 catatan, 7 kirim, 8 konfirmasi
     'pti'     => ['label' => 'Inspeksi PTI', 'total' => 8],
@@ -116,8 +118,9 @@ const AMT_TOUR_JOURNEYS = [
     // Rating Petugas SPBU: 1 buka kartu Rating, 2 nama petugas, 3 bintang (5 penilaian),
     // 4 Kirim, 5 ketuk Selesai di Aktifitas di SPBU, 6 konfirmasi “Kirim” pada pop up Menyelesaikan Order
     'rating' => ['label' => 'Rating Petugas SPBU', 'total' => 6],
-    // Check-Out: 1 buka menu Check-Out (setelah scan segel di AVM), 2 lokasi, 3 aktivitas, 4 foto, 5 kirim
-    'checkout' => ['label' => 'Check-Out', 'total' => 5],
+    // Check-Out: 1 buka menu Check-Out (setelah scan segel di AVM), 2 Riwayat Check-In, 3 lokasi, 4 aktivitas,
+    // 5 foto Check-Out, 6 kirim (pop up "Check-Out Berhasil" -> OK memakai nomor 6 juga)
+    'checkout' => ['label' => 'Check-Out', 'total' => 6],
     // Laporkan Kendala: 1 jenis kendala, 2 estimasi kendala, 3 estimasi waktu (hanya bila "Ya, Bisa Diprediksi"),
     // 4 foto bukti, 5 justifikasi, 6 kirim laporan
     'kendala' => ['label' => 'Laporkan Kendala', 'total' => 6],
@@ -135,9 +138,12 @@ const AMT_TOUR_DCU_DELAY_MS = AMT_DCU_SHOW_DELAY;
  *   C) ketuk "Simpan Foto"          -> selesai saat foto tersimpan (data-photo="1"); "Ambil Ulang" memunculkan B lagi
  * B dan C tampil DI ATAS kamera layar penuh ('camera' => true; lihat tutorial-amt.js).
  *
+ * @param bool $preview true = tampilan baru (End Work & Check-Out): foto yang tersimpan tampil sebagai
+ *                      pratinjau dengan tombol merah "Hapus Foto". Bila foto dihapus, tutorial otomatis
+ *                      kembali ke langkah A (data-photo kembali 0).
  * @return array<int,array>
  */
-function amt_tour_photo_steps(int $no): array
+function amt_tour_photo_steps(int $no, bool $preview = false): array
 {
     $shot = '.amtcam.is-open .amtcam-shot:not([hidden])';   // hasil foto sedang ditinjau
     return [
@@ -167,7 +173,9 @@ function amt_tour_photo_steps(int $no): array
             'text'      => 'Periksa hasil fotonya. Bila wajah sudah jelas, ketuk “Simpan Foto”. Bila kurang bagus, ketuk “Ambil Ulang”.',
             'hint'      => '👆 Ketuk “Simpan Foto”',
             'done'      => '#wk-form[data-photo="1"]',
-            'ok'        => '✅ Foto sudah tersimpan',
+            'ok'        => $preview
+                ? '✅ Foto sudah tersimpan dan tampil di form. Bila kurang bagus, ketuk “Hapus Foto” lalu ambil lagi.'
+                : '✅ Foto sudah tersimpan',
         ],
     ];
 }
@@ -184,8 +192,10 @@ function amt_tour_success_step(int $no, string $mode): array
         'start'    => 'Absen masuk berhasil dan Waktu Kerja sudah berjalan. Ketuk “Lanjutkan ke Homepage” untuk kembali ke beranda.',
         'checkin'  => 'Check-In sudah tercatat. Ketuk “Lanjutkan ke Homepage”. Berikutnya lakukan DCU, lalu menu PTI akan menyala.',
         'end'      => 'Waktu kerja Anda sudah berakhir. Ketuk “Lanjutkan ke Homepage” untuk kembali ke beranda.',
-        'checkout' => 'Check-Out sudah tercatat dan Riwayat Check-In direset. Ketuk “Lanjutkan ke Homepage” untuk kembali ke beranda.',
+        'checkout' => 'Check-Out berhasil dan Riwayat Check-In sudah direset. Ketuk “OK”, lalu akhiri kerja lewat menu Start / End.',
     ][$mode] ?? 'Ketuk “Lanjutkan ke Homepage” untuk kembali ke beranda.';
+    // Check-Out: tombol pop up bertuliskan "OK" (bukan "Lanjutkan ke Homepage")
+    $isOk = ($mode === 'checkout');
     return [
         'no'        => $no,
         // HANYA End Work yang menutup tutorial (alur selesai -> tidak muncul otomatis lagi, hanya lewat "?").
@@ -197,9 +207,9 @@ function amt_tour_success_step(int $no, string $mode): array
         'target'    => '#wk-success-go',
         'highlight' => '.wk-modal-card',
         'when'      => '#wk-success:not([hidden])',
-        'title'     => 'Ketuk “Lanjutkan ke Homepage”',
+        'title'     => $isOk ? 'Ketuk “OK”' : 'Ketuk “Lanjutkan ke Homepage”',
         'text'      => $text,
-        'hint'      => '👆 Ketuk tombol hijau “Lanjutkan ke Homepage”',
+        'hint'      => $isOk ? '👆 Ketuk tombol hijau “OK”' : '👆 Ketuk tombol hijau “Lanjutkan ke Homepage”',
         'done'      => null,
     ];
 }
@@ -217,8 +227,20 @@ function amt_tour_form_steps(string $mode): array
     $isEnd     = ($mode === 'end');
 
     $what = $isCheckin ? 'Check-In' : ($isEnd ? 'absen pulang' : 'absen masuk');
-    $n    = $isCheckin ? 2 : ($isEnd ? 2 : 3);   // nomor langkah pertama di form
+    $n    = $isCheckin ? 2 : 3;   // nomor langkah pertama di form (End Work: 2 dipakai kartu "Total Waktu Kerja")
     $steps = [];
+
+    // End Work (tampilan baru): kartu "Total Waktu Kerja Hari Ini" di bagian atas layar
+    if ($isEnd) {
+        $steps[] = [
+            'no'     => 2,
+            'target' => '#ew-timer',
+            'title'  => 'Total waktu kerja Anda',
+            'text'   => 'Kartu biru ini menunjukkan sudah berapa lama Anda bekerja hari ini, dihitung sejak Start Work. Pastikan pekerjaan hari ini memang sudah selesai sebelum mengakhirinya.',
+            'button' => 'Mengerti',
+            'done'   => null,
+        ];
+    }
 
     // Check-In punya dua tab: pastikan pengguna ada di tab "Verifikasi"
     if ($isCheckin) {
@@ -267,22 +289,38 @@ function amt_tour_form_steps(string $mode): array
 
     // 3) Foto selfie: ketuk kartu -> "Foto" -> "Simpan Foto"
     $n++;
-    foreach (amt_tour_photo_steps($n) as $ps) { $steps[] = $ps; }
+    foreach (amt_tour_photo_steps($n, $isEnd) as $ps) { $steps[] = $ps; }
 
-    // 4) Kirim
+    // 4) Kirim (End Work: tombol "Akhiri Pekerjaan" di bawah layar, lalu dialog konfirmasi "Ya")
     $n++;
     $steps[] = [
         'no'     => $n,
         'target' => '#wk-submit',
-        'title'  => 'Kirim ' . $what,
+        'title'  => $isEnd ? 'Ketuk “Akhiri Pekerjaan”' : 'Kirim ' . $what,
         'text'   => $isCheckin
             ? 'Semua sudah lengkap. Ketuk “Kirim”. Check-In Anda akan tercatat di tab “Riwayat Check-In”.'
             : ($isEnd
-                ? 'Semua sudah lengkap. Ketuk “Kirim” untuk mengakhiri waktu kerja hari ini.'
+                ? 'Semua sudah lengkap. Ketuk tombol “Akhiri Pekerjaan” di bagian bawah layar. Anda akan ditanya sekali lagi sebelum waktu kerja benar-benar berakhir.'
                 : 'Semua sudah lengkap. Ketuk “Kirim” untuk mulai bekerja. Waktu Kerja langsung berjalan.'),
-        'hint'   => '👆 Ketuk tombol biru “Kirim”',
+        'hint'   => $isEnd ? '👆 Ketuk tombol biru “Akhiri Pekerjaan”' : '👆 Ketuk tombol biru “Kirim”',
         'done'   => null,
     ];
+
+    // End Work: dialog "Apakah Anda yakin ingin mengakhiri pekerjaan hari ini?" -> ketuk "Ya"
+    if ($isEnd) {
+        $n++;
+        $steps[] = [
+            'no'        => $n,
+            'over'      => true,                          // tampil di atas dialog
+            'target'    => '#ew-yes',
+            'highlight' => '.wk-confirm-card',
+            'when'      => '#ew-confirm:not([hidden])',   // baru muncul setelah dialog terbuka
+            'title'     => 'Ketuk “Ya”',
+            'text'      => 'Muncul pertanyaan “Apakah Anda yakin ingin mengakhiri pekerjaan hari ini?”. Ketuk “Ya” bila Anda memang sudah selesai bekerja. Ketuk “Batal” bila belum.',
+            'hint'      => '👆 Ketuk tombol biru “Ya”',
+            'done'      => null,
+        ];
+    }
 
     // 5) Pop up sukses: Lanjutkan ke Homepage
     $steps[] = amt_tour_success_step($n, $mode);

@@ -267,19 +267,21 @@ function amt_wants_json(): bool
 
 /**
  * Form kerja (Start/End Work, Check-In, Check-Out) berhasil dikirim.
- *  - Lewat JS (fetch): jawab JSON -> form menampilkan pop up sukses + tombol "Lanjutkan ke Homepage".
+ *  - Lewat JS (fetch): jawab JSON -> form menampilkan pop up sukses + tombol "Lanjutkan ke Homepage"
+ *    (atau teks tombol lain lewat $button, mis. "OK" pada Check-Out).
  *  - Tanpa JS: simpan notifikasi (toast) lalu redirect ke beranda seperti biasa.
  */
-function amt_work_success(string $title, string $body): void
+function amt_work_success(string $title, string $body, ?string $button = null): void
 {
     if (amt_wants_json()) {
         header('Content-Type: application/json; charset=utf-8');
         header('Cache-Control: no-store');
         echo json_encode([
-            'ok'    => true,
-            'title' => $title,
-            'body'  => $body,
-            'next'  => 'index.php?screen=' . rawurlencode(amt_home_screen()),
+            'ok'     => true,
+            'title'  => $title,
+            'body'   => $body,
+            'button' => $button,      // teks tombol pop up (null = bawaan "Lanjutkan ke Homepage"); Check-Out: "OK"
+            'next'   => 'index.php?screen=' . rawurlencode(amt_home_screen()),
         ], JSON_UNESCAPED_UNICODE);
         exit;
     }
@@ -305,6 +307,7 @@ function amt_handle_post(string $action): void
             amt_spbu_reset();
             amt_verif_reset();
             amt_out_reset();
+            amt_kendala_reset(); // laporan kendala shift lalu dibersihkan, supaya tutorial "Laporkan Kendala" tampil lagi
             amt_tour_bump();
             $_SESSION['work'] = [
                 'started_at'  => time(),
@@ -325,6 +328,7 @@ function amt_handle_post(string $action): void
             amt_spbu_reset();
             amt_verif_reset();
             amt_out_reset();
+            amt_kendala_reset();
             amt_tour_bump();
             $_SESSION['work']['ended_at'] = time();
             $_SESSION['work']['end_photo'] = true;

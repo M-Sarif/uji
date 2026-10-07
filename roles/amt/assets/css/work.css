@@ -106,3 +106,92 @@
 }
 .wk-modal-btn:active { background: #059669; }
 @keyframes wk-pop { from { transform: scale(.94); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+/* ============================================================
+   TAMPILAN BARU: End Work & Check-Out  (kelas .wk-v2 pada form)
+   - foto yang sudah diambil = pratinjau + "Hapus Foto"
+   - tombol kirim menempel di bawah layar (.wk-bar)
+   - kartu putih (.wk-v2-card), dialog konfirmasi End Work, pop up sukses polos
+   Start Work & Check-In TIDAK memakai blok ini.
+   ============================================================ */
+.wk-v2 { padding: 12px 14px 0; font-size: 12px; color: #111827; }
+.wk-v2 .wk-title { font-size: 13px; font-weight: 700; color: #0f172a; margin: 6px 0 12px; }
+.wk-v2-checkout .wk-title { margin: 14px 0 12px; }
+
+.wk-v2-card {
+  background: #fff; border: 1px solid #e8edf5; border-radius: 16px;
+  padding: 14px; margin-bottom: 14px; box-shadow: 0 1px 4px rgba(15, 23, 42, .05);
+}
+.wk-v2-end .wk-v2-card .wk-title { margin-top: 2px; }
+
+/* Lokasi */
+.wk-v2 .wk-head { margin-bottom: 8px; }
+.wk-v2 .wk-label { font-size: 11px; font-weight: 600; color: #111827; margin: 0 0 6px; }
+.wk-v2 .wk-head .wk-label { margin: 0; }
+.wk-v2 .wk-head a { font-size: 11px; font-weight: 500; }
+.wk-v2 .wk-map { height: 170px; border: 1px solid #e2e8f0; border-radius: 10px; }
+.wk-v2 .wk-coord { display: none; }
+.wk-v2 #wk-loc { margin-bottom: 14px; }
+.wk-v2-checkout > #wk-loc { margin-bottom: 14px; }
+
+/* Aktivitas */
+.wk-v2 .wk-select {
+  height: 44px; padding: 0 36px 0 12px; border: 1px solid #d1d5db; border-radius: 10px;
+  background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 12px center;
+  -webkit-appearance: none; appearance: none; font-family: inherit;
+  font-size: 13px; font-weight: 600; color: #6b7280; margin-bottom: 14px;
+}
+.wk-v2 .wk-select:valid { color: #111827; }
+.wk-v2 .wk-select:disabled { background-color: #f3f4f6; color: #9ca3af; cursor: not-allowed; letter-spacing: .02em; }
+.wk-v2 .wk-info-ico { vertical-align: -2px; margin-left: 2px; }
+
+/* Foto: kartu ajakan (sebelum) -> pratinjau + Hapus Foto (sesudah) */
+.wk-v2 .wk-photo { border: 1px solid #dbe3ee; border-radius: 12px; padding: 16px 12px; margin-bottom: 0; }
+.wk-v2 .wk-photo.taken { border-color: #dbe3ee; background: #fff; padding: 14px 14px 12px; cursor: default; }
+.wk-prev { display: none; }
+.wk-v2 .wk-photo.taken .wk-prev { display: block; }
+.wk-prev img {
+  display: block; width: 100%; aspect-ratio: 4 / 3; max-height: 260px;
+  object-fit: cover; border-radius: 6px; background: #111827;
+}
+.wk-v2 .wk-photo .wk-del {
+  display: inline-flex; gap: 5px; align-items: center; justify-content: center;
+  margin: 12px auto 0; padding: 2px 4px; border: 0; background: none;
+  color: #ef4444; font-size: 11px; font-weight: 500; font-family: inherit; cursor: pointer;
+}
+.wk-v2 .wk-photo .wk-del:active { opacity: .6; }
+
+/* Tombol kirim menempel di bawah layar */
+.wk-v2 .wk-bar {
+  position: sticky; bottom: 0; z-index: 5;
+  margin: 14px -14px 0; padding: 10px 14px calc(10px + env(safe-area-inset-bottom, 0px));
+  background: #fff; box-shadow: 0 -4px 14px rgba(15, 23, 42, .07);
+}
+.wk-v2 .wk-submit { height: 44px; padding: 0 12px; border-radius: 8px; font-size: 13px; font-family: inherit; }
+.wk-v2 .wk-submit.wk-submit-end { background: #0891d1; }
+.wk-v2 .wk-submit.wk-submit-end:disabled, .wk-v2 .wk-submit:disabled { background: #d1d5db; color: #f9fafb; }
+
+/* Pop up sukses polos (Check-Out Berhasil + OK) */
+.wk-modal.is-plain .wk-modal-card { max-width: 300px; padding: 22px 18px 18px; border-radius: 14px; }
+.wk-modal.is-plain .wk-modal-ico { width: 40px; height: 40px; background: transparent; border: 2px solid #10b981; }
+.wk-modal.is-plain .wk-modal-ico svg { stroke: #10b981; }
+.wk-modal.is-plain .wk-modal-title { font-size: 13px; color: #047857; }
+.wk-modal.is-plain .wk-modal-body { font-size: 11px; color: #059669; margin-bottom: 14px; }
+.wk-modal.is-plain .wk-modal-btn { display: inline-block; width: auto; min-width: 84px; padding: 8px 22px; font-size: 12px; border-radius: 8px; }
+
+/* Dialog konfirmasi End Work (Ya / Batal) */
+.wk-modal.wk-confirm { background: rgba(15, 23, 42, .4); backdrop-filter: none; -webkit-backdrop-filter: none; }
+.wk-confirm-card {
+  width: 100%; max-width: 330px; box-sizing: border-box; background: #fff; border-radius: 14px;
+  padding: 16px 16px 14px; box-shadow: 0 20px 40px -12px rgba(15, 23, 42, .35); animation: wk-pop .18s ease-out;
+}
+.wk-confirm-card h3 { margin: 0 0 6px; font-size: 14px; font-weight: 700; color: #0f172a; }
+.wk-confirm-card p  { margin: 0 0 14px; font-size: 11px; line-height: 1.45; color: #374151; }
+.wk-confirm-yes, .wk-confirm-no {
+  display: block; width: 100%; height: 38px; border-radius: 8px; font-size: 12px; font-weight: 700;
+  font-family: inherit; cursor: pointer;
+}
+.wk-confirm-yes { border: 0; background: #0d6efd; color: #fff; margin-bottom: 8px; }
+.wk-confirm-yes:active { background: #0b5ed7; }
+.wk-confirm-no  { border: 1px solid #e5e7eb; background: #f3f4f6; color: #374151; font-weight: 600; }
+.wk-confirm-no:active { background: #e5e7eb; }
