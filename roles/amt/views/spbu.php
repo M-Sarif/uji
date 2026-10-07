@@ -295,10 +295,8 @@ body:has(.amts-fin.is-open) .amtt-fab { display: none; }
     border: 0; border-radius: 12px; background: #e5e7eb;
 }
 #arr-loc { margin-bottom: 16px; }
-.amts-sheet__geo { margin: 8px 0 0; font-size: 12.5px; line-height: 1.4; color: var(--amts-muted, #64748b); }
-.amts-sheet__geo.bad { color: var(--amts-red, #dc2626); font-weight: 600; }
-/* Lokasi sesuai: tidak ada tulisan di bawah peta (sesuai desain); tetap terbaca oleh pembaca layar */
-.amts-sheet__geo.ok {
+/* Tidak ada keterangan lokasi (sesuai / belum sesuai) di bawah peta; tetap terbaca oleh pembaca layar */
+.amts-sheet__geo {
     position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0;
     overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
 }
@@ -426,11 +424,11 @@ body:has(.amts-sheet.is-open) .amtt-fab { display: none; }
         map.onload = inRange ? pinReady : null;
         if (inRange) pinTimer = setTimeout(pinReady, PIN_FALLBACK_MS);
 
-        // Lokasi sesuai -> pin tempat SPBU tujuan (nama + kartu tempat Google Maps, zoom dekat) agar realistis.
+        // Lokasi sesuai -> pin di titik SPBU tujuan dengan label nomor SPBU (mis. "SPBU 62.938.839"), zoom dekat.
         // Belum sesuai -> pin biasa di koordinat pengguna, jelas berada jauh dari SPBU.
         map.src = inRange
-            ? 'https://maps.google.com/maps?q=' + encodeURIComponent(PLACE) +
-              '&ll=' + BASE.lat.toFixed(6) + ',' + BASE.lng.toFixed(6) + '&hl=id&z=18&output=embed&t=' + Date.now()
+            ? 'https://maps.google.com/maps?q=' + BASE.lat.toFixed(6) + ',' + BASE.lng.toFixed(6) +
+              '(' + encodeURIComponent(PLACE) + ')&hl=id&z=18&output=embed&t=' + Date.now()
             : 'https://maps.google.com/maps?q=' + p.lat.toFixed(6) + ',' + p.lng.toFixed(6) +
               '&hl=id&z=16&output=embed&t=' + Date.now();
         geo.className = 'amts-sheet__geo ' + (inRange ? 'ok' : 'bad');

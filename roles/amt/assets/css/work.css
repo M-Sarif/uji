@@ -67,8 +67,10 @@
 
 /* Status jangkauan lokasi (di bawah peta) */
 .wk-geo { margin-top: 6px; padding: 6px 8px; border-radius: 6px; font-size: 11px; line-height: 1.35; background: #f3f4f6; color: #374151; }
-.wk-geo.ok  { background: #dcfce7; color: #166534; }
-.wk-geo.bad { background: #fee2e2; color: #991b1b; }
+.wk-geo {   /* Tidak ada keterangan lokasi (sesuai / belum sesuai) di bawah peta; tetap terbaca oleh pembaca layar */
+    position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+}
 
 /* ---- Seluruh kartu selfie adalah tombol (ketuk di mana saja untuk membuka kamera) ---- */
 .wk-photo:not(.taken) { cursor: pointer; -webkit-tap-highlight-color: transparent; transition: border-color .15s, background .15s, box-shadow .15s; }

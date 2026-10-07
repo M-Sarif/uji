@@ -27,6 +27,11 @@
  *   'wait'      => (opsional) teks kotak biru saat target sudah diketuk tetapi
  *                  'done' belum terpenuhi ("menunggu...")
  *   'ok'        => pesan singkat saat langkah baru saja selesai
+ *   'minShow'   => (opsional) ms; walau 'done' sudah terpenuhi, langkah tetap disorot minimal selama
+ *                  itu (dihitung sejak 'done' terpenuhi), mis. lokasi sudah sesuai dari awal
+ *   'condHint'  => (opsional) teks kotak biru selama masa 'minShow' ("lokasi sudah sesuai, pastikan...")
+ *   'loadSel' + 'loadHint' => (opsional) teks kotak biru saat selector loadSel ada tetapi 'done' belum
+ *                  (mis. lokasi sesuai, pin peta masih dimuat)
  *   'settle'    => (opsional) ms; 'done' baru dianggap terpenuhi bila pengguna sudah
  *                  berhenti mengetik selama itu (untuk kolom teks)
  *   'label'     => (opsional) teks kecil di atas kartu; menimpa nama alur
@@ -229,14 +234,14 @@ function amt_tour_form_steps(string $mode): array
         'target'    => '#wk-refresh',
         'highlight' => '#wk-loc',
         'title'     => 'Cek lokasi Anda',
-        'text'      => 'Pin di peta harus ada di area kerja. Ketuk “Perbarui Lokasi”, lalu tunggu sampai pin muncul dan kotak di bawah peta berwarna hijau.',
+        'text'      => 'Pin di peta harus ada di area kerja. Bila pin sudah tepat, tutorial lanjut sendiri. Bila belum, ketuk “Perbarui Lokasi”, lalu tunggu sampai pin muncul.',
         'hint'      => '👆 Ketuk “Perbarui Lokasi”',
         'wait'      => '⏳ Menunggu lokasi sesuai… perhatikan pin di peta',
-        'done'      => '#wk-form[data-pin="1"]',
-        'needTap'   => true,
-        'ok'        => '✅ Lokasi sudah sesuai',
-        'okText'    => 'Lihat pin di peta: sudah tepat di area kerja.',
-        'hold'      => 2000,
+        'done'      => '#wk-form[data-pin="1"]',   // tanpa needTap: lokasi sudah sesuai = lanjut sendiri
+        'minShow'   => 3000,                       // tetap disorot minimal 3 detik, tidak langsung dilewati
+        'loadSel'   => '#wk-loc[data-inrange="1"]',
+        'loadHint'  => '⏳ Memeriksa lokasi… tunggu pin muncul di peta',
+        'condHint'  => '✅ Lokasi sudah sesuai. Pastikan pin tepat di area kerja.',
     ];
 
     // 2) Aktivitas (tidak ada di End Work: mengikuti pilihan saat Start Work)
@@ -514,15 +519,15 @@ function amt_tour_spbu_steps(): array
             'target'    => '#arr-refresh',
             'highlight' => '#arr-loc',
             'title'     => 'Cek lokasi Anda',
-            'text'      => 'Pin di peta harus ada di SPBU tujuan. Ketuk “Perbarui Lokasi”, lalu tunggu sampai pin muncul di peta dan tombol biru di bawahnya aktif.',
+            'text'      => 'Pin di peta harus ada di SPBU tujuan. Bila pin sudah tepat, tutorial lanjut sendiri. Bila belum, ketuk “Perbarui Lokasi”, lalu tunggu sampai pin muncul dan tombol biru di bawahnya aktif.',
             'hint'      => '👆 Ketuk “Perbarui Lokasi”',
             'wait'      => '⏳ Menunggu lokasi sesuai… perhatikan pin di peta',
             'when'      => '#arrSheet.is-open',
-            'done'      => '#arrSheet[data-pin="1"]',
-            'needTap'   => true,
-            'ok'        => '✅ Lokasi sudah sesuai',
-            'okText'    => 'Lihat pin di peta: sudah tepat di SPBU tujuan.',
-            'hold'      => 2000,   // tahan 2 detik setelah lokasi sesuai, baru lanjut
+            'done'      => '#arrSheet[data-pin="1"]',   // tanpa needTap: lokasi sudah sesuai = lanjut sendiri
+            'minShow'   => 3000,                        // tetap disorot minimal 3 detik, tidak langsung dilewati
+            'loadSel'   => '#arrSheet[data-loc="1"]',
+            'loadHint'  => '⏳ Memeriksa lokasi… tunggu pin muncul di peta',
+            'condHint'  => '✅ Lokasi sudah sesuai. Pastikan pin tepat di SPBU tujuan.',
         ],
         [
             'no'     => 5,
@@ -675,11 +680,12 @@ function amt_tour_pbk_lo_steps(): array
             [
                 'no'     => null,
                 'target' => '[data-tour="pbl-list"]',
-                'title'  => 'Centang LO yang akan dikirim',
-                'text'   => 'LO berstatus “Draft” sudah terisi tetapi BELUM dikirim ke SPBU. Centang LO Draft yang ingin dikirim. Tombol “Kirim” baru menyala setelah ada LO Draft yang dicentang.',
-                'hint'   => '👆 Centang LO berstatus Draft',
+                'title'  => 'Pastikan produk yang dibongkar tercentang',
+                'text'   => 'LO berstatus “Draft” sudah terisi tetapi BELUM dikirim ke SPBU. Centang LO (produk) yang dibongkar dan ingin dikirim. Tombol “Kirim” baru menyala setelah ada LO Draft yang dicentang.',
+                'hint'   => '👆 Pastikan produk yang dibongkar sudah dicentang',
                 'done'   => '#pblSend:not(:disabled)',
-                'ok'     => '✅ LO sudah dipilih',
+                'minShow'  => 3000,   // sudah tercentang dari awal pun tetap disorot 3 detik agar diperiksa
+                'condHint' => '✅ Sudah tercentang. Pastikan produk yang dibongkar sudah benar.',
             ],
             [
                 'no'     => 5,
@@ -710,11 +716,12 @@ function amt_tour_pbk_lo_steps(): array
             'no'     => 1,
             'label'  => 'Daftar LO',
             'target' => '[data-tour="pbl-list"]',
-            'title'  => 'Pilih LO yang akan diisi',
-            'text'   => 'Setiap kartu adalah satu LO yang dibawa mobil tangki. Centang LO yang akan dibongkar di SPBU ini, atau ketuk “Pilih Semua”. Status “Belum Diisi” berarti checklist LO itu belum dikerjakan.',
-            'hint'   => '👆 Centang minimal satu LO',
+            'title'  => 'Pastikan produk yang dibongkar tercentang',
+            'text'   => 'Setiap kartu adalah satu LO dengan produknya (lihat kolom “Order”). Centang LO yang produknya akan dibongkar di SPBU ini, atau ketuk “Pilih Semua”. Status “Belum Diisi” berarti checklist LO itu belum dikerjakan.',
+            'hint'   => '👆 Pastikan produk yang dibongkar sudah dicentang',
             'done'   => '.pbl-card.is-selected',
-            'ok'     => '✅ LO sudah dipilih',
+            'minShow'  => 3000,   // sudah tercentang dari awal pun tetap disorot 3 detik agar diperiksa
+            'condHint' => '✅ Sudah tercentang. Pastikan produk yang dibongkar sudah benar.',
         ],
         [
             'no'     => 2,
@@ -960,10 +967,11 @@ function amt_tour_verif_steps(string $screen): array
                 'label'     => 'Verifikasi Order',
                 'target'    => '.verif-lo:not(.is-disabled)',
                 'highlight' => '[data-tour="verif-list"]',
-                'title'     => 'Pilih LO yang akan diverifikasi',
-                'text'      => 'Hanya LO yang “Form Bongkar”-nya sudah “Sudah Diisi” yang bisa dipilih. Ketuk kartu LO (atau kotak di kanan kartu) untuk mencentang. Bila daftar belum berubah, ketuk “Refresh”.',
-                'hint'      => '👆 Centang minimal satu LO',
-                'done'      => '.verif-lo.is-selected',
+                'title'     => 'Pastikan semua LO tercentang',
+                'text'      => 'Hanya LO yang “Form Bongkar”-nya sudah “Sudah Diisi” yang bisa dipilih. Ketuk kartu LO (atau kotak di kanan kartu) untuk mencentang, sampai semua LO tercentang. Bila daftar belum berubah, ketuk “Refresh”.',
+                'hint'      => '👆 Pastikan semua LO tercentang',
+                // selesai bila SEMUA LO yang bisa dipilih sudah tercentang (minimal ada satu)
+                'done'      => '[data-tour="verif-list"]:not(:has(.verif-lo:not(.is-disabled):not(.is-selected))):has(.verif-lo.is-selected)',
             ],
             [
                 'no'        => 2,
@@ -1476,6 +1484,7 @@ function amt_tour_config(string $screen): array
         'journey'      => AMT_TOUR_JOURNEYS[$pack['journey']] ?? null,
         'startDelay'   => (int) ($pack['startDelay'] ?? 0),
         'epoch'        => amt_tour_epoch(),
+        'fresh'        => amt_tour_fresh(),
         // Layar form/aksi (termasuk Foto Surat Jalan & Rating): JANGAN catat "selesai" permanen (Kirim bisa
         // ditolak server lalu halaman dimuat ulang) -> tutorial tampil lagi otomatis setiap dibuka.
         // Layar SPBU sebelum tiba juga tidak dicatat selesai: bila pengguna keluar lalu kembali

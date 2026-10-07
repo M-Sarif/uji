@@ -169,7 +169,12 @@ function amt_ship_chip(string $status): string
 function amt_spbu_place(array $s): string
 {
     $p = trim((string) ($s['place'] ?? ''));
-    return $p !== '' ? $p : 'SPBU Pertamina';
+    if ($p !== '') {
+        return $p;
+    }
+    // Bila 'place' kosong: pin diberi label nomor SPBU pada data (mis. "SPBU 62.938.839").
+    $no = trim((string) ($s['spbu'] ?? ''));
+    return $no !== '' ? 'SPBU ' . $no : 'SPBU Pertamina';
 }
 
 /** Radius (meter) dari titik SPBU agar tombol "Ya, pengiriman telah tiba" aktif. */

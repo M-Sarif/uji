@@ -66,6 +66,7 @@ foreach (role_keys() as $roleKey) {
         amt.addEventListener('click', function () {
             try {
                 localStorage.removeItem('onefis_amt_tour_v2_done');
+                localStorage.removeItem('onefis_amt_tour_v2_off');   // status Lewati/selesai dari kunjungan sebelumnya
                 Object.keys(sessionStorage).forEach(function (k) {
                     if (k.indexOf('onefis_amt_tour_v2_skip:') === 0) { sessionStorage.removeItem(k); }
                 });

@@ -262,14 +262,14 @@ function amt_out_tour_form_steps(): array
             'target'    => '#wk-refresh',
             'highlight' => '#wk-loc',
             'title'     => 'Cek lokasi Anda',
-            'text'      => 'Pin di peta harus ada di area depot. Ketuk “Perbarui Lokasi”, lalu tunggu sampai pin muncul dan kotak di bawah peta berwarna hijau.',
+            'text'      => 'Pin di peta harus ada di area depot. Bila pin sudah tepat, tutorial lanjut sendiri. Bila belum, ketuk “Perbarui Lokasi”, lalu tunggu sampai pin muncul.',
             'hint'      => '👆 Ketuk “Perbarui Lokasi”',
             'wait'      => '⏳ Menunggu lokasi sesuai… perhatikan pin di peta',
-            'done'      => '#wk-form[data-pin="1"]',
-            'needTap'   => true,
-            'ok'        => '✅ Lokasi sudah sesuai',
-            'okText'    => 'Lihat pin di peta: sudah tepat di area depot.',
-            'hold'      => 2000,
+            'done'      => '#wk-form[data-pin="1"]',   // tanpa needTap: lokasi sudah sesuai = lanjut sendiri
+            'minShow'   => 3000,                       // tetap disorot minimal 3 detik, tidak langsung dilewati
+            'loadSel'   => '#wk-loc[data-inrange="1"]',
+            'loadHint'  => '⏳ Memeriksa lokasi… tunggu pin muncul di peta',
+            'condHint'  => '✅ Lokasi sudah sesuai. Pastikan pin tepat di area depot.',
         ],
         [
             'no'        => 3,

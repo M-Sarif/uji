@@ -45,6 +45,7 @@
     // alur selesai (langkah bertanda 'final'). Tidak ikut terhapus oleh siklus baru (resetAll). Tutorial hanya
     // tampil lagi bila pengguna menekan tombol "?" (per halaman).
     var LS_OFF   = 'onefis_amt_tour_v2_off';
+    var LS_FRESH = 'onefis_amt_tour_v2_fresh';   // penanda kunjungan baru ke AMT (dari index)
     var OLD_KEYS = ['onefis_amt_tour_seen_screens', 'onefis_amt_tour_skipped'];
 
     /* ---------- penyimpanan (semua dibungkus try/catch) ---------- */
@@ -88,6 +89,14 @@
             else { sessionStorage.removeItem(SS_SKIP + key); }
         } catch (e) {}
     }
+    // Hapus semua catatan "dilewati" (sesi ini) tanpa menyentuh catatan "selesai".
+    function clearSkips() {
+        try {
+            Object.keys(sessionStorage).forEach(function (k) {
+                if (k.indexOf(SS_SKIP) === 0) { sessionStorage.removeItem(k); }
+            });
+        } catch (e) {}
+    }
     function resetAll() {
         try {
             localStorage.removeItem(LS_DONE);
@@ -106,6 +115,18 @@
             if (localStorage.getItem(LS_EPOCH) !== epoch) {
                 resetAll();
                 localStorage.setItem(LS_EPOCH, epoch);
+            }
+        } catch (e) {}
+    }
+
+    // Kunjungan baru ke peran AMT (pengguna kembali ke index lalu memilih AMT lagi):
+    // status "dimatikan" (hasil Lewati / selesai) dihapus supaya tutorial muncul otomatis lagi.
+    function syncFresh(fresh) {
+        if (!fresh) { return; }
+        try {
+            if (localStorage.getItem(LS_FRESH) !== fresh) {
+                clearOff();
+                localStorage.setItem(LS_FRESH, fresh);
             }
         } catch (e) {}
     }
@@ -159,6 +180,7 @@
         this.okMode  = false;   // sedang menampilkan pesan "sudah benar"
         this.baseHint = '';
         this.whenAt  = {};      // kapan syarat 'when' sebuah langkah mulai terpenuhi
+        this.condAt  = {};      // kapan syarat 'done' langkah ber-'minShow' mulai terpenuhi
         this.autoTimers = {};   // pewaktu 'autoHide' per langkah (dipasang sekali)
         this.lastInputAt = 0;   // kapan pengguna terakhir mengetik (untuk 'settle')
         this.lastInputEl = null; // elemen yang terakhir diketik (untuk 'settle')
@@ -328,6 +350,20 @@
                 var le = this.lastInputEl;
                 var own = !!(le && st.target && le.closest && le.closest(st.target));
                 if (own) { cond = false; }
+            }
+            // 'minShow' (ms): walau syarat sudah terpenuhi, langkah tetap disorot minimal selama itu
+            // (mis. lokasi sudah sesuai dari awal: pengguna diberi waktu memeriksa pin, tidak langsung dilewati).
+            if (st.minShow) {
+                if (cond) {
+                    if (!this.condAt[i]) {
+                        this.condAt[i] = Date.now();
+                        var selfM = this;
+                        this._later(function () { selfM.tick(); }, st.minShow + 40);
+                    }
+                    cond = (Date.now() - this.condAt[i]) >= st.minShow;
+                } else {
+                    this.condAt[i] = 0;
+                }
             }
             return st.needTap ? (cond && !!this.acked[i]) : cond;
         }
@@ -601,7 +637,12 @@
         var txt = this.baseHint, waiting = false;
         if (!this.okMode) {
             var st = this.steps[this.shown];
-            if (st && st.needTap && this.acked[this.shown] && !this.isComplete(this.shown)) {
+            if (st && st.minShow && st.condHint && st.done && qs(st.done) && !this.isComplete(this.shown)) {
+                txt = st.condHint;                       // syarat terpenuhi, sedang disorot (minShow)
+            } else if (st && st.loadHint && st.loadSel && st.done && qs(st.loadSel) && !qs(st.done)) {
+                txt = st.loadHint;                       // lokasi sesuai, peta/pin masih dimuat
+                waiting = true;
+            } else if (st && st.needTap && this.acked[this.shown] && !this.isComplete(this.shown)) {
                 txt = st.wait || '⏳ Mohon tunggu…';
                 waiting = true;
             } else {
@@ -736,6 +777,7 @@
         if (!this.uiOn) { return; }
         var p = this.dom.panel;
         var body = p.querySelector('[data-body]');
+        p.classList.remove('is-tight');   // dihitung ulang tiap penataan (lihat "mode ringkas" di bawah)
         if (p.classList.contains('is-center')) {
             p.style.left = p.style.width = p.style.top = p.style.bottom = p.style.right = p.style.maxHeight = '';
             this.updateMore();
@@ -781,8 +823,21 @@
         var tb = this.tgtBox();                                            // bagian yang harus diketuk
 
         if (box || tb) {
-            var okB = (!box || botEdge - ph >= box.bottom + 4) && (!tb || botEdge - ph >= tb.bottom + 4);
-            var okT = (!box || topEdge + ph <= box.top - 4) && (!tb || topEdge + ph <= tb.top - 4);
+            var fitB = function () { return (!box || botEdge - ph >= box.bottom + 4) && (!tb || botEdge - ph >= tb.bottom + 4); };
+            var fitT = function () { return (!box || topEdge + ph <= box.top - 4) && (!tb || topEdge + ph <= tb.top - 4); };
+            var okB = fitB(), okT = fitT();
+
+            // MODE RINGKAS: bila kartu penuh tidak muat di atas maupun di bawah bagian yang disorot (mis. pop up
+            // besar), kartu dikecilkan (tanpa bilah & teks panjang, tombol lebih rendah) supaya TIDAK menutupi
+            // judul / isi pop up. Penjelasan lengkap tetap ada di tombol "Penjelasan".
+            if (!okB && !okT) {
+                p.classList.add('is-tight');
+                chrome  = p.offsetHeight - body.clientHeight;
+                natural = chrome + body.scrollHeight;
+                ph = Math.min(natural, cap);
+                okB = fitB(); okT = fitT();
+            }
+
             if (this.side === 'top' && okT)             { side = 'top'; }      // bertahan agar tidak berkedip
             else if (this.side === 'bottom' && okB)     { side = 'bottom'; }
             else if (okB)                               { side = 'bottom'; }
@@ -794,6 +849,7 @@
                 var roomBottom = botEdge - ref.bottom - 4;
                 var roomTop    = ref.top - 4 - topEdge;
                 side = roomBottom >= roomTop ? 'bottom' : 'top';
+                minLimit = Math.min(cap, chrome + Math.min(body.scrollHeight, 60));
                 limit = Math.max(minLimit, Math.min(cap, Math.floor(side === 'bottom' ? roomBottom : roomTop)));
             }
         }
@@ -855,6 +911,7 @@
         init: function (config) {
             var forceRestart = new URLSearchParams(window.location.search).get('tour') === 'restart';
             syncEpoch(config.epoch);
+            syncFresh(config.fresh);
             if (forceRestart) { resetAll(); }
 
             // Tutorial dimatikan ("Lewati" / sudah dipakai sampai selesai): tampilkan HANYA langkah bertanda 'notice'
@@ -887,6 +944,11 @@
                 fab.setAttribute('aria-label', 'Tampilkan tutorial halaman ini');
                 fab.textContent = '?';
                 fab.addEventListener('click', function () {
+                    // "?" = nyalakan lagi tutorial: status "dimatikan" (Lewati / selesai) dan semua catatan
+                    // "dilewati" dihapus, jadi tutorial juga muncul otomatis di layar berikutnya
+                    // dan jalan terus sampai alurnya selesai.
+                    clearOff();
+                    clearSkips();
                     if (activeTour) { activeTour.destroy(); }
                     activeTour = new Tour(config);
                     if (!activeTour.steps.length) {
@@ -899,7 +961,7 @@
             }
         },
         // Hapus catatan "sudah selesai" (dipakai saat pengguna memilih peran).
-        reset: function () { resetAll(); },
+        reset: function () { resetAll(); clearOff(); },
         // true bila tutorial layar ini sedang berjalan (kartu tampil / akan tampil). Dipakai layar yang
         // waktunya bergantung pada mode tutorial (mis. Pindai Kode QR).
         isActive: function () { return !!(activeTour && activeTour.dom && !activeTour.dead); },

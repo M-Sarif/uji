@@ -278,3 +278,19 @@ body:has(input:focus, textarea:focus, select:focus) .amtt-fab { display: none; }
    (kamera z-index 1000, pop up sukses 1200 -> lihat camera.css & work.css) */
 .amtt-ring.is-over  { z-index: 1301; }
 .amtt-panel.is-over { z-index: 1302; }
+/* MODE RINGKAS (is-tight): dipasang JS saat kartu penuh tidak muat tanpa menutupi pop up / bagian yang disorot.
+   Bilah, teks panjang, dan penanda geser disembunyikan; jarak & tombol dirapatkan. */
+.amtt-panel.is-tight .amtt-bar,
+.amtt-panel.is-tight .amtt-text,
+.amtt-panel.is-tight .amtt-list,
+.amtt-panel.is-tight .amtt-more { display: none; }
+.amtt-panel.is-tight .amtt-head { padding: .45rem .8rem .2rem; }
+.amtt-panel.is-tight .amtt-eyebrow { font-size: calc(12px * var(--amtt-scale)); }
+.amtt-panel.is-tight .amtt-min { min-height: 30px; padding: .1rem .55rem; font-size: 12px; }
+.amtt-panel.is-tight .amtt-body { padding: 0 .8rem .15rem; }
+.amtt-panel.is-tight .amtt-title { margin: 0 0 .2rem; font-size: calc(16px * var(--amtt-scale)); }
+.amtt-panel.is-tight .amtt-hint { margin: 0 0 .2rem; padding: .35rem .6rem; font-size: calc(14.5px * var(--amtt-scale)); }
+.amtt-panel.is-tight .amtt-actions { padding: .15rem .8rem .5rem; gap: .25rem; }
+.amtt-panel.is-tight .amtt-btn { min-height: 42px; font-size: calc(15px * var(--amtt-scale)); }
+.amtt-panel.is-tight .amtt-ghost { min-height: 38px; font-size: calc(14px * var(--amtt-scale)); }
+.amtt-panel.is-tight .amtt-skip { min-height: 38px; }

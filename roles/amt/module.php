@@ -209,6 +209,27 @@ function amt_tour_bump(): void
     $_SESSION['amt_tour_epoch'] = bin2hex(random_bytes(6));
 }
 
+/* ------------------------------------------------------------
+ * "Fresh" tutorial AMT: penanda KUNJUNGAN BARU ke peran AMT. Berganti HANYA saat layar
+ * pilih peran (index) dibuka. JS membandingkannya dengan yang tersimpan di browser; bila
+ * berbeda, status tutorial "dimatikan" (hasil Lewati / selesai) dihapus, sehingga:
+ *   - memilih AMT dari index -> tutorial otomatis muncul lagi;
+ *   - setelah Lewati / selesai -> tutorial tidak muncul lagi (kecuali lewat tombol "?").
+ * Beda dengan epoch: epoch ikut berganti saat Start/End Work, fresh tidak.
+ * ------------------------------------------------------------ */
+function amt_tour_fresh(): string
+{
+    if (empty($_SESSION['amt_tour_fresh'])) {
+        $_SESSION['amt_tour_fresh'] = bin2hex(random_bytes(6));
+    }
+    return (string) $_SESSION['amt_tour_fresh'];
+}
+
+function amt_tour_fresh_bump(): void
+{
+    $_SESSION['amt_tour_fresh'] = bin2hex(random_bytes(6));
+}
+
 /** Mulai ulang SEMUA state AMT: timer kerja, Check-In, PTI, alur DCU, dan tutorial. */
 function amt_reset_all(): void
 {
@@ -450,6 +471,7 @@ function amt_accepts_post(string $action): bool
 function amt_on_role_select_screen(): void
 {
     amt_reset_all();
+    amt_tour_fresh_bump();   // kunjungan baru -> tutorial otomatis aktif lagi saat AMT dipilih
 }
 
 /** Pengguna pindah ke peran lain: jam kerja AMT dihapus supaya state tidak bocor antar peran. */

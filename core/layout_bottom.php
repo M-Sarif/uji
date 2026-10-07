@@ -42,6 +42,7 @@ $tourCfg    = (array) role_call($tourRole, 'tour_config', $screen);
     $tourJourney = $tourCfg['journey'] ?? null;     // alur tutorial AMT: ['label' => ..., 'total' => ...]
     $tourDelay   = (int) ($tourCfg['startDelay'] ?? 0); // jeda (ms) sebelum tutorial AMT pertama kali muncul
     $tourEpoch   = $tourCfg['epoch'] ?? null;       // penanda siklus AMT (lihat amt_tour_epoch())
+    $tourFresh   = $tourCfg['fresh'] ?? null;       // penanda kunjungan baru AMT (lihat amt_tour_fresh())
     $tourPersist = (bool) ($tourCfg['persist'] ?? true); // false = jangan simpan status "selesai" (layar form)
     ?>
     var screenOrder  = <?php echo json_encode($tourCfg['screenOrder']); ?>;
@@ -66,6 +67,7 @@ $tourCfg    = (array) role_call($tourRole, 'tour_config', $screen);
         startDelay:   <?php echo json_encode($tourDelay); ?>,
         // Penanda siklus + apakah status "selesai" boleh disimpan (khusus mesin AMT).
         epoch:        <?php echo json_encode($tourEpoch); ?>,
+        fresh:        <?php echo json_encode($tourFresh); ?>,
         persistDone:  <?php echo json_encode($tourPersist); ?>,
         // true persis pada request yang baru saja mereset progres alur
         // (balik ke dashboard/beranda AMT) -- lihat index.php.
