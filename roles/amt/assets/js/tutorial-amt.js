@@ -340,6 +340,9 @@
     Tour.prototype.isComplete = function (i) {
         var st = this.steps[i];
         if (st.skip && qs(st.skip)) { return true; }
+        // 'optional': langkah yang bergantung pada elemen halaman. Bila elemennya tidak ada (mis. panel rute
+        // sudah hilang setelah kendala dilaporkan), langkah dianggap selesai agar TIDAK menghalangi langkah berikutnya.
+        if (st.optional && st.when && !qs(st.when)) { return true; }
         if (st.remember && isDone(this.key + '#' + i)) { return true; }   // sudah dibaca sebelumnya
         if (st.done) {
             var cond = !!qs(st.done);

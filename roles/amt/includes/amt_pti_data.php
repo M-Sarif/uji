@@ -150,7 +150,9 @@ const AMT_PTI_FAILSAFE_SECONDS   = 30;  // PTI otomatis aktif 30 detik setelah C
 const AMT_PTI_DONE_VISIBLE_FOR   = 20000; // tutorial "PTI selesai" di dashboard hilang sendiri setelah 20 detik
 const AMT_PTI_DONE_PAGE_VISIBLE_FOR = 8000; // kartu tutorial "Inspeksi selesai" di halaman PTI hilang sendiri setelah 5 detik
 const AMT_ROUTE_INFO_VISIBLE_FOR = 20000; // info "Laporkan Kendala" (rute pengiriman di beranda) hilang sendiri setelah 20 detik
-const AMT_PTI_DONE_SHIPMENT_DELAY = 3000; // 3 detik setelah itu, tutorial yang menyorot ikon Shipments muncul
+const AMT_ROUTE_INFO_DELAY        = 3000; // info "Laporkan Kendala" muncul 3 detik SETELAH kartu "PTI selesai" tertutup
+const AMT_PTI_DONE_SHIPMENT_DELAY = 3000; // 3 detik setelah info kendala tertutup, tutorial yang menyorot ikon Shipments muncul
+const AMT_PTI_DONE_START_DELAY    = 800;  // jeda saat beranda dibuka sebelum kartu "PTI selesai" muncul
 
 /** Isi tutorial. Teks 'dcu' dari screenshot; teks 'pti' contoh, sesuaikan dengan user guide. */
 function amt_flow_tutorials()

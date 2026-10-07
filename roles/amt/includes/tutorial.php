@@ -593,7 +593,8 @@ function amt_tour_pti_hasil_steps(): array
  *
  *  1) Kartu tahapan berikutnya; tertutup sendiri setelah AMT_PTI_DONE_VISIBLE_FOR (20 detik)
  *     bila tidak diketuk "Mengerti".
- *  2) AMT_PTI_DONE_SHIPMENT_DELAY (3 detik) setelah kartu 1 tertutup: sorotan ke ikon Shipments.
+ *  2) Info "Laporkan Kendala": muncul AMT_ROUTE_INFO_DELAY (3 detik) setelah kartu 1 tertutup; dilewati bila kendala sudah dilaporkan.
+ *  3) AMT_PTI_DONE_SHIPMENT_DELAY setelah kartu sebelumnya selesai: sorotan ke ikon Shipments.
  *
  * Hasil NO GO: mobil tangki belum layak jalan, jadi AMT tidak diarahkan ke segel / SPBU;
  * hanya pemberitahuan untuk melapor ke pengawas.
@@ -618,7 +619,11 @@ function amt_tour_pti_done_pack(int $checkins): array
         ]]];
     }
 
-    return ['journey' => 'pti', 'subKey' => $subKey, 'steps' => [
+    // Kendala sudah pernah dilaporkan (mis. lewat tombol di panel lalu kembali ke beranda): kartu info kendala
+    // TIDAK diulang, alur langsung lanjut ke Shipments.
+    $kendalaReported = amt_kendala_all() !== [];
+
+    return ['journey' => 'pti', 'subKey' => $subKey, 'startDelay' => AMT_PTI_DONE_START_DELAY, 'steps' => [
         [
             'no'       => null,
             'label'    => 'PTI Selesai',
@@ -643,12 +648,14 @@ function amt_tour_pti_done_pack(int $checkins): array
         // Informasi (bukan langkah bernomor): panel "Rute Pengiriman" muncul di beranda sebelum AMT tiba di SPBU.
         // Tombol "Laporkan Kendala" tetap disorot; mengetuknya = mencoba (langkah ini dianggap dibaca).
         // Tertutup sendiri setelah 20 detik bila "Mengerti" tidak diketuk. Hanya ditambahkan bila panelnya ada.
-        ...(amt_home_route_ship() !== null ? [[
+        ...((amt_home_route_ship() !== null && !$kendalaReported) ? [[
             'no'        => null,
             'label'     => 'Informasi',
             'target'    => '[data-amtr-report]',
             'highlight' => '[data-amtr-report]',
             'when'      => '[data-amtr-report]',
+            'optional'  => true,                          // bila tombolnya tak ada di halaman, langkah dilewati (tidak menghalangi Shipments)
+            'delay'     => AMT_ROUTE_INFO_DELAY,          // muncul 3 detik setelah kartu "PTI selesai" tertutup
             'notice'    => true,                          // pemberitahuan: tetap tampil walau tutorial dimatikan
             'title'     => 'Shipment sudah dibuat 🚚',
             'text'      => 'Shipment telah dibuat. Jika ada kendala saat di perjalanan, klik tombol “Laporkan Kendala”.',
@@ -663,7 +670,9 @@ function amt_tour_pti_done_pack(int $checkins): array
             'label'  => 'Langkah berikutnya',
             'target' => '[data-tour="amt-menu-shipments"]',
             'when'   => '[data-tour="amt-menu-shipments"]',
-            'delay'  => AMT_PTI_DONE_SHIPMENT_DELAY,     // muncul 3 detik setelah kartu 1 tertutup
+            'delay'  => AMT_PTI_DONE_SHIPMENT_DELAY,     // 3 detik setelah info kendala tertutup (Mengerti / selesai lapor kendala)
+            'notice' => true,                            // tetap lanjut walau tutorial dimatikan: ini kelanjutan alur PTI -> Shipments
+            'remember' => true,                          // sudah ditampilkan -> tidak diulang tiap kembali ke beranda
             // Keterangan: menu ini dipakai SETELAH AMT sampai di SPBU tujuan (bukan sekarang).
             'title'  => 'Sudah tiba di SPBU? Buka “Shipments”',
             'text'   => 'Selesaikan dulu tahapan di kartu sebelumnya (segel sampai menuju SPBU). Begitu sudah tiba di SPBU tujuan, ketuk menu Shipments untuk membuka daftar pengiriman.',
