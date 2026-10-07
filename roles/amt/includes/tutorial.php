@@ -179,9 +179,11 @@ function amt_tour_success_step(int $no, string $mode): array
     ][$mode] ?? 'Ketuk “Lanjutkan ke Homepage” untuk kembali ke beranda.';
     return [
         'no'        => $no,
-        // Check-Out / End Work selesai = tutorial sudah dipakai sampai akhir -> tidak muncul otomatis lagi
-        // (hanya lewat tombol "?"). Lihat Tour.finish() di tutorial-amt.js.
-        'final'     => in_array($mode, ['checkout', 'end'], true),
+        // HANYA End Work yang menutup tutorial (alur selesai -> tidak muncul otomatis lagi, hanya lewat "?").
+        // Check-Out BUKAN akhir alur: sesudahnya tutorial otomatis lanjut ke Start / End -> End Work.
+        // (Dulu 'checkout' ikut 'final' sehingga tutorial dimatikan di sini dan arahan End Work tak pernah muncul.)
+        // Lihat Tour.finish() di tutorial-amt.js.
+        'final'     => $mode === 'end',
         'over'      => true,
         'target'    => '#wk-success-go',
         'highlight' => '.wk-modal-card',
@@ -637,8 +639,8 @@ function amt_tour_pti_done_pack(int $checkins): array
             'delay'  => AMT_PTI_DONE_SHIPMENT_DELAY,     // muncul 3 detik setelah kartu 1 tertutup
             // Keterangan: menu ini dipakai SETELAH AMT sampai di SPBU tujuan (bukan sekarang).
             'title'  => 'Sudah tiba di SPBU? Buka “Shipments”',
-            'text'   => 'Jika Anda sudah tiba di SPBU tujuan, ketuk menu Shipments ini untuk membuka daftar pengiriman dan melanjutkan ke tahap berikutnya. Bila belum tiba di SPBU, lanjutkan dulu tahapan sebelumnya.',
-            'hint'   => '👆 Jika sudah tiba di SPBU, ketuk menu “Shipments” yang menyala',
+            'text'   => 'Selesaikan dulu tahapan di kartu sebelumnya (segel sampai menuju SPBU). Begitu sudah tiba di SPBU tujuan, ketuk menu Shipments untuk membuka daftar pengiriman.',
+            'hint'   => '👆 Sudah tiba di SPBU? Ketuk menu “Shipments”',
             'done'   => null,
         ],
     ]];
@@ -1199,17 +1201,18 @@ function amt_tour_rating_steps(): array
             'hint'      => '👆 Ketuk bintang pada kartu yang menyala',
             'done'      => '.rt-card.is-rated',
         ],
-        // 3b) Lanjutan: arahan "isi semua rating yang tersisa". Sorotan di tombol Kirim (selalu terlihat di bawah),
-        //     BUKAN di kartu yang belum dinilai, jadi kartu tersebut tidak tertutup panel tutorial dan
-        //     tutorial tidak macet minta pengguna menggulir. Nomor langkah sama (3) agar bilah kemajuan tidak melompat.
+        // 3b) Pengingat singkat: HANYA tampil sesaat setelah bintang PERTAMA diisi. Begitu kartu kedua diisi,
+        //     tutorial menghilang dan tidak mengganggu sampai SEMUA rating terisi (lalu muncul langkah "Kirim").
+        //     'when' = hanya tampil bila tepat 1 kartu berbintang (#rtForm[data-rated] = jumlah kartu berbintang).
         [
             'no'        => 3,
             'label'     => 'Rating Petugas SPBU',
             'target'    => '#rtSend',
+            'when'      => '#rtForm[data-rated="1"]',
             'nodim'     => true,   // kartu penilaian tidak digelapkan, supaya mudah dilihat & diketuk
-            'title'     => 'Isi semua rating yang tersisa',
-            'text'      => 'Masih ada kartu penilaian yang belum diberi bintang. Gulir halaman, lalu ketuk bintang pada setiap kartu yang masih kosong sampai kelimanya terisi. Tombol “Kirim” akan menyala setelah semuanya terisi.',
-            'hint'      => '👆 Isi bintang di semua kartu yang masih kosong',
+            'title'     => 'Lanjutkan mengisi bintang',
+            'text'      => 'Bagus! Ketuk bintang pada kartu penilaian lain yang masih kosong sampai kelimanya terisi.',
+            'hint'      => '👆 Isi bintang di kartu yang masih kosong',
             'done'      => '#rtForm[data-allrated="1"]',
             'ok'        => '✅ Kelima penilaian sudah terisi',
             'okText'    => 'Tinggal kirim penilaian Anda.',
@@ -1219,6 +1222,7 @@ function amt_tour_rating_steps(): array
             'no'     => 4,
             'label'  => 'Rating Petugas SPBU',
             'target' => '#rtSend',
+            'when'   => '#rtForm[data-allrated="1"]',   // tampil hanya setelah SEMUA bintang terisi
             'title'  => 'Ketuk “Kirim”',
             'text'   => 'Nama dan kelima bintang sudah terisi, jadi tombol “Kirim” menyala. Setelah terkirim, Anda kembali ke Aktifitas di SPBU dan tombol “Selesai” menyala.',
             'hint'   => '👆 Ketuk tombol biru “Kirim”',
@@ -1309,6 +1313,8 @@ function amt_tour_steps_for(string $screen, bool $running, int $checkins = 0): a
                 'no'        => null,
                 'label'     => 'Tutorial Selesai',
                 'target'    => null,
+                'notice'    => true,     // tetap tampil walau tutorial dimatikan (End Work menutup tutorial)
+                'restart'   => true,     // "Mulai" menyalakan tutorial lagi dari awal
                 'title'     => 'Selamat! Tutorial selesai 🎉',
                 'text'      => 'Selamat, Anda telah menyelesaikan sesi tutorial ini. Klik “Mulai” untuk memulai dari awal, atau pilih “Sudah cukup sampai di sini”.',
                 'button'    => 'Mulai',

@@ -331,6 +331,7 @@ body:has(.amts-sheet.is-open) .amtt-fab { display: none; }
        data-pin = 1  posisi sesuai DAN peta (pin) sudah selesai dimuat -->
 <div class="amts-sheet" id="arrSheet" hidden data-loc="0" data-pin="0"
      data-lat="<?= (float) $s['lat'] ?>" data-lng="<?= (float) $s['lng'] ?>"
+     data-place="<?= amt_e(amt_spbu_place($s)) ?>"
      data-radius="<?= (int) AMT_SPBU_RADIUS_M ?>" data-out-chance="<?= (float) WORK_SIM_OUTSIDE_CHANCE ?>">
     <div class="amts-sheet__card" role="dialog" aria-modal="true" aria-labelledby="arrTitle">
         <h2 class="amts-sheet__title" id="arrTitle">Tiba di Lokasi</h2>
@@ -377,6 +378,7 @@ body:has(.amts-sheet.is-open) .amtt-fab { display: none; }
     var RADIUS    = parseFloat(sheet.dataset.radius);
     var OUT_CHANCE = parseFloat(sheet.dataset.outChance);
     var CODE      = <?= json_encode('SPBU ' . $s['spbu']) ?>;
+    var PLACE     = sheet.dataset.place || 'SPBU Pertamina';
     var PIN_FALLBACK_MS = 6000;      // bila peta gagal memuat, tetap dianggap siap agar tidak macet
     var inRange = false, mapToken = 0, pinTimer = null, lastFocus = null;
 
@@ -424,9 +426,13 @@ body:has(.amts-sheet.is-open) .amtt-fab { display: none; }
         map.onload = inRange ? pinReady : null;
         if (inRange) pinTimer = setTimeout(pinReady, PIN_FALLBACK_MS);
 
-        // Pin Google Maps tepat di koordinat posisi pengguna saat ini.
-        map.src = 'https://maps.google.com/maps?q=' + p.lat.toFixed(6) + ',' + p.lng.toFixed(6) +
-                  '&hl=id&z=17&output=embed&t=' + Date.now();
+        // Lokasi sesuai -> pin tempat SPBU tujuan (nama + kartu tempat Google Maps, zoom dekat) agar realistis.
+        // Belum sesuai -> pin biasa di koordinat pengguna, jelas berada jauh dari SPBU.
+        map.src = inRange
+            ? 'https://maps.google.com/maps?q=' + encodeURIComponent(PLACE) +
+              '&ll=' + BASE.lat.toFixed(6) + ',' + BASE.lng.toFixed(6) + '&hl=id&z=18&output=embed&t=' + Date.now()
+            : 'https://maps.google.com/maps?q=' + p.lat.toFixed(6) + ',' + p.lng.toFixed(6) +
+              '&hl=id&z=16&output=embed&t=' + Date.now();
         geo.className = 'amts-sheet__geo ' + (inRange ? 'ok' : 'bad');
         geo.textContent = inRange
             ? 'Lokasi sesuai: ' + CODE

@@ -160,6 +160,18 @@ function amt_ship_chip(string $status): string
  * Direset bersama siklus kerja AMT (Start Work / End Work / pilih peran).
  * ------------------------------------------------------------ */
 
+/**
+ * Nama tempat SPBU untuk pin Google Maps pada popup "Tiba di Lokasi".
+ * Bila lokasi sudah sesuai, peta menampilkan pin tempat SPBU tujuan (nama + kartu tempat, seperti pin
+ * terminal di Start Work), bukan sekadar titik koordinat. Isi 'place' pada data pengiriman dengan nama
+ * persis seperti di Google Maps agar pin tepat; bila kosong dipakai "SPBU Pertamina" di sekitar koordinat.
+ */
+function amt_spbu_place(array $s): string
+{
+    $p = trim((string) ($s['place'] ?? ''));
+    return $p !== '' ? $p : 'SPBU Pertamina';
+}
+
 /** Radius (meter) dari titik SPBU agar tombol "Ya, pengiriman telah tiba" aktif. */
 const AMT_SPBU_RADIUS_M = 200;
 

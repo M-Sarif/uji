@@ -76,6 +76,9 @@
     function setOff() {
         try { localStorage.setItem(LS_OFF, '1'); } catch (e) {}
     }
+    function clearOff() {
+        try { localStorage.removeItem(LS_OFF); } catch (e) {}
+    }
     function isSkipped(key) {
         try { return sessionStorage.getItem(SS_SKIP + key) === '1'; } catch (e) { return false; }
     }
@@ -357,6 +360,8 @@
         // Langkah bertanda 'announce' (mis. "Mengerti" pada pemberitahuan DCU) memberi
         // tahu halaman SEGERA, tanpa menunggu seluruh alur selesai.
         if (this.steps[i].announce) { announce(this.key); }
+        // Langkah bertanda 'restart' (mis. "Mulai" pada kartu ucapan selamat): nyalakan lagi tutorial otomatis.
+        if (this.steps[i].restart) { clearOff(); }
         // Langkah terakhir dilakukan -> alur ini selesai. Dicatat SEKARANG
         // (sebelum halaman berpindah) supaya tidak muncul lagi.
         if (i >= this.steps.length - 1) { this.finish(); }
@@ -445,7 +450,7 @@
         items.forEach(function (t) { ol.appendChild(el('li', '', '')).textContent = t; });
         ol.hidden = !items.length;
 
-        this.baseHint = forOk ? '' : (st.hint || (st.target ? '👆 Ketuk bagian yang menyala biru' : ''));
+        this.baseHint = forOk ? '' : (st.hint || ((st.target && !st.button) ? '👆 Ketuk bagian yang menyala biru' : ''));
         this.okMode = !!forOk;
         this.applyHint();
 
@@ -559,6 +564,22 @@
         }
         if (bot - top < 4) { return null; }
         return { left: r.left - PAD, top: top - PAD, width: r.width + PAD * 2, height: bot - top + PAD * 2, bottom: bot + PAD };
+    };
+
+    // Kotak elemen yang harus diketuk (dipakai agar kartu tutorial TIDAK menutupinya); null bila tak terlihat.
+    Tour.prototype.tgtBox = function () {
+        var t = this.tgtEl;
+        if (!t || !isShown(t)) { return null; }
+        var r = t.getBoundingClientRect();
+        var top = r.top, bot = r.bottom;
+        var c = qs('.content');
+        if (c && c.contains(t)) {
+            var cr = c.getBoundingClientRect();
+            top = Math.max(top, cr.top);
+            bot = Math.min(bot, cr.bottom);
+        }
+        if (bot - top < 4) { return null; }
+        return { top: top - PAD, bottom: bot + PAD };
     };
 
     // Arah gulir bila bagian yang harus diketuk berada di luar layar ('down' | 'up' | null).
@@ -749,23 +770,31 @@
         p.style.left = (left + (right - left - width) / 2) + 'px';
 
         var cap = Math.floor(vh * 0.58);                                   // batas tinggi bawaan
-        var natural = p.offsetHeight - body.clientHeight + body.scrollHeight;   // tinggi sesuai isi saat ini
+        var chrome = p.offsetHeight - body.clientHeight;                   // tinggi di luar isi (kepala, bilah, tombol)
+        var natural = chrome + body.scrollHeight;                          // tinggi sesuai isi saat ini
+        // Isi kartu (judul + teks) SELALU diberi tinggi minimal, supaya teks tutorial tidak tertekan
+        // sampai tak terbaca walau ruang di sekitar bagian yang disorot sempit.
+        var minLimit = Math.min(cap, chrome + Math.min(body.scrollHeight, 120));
         var limit = cap;
         var ph = Math.min(natural, limit);
         var side = 'bottom';
+        var tb = this.tgtBox();                                            // bagian yang harus diketuk
 
-        if (box) {
-            var fitsBottom = botEdge - ph >= box.bottom + 4;
-            var fitsTop    = topEdge + ph <= box.top - 4;
-            if (this.side === 'top' && fitsTop)          { side = 'top'; }      // bertahan agar tidak berkedip
-            else if (this.side === 'bottom' && fitsBottom) { side = 'bottom'; }
-            else if (fitsBottom)                          { side = 'bottom'; }
-            else if (fitsTop)                             { side = 'top'; }
-            else {                                        // tak ada yang muat: pilih sisi lebih lega, isi kartu jadi bisa digulir
-                var roomBottom = botEdge - box.bottom - 4;
-                var roomTop    = box.top - 4 - topEdge;
+        if (box || tb) {
+            var okB = (!box || botEdge - ph >= box.bottom + 4) && (!tb || botEdge - ph >= tb.bottom + 4);
+            var okT = (!box || topEdge + ph <= box.top - 4) && (!tb || topEdge + ph <= tb.top - 4);
+            if (this.side === 'top' && okT)             { side = 'top'; }      // bertahan agar tidak berkedip
+            else if (this.side === 'bottom' && okB)     { side = 'bottom'; }
+            else if (okB)                               { side = 'bottom'; }
+            else if (okT)                               { side = 'top'; }
+            else {
+                // Tidak ada sisi yang muat tanpa menimpa sorotan. Utamakan JANGAN menutupi bagian yang
+                // harus diketuk (mis. tombol "Tutup" di pop up QR); menimpa sorotan yang luas masih wajar.
+                var ref = tb || box;
+                var roomBottom = botEdge - ref.bottom - 4;
+                var roomTop    = ref.top - 4 - topEdge;
                 side = roomBottom >= roomTop ? 'bottom' : 'top';
-                limit = Math.max(170, Math.min(cap, Math.floor(side === 'bottom' ? roomBottom : roomTop)));
+                limit = Math.max(minLimit, Math.min(cap, Math.floor(side === 'bottom' ? roomBottom : roomTop)));
             }
         }
         this.side = side;
@@ -834,7 +863,10 @@
             if (!forceRestart && isOff()) {
                 cfg = {};
                 Object.keys(config).forEach(function (k) { cfg[k] = config[k]; });
-                cfg.steps = (config.steps || []).filter(function (st) { return st && st.notice; });
+                // Bila ada langkah 'restart' (kartu ucapan selamat), simpan SEMUA langkah: setelah "Mulai"
+                // tutorial otomatis menyala lagi dan lanjut ke langkah berikutnya.
+                var keepAll = (config.steps || []).some(function (st) { return st && st.restart; });
+                cfg.steps = keepAll ? config.steps : (config.steps || []).filter(function (st) { return st && st.notice; });
             }
             activeTour = new Tour(cfg);
             if (cfg.steps && cfg.steps.length) {

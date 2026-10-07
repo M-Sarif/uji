@@ -148,7 +148,7 @@ const AMT_PTI_UNLOCK_DELAY       = 2000; // PTI aktif 2 detik setelah tutorial D
 const AMT_PTI_HINT_DELAY         = 1000; // petunjuk "tekan PTI" muncul 1 detik setelah PTI aktif
 const AMT_PTI_FAILSAFE_SECONDS   = 30;  // PTI otomatis aktif 30 detik setelah Check-In walau tutorial tidak sempat ditutup
 const AMT_PTI_DONE_VISIBLE_FOR   = 20000; // tutorial "PTI selesai" di dashboard hilang sendiri setelah 20 detik
-const AMT_PTI_DONE_PAGE_VISIBLE_FOR = 5000; // kartu tutorial "Inspeksi selesai" di halaman PTI hilang sendiri setelah 5 detik
+const AMT_PTI_DONE_PAGE_VISIBLE_FOR = 8000; // kartu tutorial "Inspeksi selesai" di halaman PTI hilang sendiri setelah 5 detik
 const AMT_PTI_DONE_SHIPMENT_DELAY = 3000; // 3 detik setelah itu, tutorial yang menyorot ikon Shipments muncul
 
 /** Isi tutorial. Teks 'dcu' dari screenshot; teks 'pti' contoh, sesuaikan dengan user guide. */
