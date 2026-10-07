@@ -8,6 +8,8 @@
          facing: 'user',                 // 'user' = depan, 'environment' = belakang
          title:  'Foto Verifikasi',
          maxSize: 1024,                  // opsional: sisi terpanjang hasil foto (px)
+         switchable: true,               // opsional: tombol "Kamera Depan" / "Kamera Belakang" untuk ganti kamera
+                                         // (dipakai layar "Foto Bukti" Laporkan Kendala; Foto tampil biru)
          onSave: function (dataUrl) { ... }   // dipanggil saat "Simpan Foto"
      });
      cam.open();   cam.close();
@@ -22,6 +24,7 @@
     var ICON_BACK = '<svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>';
     var ICON_CAM  = '<svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>';
     var ICON_REDO = '<svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/></svg>';
+    var ICON_FLIP = '<svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 7h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1z"/><path stroke-linecap="round" stroke-linejoin="round" d="M9 13a3 3 0 0 1 5.2-2M15 13a3 3 0 0 1-5.2 2M14.2 9.6v1.6h-1.6M9.8 16.4v-1.6h1.6"/></svg>';
     var ICON_SAVE = '<svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path stroke-linecap="round" stroke-linejoin="round" d="M17 21v-8H7v8M7 3v5h8"/></svg>';
 
     var MAX_SIZE = 1024;   // sisi terpanjang hasil foto (px)
@@ -31,6 +34,7 @@
         opts = opts || {};
         var facing = opts.facing || 'user';
         var mirror = facing === 'user';
+        var switchable = !!opts.switchable;
         var onSave = typeof opts.onSave === 'function' ? opts.onSave : function () {};
         var maxSize = opts.maxSize || MAX_SIZE;   // sisi terpanjang hasil foto (px); dokumen perlu lebih besar
 
@@ -55,7 +59,8 @@
                 '<div class="amtcam-msg"></div>' +
                 '<div class="amtcam-flash"></div>' +
                 '<div class="amtcam-actions">' +
-                    '<button type="button" class="amtcam-btn" data-act="shoot">' + ICON_CAM + '<span>Foto</span></button>' +
+                    (switchable ? '<button type="button" class="amtcam-btn" data-act="flip">' + ICON_FLIP + '<span></span></button>' : '') +
+                    '<button type="button" class="amtcam-btn' + (switchable ? ' is-primary' : '') + '" data-act="shoot">' + ICON_CAM + '<span>Foto</span></button>' +
                     '<button type="button" class="amtcam-btn" data-act="retake" hidden>' + ICON_REDO + '<span>Ambil Ulang</span></button>' +
                     '<button type="button" class="amtcam-btn is-primary" data-act="save" hidden>' + ICON_SAVE + '<span>Simpan Foto</span></button>' +
                 '</div>' +
@@ -72,6 +77,13 @@
         var btnShoot  = root.querySelector('[data-act=shoot]');
         var btnRetake = root.querySelector('[data-act=retake]');
         var btnSave   = root.querySelector('[data-act=save]');
+        var btnFlip   = root.querySelector('[data-act=flip]');   // null bila tidak switchable
+
+        // Label tombol ganti kamera = kamera yang AKAN dipakai bila diketuk
+        function flipLabel() {
+            if (btnFlip) { btnFlip.querySelector('span').textContent = facing === 'user' ? 'Kamera Belakang' : 'Kamera Depan'; }
+        }
+        flipLabel();
 
         var host = d.querySelector('.app-container');
         if (host) { host.appendChild(root); } else { root.classList.add('is-fixed'); d.body.appendChild(root); }
@@ -84,6 +96,7 @@
             video.hidden = review || fallback;
             shot.hidden = !review;
             btnShoot.hidden = review;
+            if (btnFlip) { btnFlip.hidden = review; }
             btnRetake.hidden = !review;
             btnSave.hidden = !review;
         }
@@ -176,6 +189,17 @@
 
         /* ---------- Tombol ---------- */
         btnShoot.addEventListener('click', shoot);
+        if (btnFlip) {
+            btnFlip.addEventListener('click', function () {
+                facing = facing === 'user' ? 'environment' : 'user';
+                mirror = facing === 'user';
+                video.classList.toggle('is-mirror', mirror);
+                input.setAttribute('capture', facing === 'user' ? 'user' : 'environment');
+                flipLabel();
+                stopStream();
+                startStream();
+            });
+        }
         btnRetake.addEventListener('click', startStream);
         btnSave.addEventListener('click', function () {
             if (!captured) { return; }

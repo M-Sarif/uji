@@ -83,6 +83,6 @@ $active = $s['status'] === 'sedang';
 
 <?php if ($active): ?>
 <div class="amts-footer">
-    <button type="button" class="amts-btn amts-btn--danger">Laporkan Kendala</button>
+    <a href="<?= amt_e(amt_kendala_url($s, 'detail')) ?>" class="amts-btn amts-btn--danger" data-tour="ship-report">Laporkan Kendala</a>
 </div>
 <?php endif; ?>

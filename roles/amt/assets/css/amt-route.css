@@ -64,5 +64,6 @@
     display: flex; align-items: center; justify-content: center; gap: 0.45rem; width: 100%; min-height: 2.6rem;
     font: inherit; font-size: 0.8125rem; font-weight: 600; color: #dc2626; background: #fff;
     border: 1.5px solid #f87171; border-radius: 0.7rem; cursor: pointer;
+    box-sizing: border-box; text-decoration: none;   /* tautan ke layar Laporkan Kendala */
 }
 .amtr-report:hover { background: #fef2f2; }

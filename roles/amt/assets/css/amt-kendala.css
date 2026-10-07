@@ -1,0 +1,140 @@
+/* ============================================================
+   OneFIS - AMT - amt-kendala.css
+   Layar Laporkan Kendala (?screen=amt_kendala). Semua kelas berawalan "kd-".
+   Kamera "Foto Bukti" memakai camera.css (kelas amtcam-*).
+   ============================================================ */
+
+.kd, .kd-modal {
+    --kd-ink: #0f172a;
+    --kd-muted: #64748b;
+    --kd-line: #dbe3f0;
+    --kd-blue: #2563eb;
+    --kd-red: #dc2626;
+    box-sizing: border-box; color: var(--kd-ink);
+}
+.kd { display: flex; flex-direction: column; min-height: 100%; }
+.kd-empty { margin: 40px 16px; text-align: center; font-size: 14px; color: var(--kd-muted); }
+.kd-body { flex: 1; padding: 14px 16px 24px; }
+
+.kd-label { display: block; margin: 16px 0 6px 2px; font-size: 13px; font-weight: 600; color: var(--kd-ink); }
+.kd-body > .kd-label:first-child { margin-top: 4px; }
+.kd-req { color: var(--kd-red); margin-left: 1px; }
+
+/* ---------- Kolom (select / durasi / textarea) ---------- */
+.kd-select, .kd-ta { position: relative; }
+.kd-select select, .kd-field, .kd-ta textarea {
+    width: 100%; box-sizing: border-box; font: inherit; font-size: 14px; color: var(--kd-ink);
+    background: #fff; border: 1px solid var(--kd-line); border-radius: 12px;
+}
+.kd-select select {
+    height: 46px; padding: 0 64px 0 14px; appearance: none; -webkit-appearance: none;
+}
+.kd-select select:invalid, .kd-select select[data-empty="1"] { color: #7b879b; }
+.kd-select::after {
+    content: ''; position: absolute; right: 16px; top: 50%; width: 7px; height: 7px; margin-top: -6px;
+    border-right: 2px solid #94a3b8; border-bottom: 2px solid #94a3b8; transform: rotate(45deg); pointer-events: none;
+}
+.kd-clear {
+    position: absolute; right: 36px; top: 50%; width: 26px; height: 26px; margin-top: -13px; padding: 0;
+    border: 0; background: transparent; font-size: 19px; line-height: 1; color: #94a3b8; cursor: pointer;
+}
+.kd-clear[hidden] { display: none; }
+.kd-clear--ta { right: 8px; top: 8px; margin-top: 0; }
+.kd-select select:focus, .kd-ta textarea:focus, .kd-field:focus-visible {
+    outline: 0; border-color: var(--kd-blue); box-shadow: 0 0 0 3px rgba(37, 99, 235, .15);
+}
+
+/* ---------- Estimasi Kendala (radio) ---------- */
+.kd-radios { display: flex; flex-direction: column; gap: 8px; margin-bottom: 2px; }
+.kd-radio { display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.kd-radio input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
+.kd-dot {
+    position: relative; flex: 0 0 auto; width: 16px; height: 16px; box-sizing: border-box;
+    border: 1.5px solid #94a3b8; border-radius: 50%; background: #fff; transition: border-color .12s, background .12s;
+}
+.kd-radio input:checked + .kd-dot { border: 5px solid var(--kd-blue); }
+.kd-radio input:focus-visible + .kd-dot { box-shadow: 0 0 0 3px rgba(37, 99, 235, .25); }
+
+/* ---------- Estimasi Waktu ---------- */
+#kdTimeBlock[hidden] { display: none; }
+.kd-time {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    height: 46px; padding: 0 14px; text-align: left; cursor: pointer;
+}
+.kd-time svg { flex: 0 0 auto; color: #94a3b8; }
+.kd-time__text.is-ph { color: #7b879b; }
+
+/* ---------- Foto Bukti ---------- */
+.kd-photo {
+    background: #fff; border: 1px solid var(--kd-line); border-radius: 16px; overflow: hidden;
+    box-shadow: 0 4px 16px rgba(15, 23, 42, .05);
+}
+.kd-photo__idle {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+    width: 100%; min-height: 168px; padding: 20px 14px; border: 0; background: transparent;
+    font: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.kd-photo__idle[hidden], .kd-photo__done[hidden] { display: none; }
+.kd-photo__title { font-size: 14px; font-weight: 700; color: var(--kd-ink); }
+.kd-photo__sub { font-size: 11px; color: var(--kd-muted); }
+.kd-photo__act { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 12.5px; font-weight: 500; color: var(--kd-blue); }
+.kd-photo__done { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 16px 14px; }
+.kd-photo__done img { display: block; width: 150px; max-width: 70%; aspect-ratio: 3 / 4; object-fit: cover; border-radius: 6px; background: #e2e8f0; }
+.kd-photo__del {
+    display: inline-flex; align-items: center; gap: 5px; padding: 6px 10px; border: 0; background: transparent;
+    font: inherit; font-size: 12px; color: var(--kd-red); cursor: pointer;
+}
+
+/* ---------- Justifikasi ---------- */
+.kd-ta textarea { min-height: 104px; padding: 12px 34px 12px 14px; line-height: 1.45; resize: vertical; }
+.kd-ta textarea::placeholder { color: #7b879b; }
+
+/* ---------- Tombol kirim (menempel di bawah) ---------- */
+.kd-footer {
+    position: sticky; bottom: 0; z-index: 5; box-sizing: border-box;
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+    background: rgba(255, 255, 255, .92); border-top: 1px solid #f1f5f9;
+}
+.kd-send {
+    width: 100%; height: 46px; display: flex; align-items: center; justify-content: center; gap: 8px;
+    border: 0; border-radius: 12px; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer;
+    background: var(--kd-blue); color: #fff; transition: background-color .15s;
+}
+.kd-send:disabled { background: #a9b6cc; cursor: not-allowed; }
+.kd-send:not(:disabled):active { background: #1d4ed8; }
+
+/* ---------- Pop up Estimasi Waktu (jam : menit) ---------- */
+.kd-modal {
+    position: absolute; inset: 0; z-index: 900; display: flex; align-items: center; justify-content: center;
+    padding: 20px; background: rgba(15, 23, 42, .5);
+}
+.kd-modal.is-fixed { position: fixed; }
+.kd-modal[hidden] { display: none; }
+.kd-sheet {
+    width: 100%; max-width: 340px; box-sizing: border-box; padding: 18px 18px 16px;
+    background: #fff; border-radius: 16px; box-shadow: 0 20px 50px rgba(15, 23, 42, .3);
+}
+.kd-sheet__title { margin: 0 0 6px; font-size: 15px; font-weight: 700; }
+.kd-sheet__hint { margin: 2px 0 12px; text-align: center; font-size: 11px; color: var(--kd-muted); }
+
+.kd-wheels { display: flex; align-items: center; justify-content: center; gap: 18px; padding: 6px 0; }
+.kd-wheels__sep { font-size: 17px; font-weight: 700; padding-bottom: 2px; }
+.kd-wheel {
+    position: relative; width: 96px; padding: 4px 0; text-align: center; user-select: none; -webkit-user-select: none;
+    touch-action: none; cursor: grab; outline: 0; border-radius: 10px;
+}
+.kd-wheel:focus-visible { box-shadow: 0 0 0 3px rgba(37, 99, 235, .25); }
+.kd-wheel__row {
+    display: block; width: 100%; height: 38px; line-height: 38px; border: 0; background: transparent;
+    font: inherit; font-size: 15px; color: #b3bccb; cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.kd-wheel__row.is-sel { font-size: 17px; font-weight: 700; color: var(--kd-ink); cursor: grab; }
+
+.kd-apply, .kd-cancel {
+    display: block; width: 100%; height: 40px; box-sizing: border-box; border-radius: 10px;
+    font: inherit; font-size: 13.5px; font-weight: 700; cursor: pointer;
+}
+.kd-apply { border: 0; background: #1f6feb; color: #fff; }                      /* sudah diatur: biru */
+.kd-apply:not(:disabled):active { background: #1859c4; }
+.kd-apply:disabled { background: #cfd9ea; color: #fff; cursor: not-allowed; }     /* belum diatur (00 : 00): abu-biru */
+.kd-cancel { margin-top: 8px; border: 1px solid #dbe3f0; background: #fff; color: #0f172a; font-weight: 600; }

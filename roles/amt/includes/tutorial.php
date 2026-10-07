@@ -69,7 +69,7 @@
  * ============================================================ */
 
 // Nama layar untuk label (dipakai bila langkah tidak punya alur bernomor)
-const AMT_TOUR_SCREEN_ORDER = ['amt_home', 'start_end', 'start_work', 'checkin', 'checkout', 'amt_pti', 'amt_pti_form', 'amt_pti_hasil', 'amt_shipments', 'amt_shipment_detail', 'amt_spbu', 'amt_checklist_lo', 'amt_checklist', 'amt_verifikasi', 'amt_verifikasi_qr', 'amt_verifikasi_kode', 'amt_verifikasi_sukses', 'amt_surat_jalan', 'amt_rating', 'end_work'];
+const AMT_TOUR_SCREEN_ORDER = ['amt_home', 'start_end', 'start_work', 'checkin', 'checkout', 'amt_pti', 'amt_pti_form', 'amt_pti_hasil', 'amt_shipments', 'amt_shipment_detail', 'amt_spbu', 'amt_checklist_lo', 'amt_checklist', 'amt_verifikasi', 'amt_verifikasi_qr', 'amt_verifikasi_kode', 'amt_verifikasi_sukses', 'amt_surat_jalan', 'amt_rating', 'amt_kendala', 'end_work'];
 
 const AMT_TOUR_SCREEN_LABELS = [
     'amt_home'   => 'Beranda AMT',
@@ -91,6 +91,7 @@ const AMT_TOUR_SCREEN_LABELS = [
     'amt_verifikasi_sukses' => 'Order Terverifikasi',
     'amt_surat_jalan' => 'Foto Surat Jalan',
     'amt_rating' => 'Beri Penilaian',
+    'amt_kendala' => 'Laporkan Kendala',
     'end_work'   => 'End Work',
 ];
 
@@ -117,6 +118,9 @@ const AMT_TOUR_JOURNEYS = [
     'rating' => ['label' => 'Rating Petugas SPBU', 'total' => 6],
     // Check-Out: 1 buka menu Check-Out (setelah scan segel di AVM), 2 lokasi, 3 aktivitas, 4 foto, 5 kirim
     'checkout' => ['label' => 'Check-Out', 'total' => 5],
+    // Laporkan Kendala: 1 jenis kendala, 2 estimasi kendala, 3 estimasi waktu (hanya bila "Ya, Bisa Diprediksi"),
+    // 4 foto bukti, 5 justifikasi, 6 kirim laporan
+    'kendala' => ['label' => 'Laporkan Kendala', 'total' => 6],
 ];
 
 // Jeda (ms) sebelum tutorial DCU muncul di beranda setelah Check-In berhasil
@@ -1258,6 +1262,122 @@ function amt_tour_rating_steps(): array
 }
 
 /**
+ * Tutorial layar Laporkan Kendala (roles/amt/views/kendala.php, logika: assets/js/amt-kendala.js).
+ * Status form dibaca dari atribut data-* pada #kdForm:
+ *   data-jenis="1"  jenis kendala dipilih          data-bisa="ya|tidak"  pilihan Estimasi Kendala
+ *   data-est="1"    estimasi waktu diterapkan      data-photo="1"        foto bukti tersimpan
+ *   data-note="1"   justifikasi terisi             data-ready="1"        semua isian wajib lengkap
+ * Pop up estimasi: #kdModal.is-open. Langkah 3 (estimasi waktu) dianggap selesai juga bila pengguna memilih
+ * "Tidak Bisa Diprediksi" (kolom estimasi waktu tidak ada), jadi langkah berikutnya tetap muncul.
+ * Foto bukti dipandu DI ATAS kamera layar penuh ('camera' => true), seperti tutorial foto selfie.
+ *
+ * @return array{journey:string, subKey:?string, steps:array}
+ */
+function amt_tour_kendala_steps(): array
+{
+    $shot     = '.amtcam.is-open .amtcam-shot:not([hidden])';       // hasil foto sedang ditinjau
+    $estSkip  = '#kdForm[data-est="1"], #kdForm[data-bisa="tidak"]'; // estimasi waktu terisi / tidak diperlukan
+    return ['journey' => 'kendala', 'subKey' => 'amt_kendala', 'steps' => [
+        // 1) Jenis kendala
+        [
+            'no'        => 1,
+            'target'    => '#kdJenisWrap',
+            'title'     => 'Pilih jenis kendala',
+            'text'      => 'Ketuk kolom “Jenis Kendala”, lalu pilih yang paling sesuai, misalnya Mogok, Ban Bocor/Pecah, atau Kecelakaan. Pilih “Lainnya” bila tidak ada yang cocok.',
+            'hint'      => '👆 Ketuk kolom “Jenis Kendala”',
+            'done'      => '#kdForm[data-jenis="1"]',
+            'ok'        => '✅ Jenis kendala sudah dipilih',
+        ],
+        // 2) Estimasi kendala (informasi; selesai saat "Mengerti" diketuk)
+        [
+            'no'        => 2,
+            'target'    => '#kdBisa',
+            'highlight' => '#kdBisa',
+            'title'     => 'Pilih estimasi kendala',
+            'text'      => 'Pilih “Ya, Bisa Diprediksi” bila Anda bisa memperkirakan kapan kendala selesai, maka kolom estimasi waktu akan muncul. Pilih “Tidak Bisa Diprediksi” bila belum bisa diperkirakan, maka kolom estimasi waktu tidak muncul.',
+            'hint'      => '👆 Pilih salah satu, lalu ketuk “Mengerti”',
+            'button'    => 'Mengerti',
+            'done'      => null,
+        ],
+        // 3a) Estimasi waktu: ketuk kolom -> pop up terbuka
+        [
+            'no'        => 3,
+            'target'    => '#kdTime',
+            'title'     => 'Isi estimasi waktu selesai',
+            'text'      => 'Perkirakan berapa lama kendala selesai diperbaiki. Ketuk kolom “Estimasi Waktu Kendala Selesai” untuk membuka pilihan jam dan menit.',
+            'hint'      => '👆 Ketuk kolom estimasi waktu',
+            'done'      => '#kdModal.is-open, ' . $estSkip,
+        ],
+        // 3b) Pop up pemilih durasi: atur jam & menit, lalu "Terapkan"
+        [
+            'no'        => 3,
+            'over'      => true,
+            'when'      => '#kdModal.is-open',
+            'target'    => '#kdApply',
+            'highlight' => '#kdWheels',
+            'title'     => 'Atur jam dan menit',
+            'text'      => 'Geser angka ke atas atau bawah (atau ketuk angka di atas / bawahnya) sampai sesuai perkiraan. Tombol “Terapkan” menyala setelah durasinya lebih dari 00 : 00.',
+            'hint'      => '👆 Atur durasi, lalu ketuk “Terapkan”',
+            'done'      => $estSkip,
+            'ok'        => '✅ Estimasi waktu sudah diisi',
+        ],
+        // 4a) Foto bukti: ketuk kartu -> kamera terbuka
+        [
+            'no'        => 4,
+            'target'    => '#kdPhotoBtn',
+            'highlight' => '#kdPhoto',
+            'title'     => 'Ambil foto bukti',
+            'text'      => 'Ketuk kartu “Foto Bukti Kendala” (“Ambil Foto”) untuk membuka kamera, lalu arahkan ke bukti kendala, misalnya ban yang pecah atau kerusakan mesin.',
+            'hint'      => '👆 Ketuk “Ambil Foto”',
+            'done'      => '#kdForm[data-photo="1"], .amtcam.is-open',
+        ],
+        // 4b) Di dalam kamera: ketuk "Foto"
+        [
+            'no'        => 4,
+            'camera'    => true,
+            'target'    => '.amtcam [data-act="shoot"]',
+            'title'     => 'Ketuk “Foto”',
+            'text'      => 'Arahkan kamera ke bukti kendala sampai terlihat jelas, lalu ketuk “Foto”. Ketuk “Kamera Depan” bila ingin berganti kamera.',
+            'hint'      => '👆 Ketuk tombol “Foto”',
+            'done'      => $shot . ', #kdForm[data-photo="1"]',
+        ],
+        // 4c) Tinjau hasil: ketuk "Simpan Foto"
+        [
+            'no'        => 4,
+            'camera'    => true,
+            'target'    => '.amtcam [data-act="save"]',
+            'title'     => 'Ketuk “Simpan Foto”',
+            'text'      => 'Periksa hasil fotonya. Bila buktinya sudah jelas, ketuk “Simpan Foto”. Bila kurang bagus, ketuk “Ambil Ulang”.',
+            'hint'      => '👆 Ketuk “Simpan Foto”',
+            'done'      => '#kdForm[data-photo="1"]',
+            'ok'        => '✅ Foto bukti sudah tersimpan',
+        ],
+        // 5) Justifikasi
+        [
+            'no'        => 5,
+            'target'    => '#kdNote',
+            'highlight' => '#kdNoteWrap',
+            'title'     => 'Tulis justifikasi',
+            'text'      => 'Ceritakan singkat apa yang terjadi: kapan, di mana, dan apa penyebabnya, supaya Terminal mudah memahami kendala Anda.',
+            'hint'      => '👆 Ketuk kolom, lalu ketik keterangan',
+            'done'      => '#kdForm[data-note="1"]',
+            'settle'    => 1500,
+            'ok'        => '✅ Justifikasi sudah terisi',
+        ],
+        // 6) Kirim
+        [
+            'no'        => 6,
+            'target'    => '#kdSend',
+            'when'      => '#kdForm[data-ready="1"]',   // tampil hanya setelah semua isian wajib lengkap
+            'title'     => 'Ketuk “Kirim Laporan Kendala”',
+            'text'      => 'Semua isian wajib sudah lengkap, jadi tombol “Kirim Laporan Kendala” menyala. Setelah terkirim, Anda kembali ke beranda dan menunggu konfirmasi dari Terminal.',
+            'hint'      => '👆 Ketuk tombol biru “Kirim Laporan Kendala”',
+            'done'      => null,
+        ],
+    ]];
+}
+
+/**
  * Data langkah untuk satu layar.
  *
  * @param string $screen   nama layar
@@ -1443,6 +1563,12 @@ function amt_tour_steps_for(string $screen, bool $running, int $checkins = 0): a
         return ['journey' => $pack['journey'], 'steps' => $pack['steps'], 'subKey' => $pack['subKey']];
     }
 
+    // ---- Laporkan Kendala ----
+    if ($screen === AMT_KENDALA_SCREEN) {
+        $pack = amt_tour_kendala_steps();
+        return ['journey' => $pack['journey'], 'steps' => $pack['steps'], 'subKey' => $pack['subKey']];
+    }
+
     // ---- Rating Petugas SPBU ----
     if ($screen === AMT_RATING_SCREEN) {
         $pack = amt_tour_rating_steps();
@@ -1508,7 +1634,7 @@ function amt_tour_config(string $screen): array
         // Layar SPBU sebelum tiba juga tidak dicatat selesai: bila pengguna keluar lalu kembali
         // sebelum menekan "Ya, pengiriman telah tiba", tutorial tampil lagi. Kartu "tercatat" (sesudah
         // tiba) tetap dicatat supaya hanya tampil sekali.
-        'persist'      => !in_array($screen, ['start_work', 'checkin', 'checkout', 'end_work', 'start_end', 'amt_surat_jalan', 'amt_rating'], true)
+        'persist'      => !in_array($screen, ['start_work', 'checkin', 'checkout', 'end_work', 'start_end', 'amt_surat_jalan', 'amt_rating', 'amt_kendala'], true)
                           && !($screen === 'amt_spbu' && empty($pack['subKey'])),
         'screenOrder'  => AMT_TOUR_SCREEN_ORDER,
         'screenLabels' => AMT_TOUR_SCREEN_LABELS,

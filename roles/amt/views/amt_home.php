@@ -102,10 +102,10 @@ $amtMenus = [
     </section>
 
     <div class="amtr-footer">
-        <button type="button" class="amtr-report" data-amtr-report data-tour="home-route-report">
+        <a href="<?php echo amt_e(amt_kendala_url($routeShip)); ?>" class="amtr-report" data-amtr-report data-tour="home-route-report">
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.3 3.9L2.4 18a2 2 0 001.7 3h15.8a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0zM12 9v4M12 17h.01"/></svg>
             Laporkan Kendala
-        </button>
+        </a>
     </div>
     <?php else: ?>
     <!-- Pengiriman aktif (kosong) -->
