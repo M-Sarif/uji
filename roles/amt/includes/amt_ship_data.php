@@ -128,6 +128,21 @@ function amt_ship_find(?string $id = null): ?array
     return null;
 }
 
+/**
+ * Pengiriman yang ditampilkan di panel "Rute Pengiriman" beranda AMT (null = panel tidak tampil).
+ * Syarat: jam kerja berjalan, PTI sudah selesai dengan hasil bukan NO GO, order belum diselesaikan,
+ * dan ada pengiriman berstatus "sedang". Dipakai oleh views/amt_home.php DAN tutorial.php supaya
+ * tutorial hanya muncul bila panelnya benar-benar ada.
+ */
+function amt_home_route_ship(): ?array
+{
+    if (!work_is_running() || !amt_pti_is_done() || (amt_pti_state()['result'] ?? null) === 'NO GO' || amt_out_order_done()) {
+        return null;
+    }
+    $s = amt_ship_find();
+    return ($s !== null && $s['status'] === 'sedang') ? $s : null;
+}
+
 /** id pengiriman dari URL (?id=...), hanya karakter aman. */
 function amt_ship_request_id(): string
 {

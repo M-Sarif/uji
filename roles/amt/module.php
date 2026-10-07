@@ -12,6 +12,7 @@
  *   includes/amt_sj.php    Foto Surat Jalan (kamera belakang, 1 foto per Nomor LO)
  *   includes/amt_rating.php Rating Petugas SPBU + Selesaikan Order
  *   includes/amt_out.php   Tutorial scan segel di AVM + Check-Out + arahan Start / End -> End Work
+ *   includes/amt_performance.php  Performance: data contoh, filter tab/periode, grafik SVG (tanpa tutorial)
  *   includes/tutorial.php  tutorial terpandu (guided tour) AMT
  *   includes/work_ui.php   skrip beranda AMT (timer, kunci menu PTI)
  *   views/                 satu file per layar AMT (+ partials/header_home.php)
@@ -36,13 +37,14 @@ require_once AMT_INC_DIR . '/amt_verif_functions.php'; // Verifikasi Order (Daft
 require_once AMT_INC_DIR . '/amt_sj.php';             // Foto Surat Jalan (kamera belakang)
 require_once AMT_INC_DIR . '/amt_rating.php';         // Rating Petugas SPBU + Selesaikan Order
 require_once AMT_INC_DIR . '/amt_out.php';            // Check-Out (scan segel dilakukan di AVM, bukan di aplikasi)
+require_once AMT_INC_DIR . '/amt_performance.php';    // Performance (tab, periode, grafik volume, ringkasan) - tanpa tutorial
 require_once AMT_INC_DIR . '/tutorial.php'; // tutorial terpandu (guided tour) peran AMT
 
 // Layar milik AMT selain beranda (amt_home)
 const AMT_EXTRA_SCREENS = ['start_end', 'start_work', 'end_work', 'checkin', 'amt_pti', 'amt_pti_form', 'amt_pti_hasil',
     'amt_shipments', 'amt_shipment_detail', 'amt_spbu', 'amt_checklist_lo', 'amt_checklist',
     'amt_verifikasi', 'amt_verifikasi_qr', 'amt_verifikasi_kode', 'amt_verifikasi_sukses',
-    'amt_surat_jalan', 'amt_rating', 'checkout'];
+    'amt_surat_jalan', 'amt_rating', 'checkout', 'amt_performance'];
 
 // Aksi form (POST) milik AMT
 const AMT_POST_ACTIONS = ['submit_start_work', 'submit_end_work', 'submit_checkin', 'submit_spbu_arrive', 'submit_pbk', 'submit_sj', 'submit_rating', 'finish_order', 'submit_checkout'];
@@ -72,7 +74,7 @@ function amt_view_file(string $screen): string
     $file = ['amt_pti' => 'pti', 'amt_pti_form' => 'pti_form', 'amt_pti_hasil' => 'pti_hasil',
              'amt_shipments' => 'shipments', 'amt_shipment_detail' => 'shipment_detail', 'amt_spbu' => 'spbu',
              'amt_checklist_lo' => 'pra_bongkar_lo', 'amt_checklist' => 'pra_bongkar',
-             'amt_surat_jalan' => 'surat_jalan'][$screen] ?? $screen;
+             'amt_surat_jalan' => 'surat_jalan', 'amt_performance' => 'performance'][$screen] ?? $screen;
     return AMT_VIEW_DIR . '/' . $file . '.php';
 }
 
@@ -98,6 +100,9 @@ function amt_screen_title(string $screen): string
     }
     if ($screen === 'amt_surat_jalan') {
         return 'Surat Jalan';
+    }
+    if ($screen === 'amt_performance') {
+        return 'Performance';
     }
     if ($screen === 'amt_rating') {
         return 'Beri Penilaian';
@@ -148,6 +153,7 @@ function amt_prev_screen(string $screen): ?string
         'amt_pti_hasil' => 'amt_pti',
         'amt_shipments' => amt_home_screen(),
         'amt_shipment_detail' => 'amt_shipments',
+        'amt_performance' => amt_home_screen(),
     ][$screen] ?? null;
 }
 
@@ -420,7 +426,7 @@ function amt_content_class(string $screen): string
 function amt_screen_css(string $screen): array
 {
     $map = [
-        'amt_home'              => [CORE_URL . '/css/role.css', AMT_URL . '/css/amt.css', AMT_URL . '/css/checkout.css'],
+        'amt_home'              => [CORE_URL . '/css/role.css', AMT_URL . '/css/amt.css', AMT_URL . '/css/checkout.css', AMT_URL . '/css/amt-route.css'],
         'amt_pti'               => [AMT_URL . '/css/amt-pti.css'],
         'amt_pti_form'          => [AMT_URL . '/css/amt-pti.css'],
         'amt_pti_hasil'         => [AMT_URL . '/css/amt-pti.css'],
@@ -433,6 +439,7 @@ function amt_screen_css(string $screen): array
         'amt_verifikasi_sukses' => [AMT_URL . '/css/amt-verif.css'],
         'amt_surat_jalan'       => [AMT_URL . '/css/amt-sj.css'],
         'amt_rating'            => [AMT_URL . '/css/amt-rating.css'],
+        'amt_performance'       => [AMT_URL . '/css/amt-performance.css'],
     ];
     return $map[$screen] ?? [];
 }

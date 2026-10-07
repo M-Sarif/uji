@@ -636,6 +636,24 @@ function amt_tour_pti_done_pack(int $checkins): array
             'remember' => true,                           // tidak diulang bila pengguna pindah halaman lalu kembali
             'done'     => null,
         ],
+        // Informasi (bukan langkah bernomor): panel "Rute Pengiriman" muncul di beranda sebelum AMT tiba di SPBU.
+        // Tombol "Laporkan Kendala" tetap disorot; mengetuknya = mencoba (langkah ini dianggap dibaca).
+        // Tertutup sendiri setelah 20 detik bila "Mengerti" tidak diketuk. Hanya ditambahkan bila panelnya ada.
+        ...(amt_home_route_ship() !== null ? [[
+            'no'        => null,
+            'label'     => 'Informasi',
+            'target'    => '[data-amtr-report]',
+            'highlight' => '[data-amtr-report]',
+            'when'      => '[data-amtr-report]',
+            'notice'    => true,                          // pemberitahuan: tetap tampil walau tutorial dimatikan
+            'title'     => 'Shipment sudah dibuat 🚚',
+            'text'      => 'Shipment telah dibuat. Jika ada kendala saat di perjalanan, klik tombol “Laporkan Kendala”.',
+            'hint'      => '👆 Ingin mencoba? Ketuk “Laporkan Kendala”',
+            'button'    => 'Mengerti',
+            'autoHide'  => AMT_ROUTE_INFO_VISIBLE_FOR,    // hilang sendiri setelah 20 detik
+            'remember'  => true,                          // tidak diulang bila pengguna pindah halaman lalu kembali
+            'done'      => null,
+        ]] : []),
         [
             'no'     => null,
             'label'  => 'Langkah berikutnya',
@@ -1494,5 +1512,8 @@ function amt_tour_config(string $screen): array
                           && !($screen === 'amt_spbu' && empty($pack['subKey'])),
         'screenOrder'  => AMT_TOUR_SCREEN_ORDER,
         'screenLabels' => AMT_TOUR_SCREEN_LABELS,
+        // Performance tidak punya tutorial: tombol "?" bawaan mesin tutorial disembunyikan, layar ini
+        // memasang tombol "?" sendiri yang hanya membuka pop up informasi (views/performance.php).
+        'noFab'        => $screen === 'amt_performance',
     ];
 }

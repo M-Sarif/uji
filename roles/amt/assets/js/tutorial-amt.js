@@ -938,7 +938,7 @@
             document.addEventListener('visibilitychange', function () { if (!document.hidden && activeTour) { activeTour.tick(); } });
 
             // Tombol "?": mulai lagi tutorial HALAMAN INI (tidak pindah halaman).
-            if (config.screen !== 'role_select') {
+            if (config.screen !== 'role_select' && !config.noFab) {
                 var fab = el('button', 'amtt-fab');
                 fab.type = 'button';
                 fab.setAttribute('aria-label', 'Tampilkan tutorial halaman ini');

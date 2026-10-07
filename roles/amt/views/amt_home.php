@@ -17,7 +17,7 @@ $amtMenus = [
     ['key' => 'pti',         'label' => 'PTI',          'icon' => AMT_URL . '/img/menu/PTI.png',                  'tone' => 'peach',  'href' => '?screen=amt_pti'],
     ['key' => 'shipments',   'label' => 'Shipments',    'icon' => AMT_URL . '/img/ilustrasi/empty-delivery-truck.png', 'tone' => 'blue',   'href' => '?screen=amt_shipments'],
     ['key' => 'checkout',    'label' => 'Check-Out',    'icon' => AMT_URL . '/img/menu/Check-Out.png',            'tone' => 'rose',   'href' => '?screen=checkout'],
-    ['key' => 'performance', 'label' => 'Performance',  'icon' => AMT_URL . '/img/menu/performance.png',          'tone' => 'violet', 'href' => '#'],
+    ['key' => 'performance', 'label' => 'Performance',  'icon' => AMT_URL . '/img/menu/performance.png',          'tone' => 'violet', 'href' => '?screen=amt_performance'],
     ['key' => 'safire',      'label' => 'SAFIRE',       'icon' => AMT_URL . '/img/menu/safire_icon.png',          'tone' => 'sky',    'href' => '#'],
 ];
 ?>
@@ -46,11 +46,74 @@ $amtMenus = [
         <?php endforeach; ?>
     </nav>
 
+<?php
+    /* Rute Pengiriman: muncul di beranda setelah PTI selesai (hasil bukan NO GO) selama ada pengiriman
+     * yang belum diselesaikan. Data dari amt_ship_find() (roles/amt/includes/amt_ship_data.php).
+     * Kartu SPBU membuka "Aktifitas di SPBU". Selain kondisi itu tampil panel kosong seperti biasa. */
+    $routeShip = amt_home_route_ship();
+?>
+    <?php if ($routeShip !== null): ?>
+    <!-- Rute pengiriman (setelah PTI selesai) -->
+    <section class="amt-route" data-tour="home-route" aria-labelledby="amtrTitle">
+        <h2 class="amtr-title" id="amtrTitle">Rute Pengiriman</h2>
+
+        <p class="amtr-note">Pengiriman akan diselesaikan secara otomatis setelah Anda menekan tombol Selesai di SPBU terakhir.</p>
+
+        <div class="amtr-order">
+            <span class="amtr-order-label">Urutan Pengiriman</span>
+            <strong class="amtr-order-value">Pengiriman menuju ke SPBU <?php echo amt_e($routeShip['spbu']); ?></strong>
+        </div>
+
+        <div class="amtr-timeline">
+            <span class="amtr-line" aria-hidden="true"></span>
+
+            <div class="amtr-stop">
+                <span class="amtr-node amtr-node-depot" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h11v9H3zM14 10h4l3 3v3h-7"/><circle cx="7.5" cy="17.5" r="1.8" fill="#fff"/><circle cx="17.5" cy="17.5" r="1.8" fill="#fff"/></svg>
+                </span>
+                <div class="amtr-stop-body">
+                    <div class="amtr-depot"><?php echo amt_e($routeShip['origin']); ?></div>
+                    <div class="amtr-km"><?php echo amt_e($routeShip['km']); ?> km</div>
+                </div>
+            </div>
+
+            <div class="amtr-stop">
+                <span class="amtr-node" aria-hidden="true">1</span>
+                <div class="amtr-stop-body">
+                    <a class="amtr-spbu" href="<?php echo amt_e(amt_ship_url('amt_spbu', $routeShip)); ?>" data-tour="home-route-spbu">
+                        <div class="amtr-spbu-top">
+                            <div>
+                                <div class="amtr-spbu-name">SPBU <?php echo amt_e($routeShip['spbu']); ?></div>
+                                <?php if (!empty($routeShip['nama'])): ?>
+                                    <div class="amtr-spbu-sub"><?php echo amt_e($routeShip['nama']); ?></div>
+                                <?php endif; ?>
+                            </div>
+                            <span class="amtr-chip">Belum Selesai</span>
+                        </div>
+                        <div class="amtr-tags">
+                            <?php foreach ($routeShip['products'] as $p): ?>
+                                <span class="amtr-tag"><?php echo amt_e($p['name']); ?></span>
+                            <?php endforeach; ?>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div class="amtr-footer">
+        <button type="button" class="amtr-report" data-amtr-report data-tour="home-route-report">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.3 3.9L2.4 18a2 2 0 001.7 3h15.8a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0zM12 9v4M12 17h.01"/></svg>
+            Laporkan Kendala
+        </button>
+    </div>
+    <?php else: ?>
     <!-- Pengiriman aktif (kosong) -->
     <section class="amt-active">
         <img src="<?php echo AMT_URL; ?>/img/ilustrasi/empty-delivery-truck.png" alt="Ilustrasi pengiriman">
         <h3>Pengiriman Aktif Belum Tersedia</h3>
         <p>Silahkan check-in untuk memulai pengiriman</p>
     </section>
+    <?php endif; ?>
 
 </div>

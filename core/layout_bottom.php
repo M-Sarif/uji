@@ -69,6 +69,9 @@ $tourCfg    = (array) role_call($tourRole, 'tour_config', $screen);
         epoch:        <?php echo json_encode($tourEpoch); ?>,
         fresh:        <?php echo json_encode($tourFresh); ?>,
         persistDone:  <?php echo json_encode($tourPersist); ?>,
+        // true = layar tanpa tutorial: sembunyikan tombol "?" bawaan mesin tutorial AMT
+        // (layar itu memasang tombol "?" sendiri, mis. pop up informasi Performance).
+        noFab:        <?php echo json_encode((bool) ($tourCfg['noFab'] ?? false)); ?>,
         // true persis pada request yang baru saja mereset progres alur
         // (balik ke dashboard/beranda AMT) -- lihat index.php.
         flowWasReset: <?php echo json_encode($flowWasReset); ?>,
