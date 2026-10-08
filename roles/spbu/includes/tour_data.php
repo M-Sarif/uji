@@ -432,6 +432,7 @@ function spbu_tour_checklist_steps(): array
                 'text'      => 'Periksa kesesuaian SPP: produk, nomor segel (periksa keutuhan segel bawah dan atas), nopol Mobil Tangki, dan nama AMT. Mulai dari Produk: ketuk kartu Produk yang menyala. Bila ada beberapa produk, semuanya wajib diisi satu per satu.',
                 'hint'      => '👆 Ketuk kartu Produk yang menyala',
                 'done'      => '.spp-modal, [data-tour="spp-produk-group"][data-all-done="1"]',
+                'remember'  => true,   // penjelasan lengkap hanya untuk Produk PERTAMA
             ],
             [
                 'no'        => 4,
@@ -445,6 +446,7 @@ function spbu_tour_checklist_steps(): array
                 'hint'      => '👆 Pilih “Sesuai” atau “Tidak Sesuai”',
                 'done'      => '.spp-modal input[name="kesesuaian"]:checked',
                 'ok'        => '✅ Jawaban sudah dipilih',
+                'remember'  => true,
             ],
             [
                 'no'        => 4,
@@ -457,6 +459,18 @@ function spbu_tour_checklist_steps(): array
                 'text'      => 'Ketuk “Simpan” untuk menyimpan verifikasi Produk ini.',
                 'hint'      => '👆 Ketuk tombol “Simpan”',
                 'done'      => null,
+                'remember'  => true,
+            ],
+            // Produk ke-2 dst: tidak ada lagi penjelasan pop up, hanya diarahkan mengisi semuanya.
+            [
+                'no'        => 4,
+                'label'     => 'Soal 6 · Produk',
+                'target'    => '[data-tour="spp-produk-group"] .nav-item-card:not(.done)',
+                'highlight' => '[data-tour="spp-produk-group"]',
+                'title'     => 'Isi Produk berikutnya',
+                'text'      => 'Ketuk kartu Produk berikutnya yang menyala dan isi seperti tadi. Semua Produk wajib diisi.',
+                'hint'      => '👆 Ketuk kartu Produk yang menyala',
+                'done'      => '.spp-modal, [data-tour="spp-produk-group"][data-all-done="1"]',
             ],
             // 2) Segel: setelah SEMUA produk terisi
             [
@@ -468,6 +482,7 @@ function spbu_tour_checklist_steps(): array
                 'text'      => 'Semua Produk sudah terverifikasi. Sekarang periksa Segel: ketuk salah satu nomor Segel yang dibongkar di SPBU saat ini. Semua nomor Segel yang masih “Belum Dibongkar” wajib diisi satu per satu.',
                 'hint'      => '👆 Ketuk nomor Segel yang menyala',
                 'done'      => '.spp-modal, [data-tour="spp-segel-group"][data-all-done="1"]',
+                'remember'  => true,   // penjelasan lengkap hanya untuk Segel PERTAMA
             ],
             [
                 'no'        => 4,
@@ -481,6 +496,7 @@ function spbu_tour_checklist_steps(): array
                 'hint'      => '👆 Pilih “Sesuai” atau “Tidak Sesuai”',
                 'done'      => '.spp-modal input[name="kesesuaian"]:checked',
                 'ok'        => '✅ Jawaban sudah dipilih',
+                'remember'  => true,
             ],
             [
                 'no'        => 4,
@@ -494,6 +510,7 @@ function spbu_tour_checklist_steps(): array
                 'hint'      => '👆 Pilih “Sesuai” atau “Tidak Sesuai”',
                 'done'      => '.spp-modal input[name="kondisi"]:checked',
                 'ok'        => '✅ Jawaban sudah dipilih',
+                'remember'  => true,
             ],
             [
                 'no'        => 4,
@@ -506,12 +523,25 @@ function spbu_tour_checklist_steps(): array
                 'text'      => 'Ketuk “Simpan” untuk menyimpan verifikasi Segel ini.',
                 'hint'      => '👆 Ketuk tombol “Simpan”',
                 'done'      => null,
+                'remember'  => true,
+            ],
+            // Segel ke-2 dst: tidak ada lagi penjelasan pop up, hanya diarahkan mengisi semuanya.
+            [
+                'no'        => 4,
+                'label'     => 'Soal 6 · Segel',
+                'target'    => '[data-tour="spp-segel-group"] .nav-item-card:not(.done)',
+                'highlight' => '[data-tour="spp-segel-group"]',
+                'title'     => 'Isi Segel berikutnya',
+                'text'      => 'Ketuk nomor Segel berikutnya yang menyala dan isi seperti tadi. Semua nomor Segel wajib diisi.',
+                'hint'      => '👆 Ketuk nomor Segel yang menyala',
+                'done'      => '.spp-modal, [data-tour="spp-segel-group"][data-all-done="1"]',
             ],
             // 3) Lanjut
             [
                 'no'     => 4,
                 'label'  => 'Soal 6 · Selesai',
                 'target' => $next,
+                'when'   => $next,   // baru tampil setelah semua Produk & Segel terisi
                 'title'  => 'Ketuk “Selanjutnya”',
                 'text'   => 'Semua Produk dan Segel sudah diverifikasi. Ketuk “Selanjutnya” untuk melanjutkan ke soal berikutnya.',
                 'hint'   => '👆 Ketuk “Selanjutnya”',

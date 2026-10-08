@@ -91,13 +91,14 @@ function spbu_header_partial(string $screen): ?string
 function spbu_header_style(string $screen): array
 {
     // Ajukan Claim Loss & Tiba di Lokasi: judul di tengah; Tiba di Lokasi memakai panah "←" (sama seperti aplikasi asli)
-    $centered = in_array($screen, ['claim_loss', 'verification'], true);
-    return ['class' => $centered ? ' centered' : '', 'arrow' => $screen === 'verification', 'spacer' => $centered];
+    $centered = in_array($screen, ['claim_loss', 'verification', 'konfirmasi_lo'], true);
+    // Konfirmasi LO juga memakai panah "←" abu-abu dan judul di tengah (sama seperti sistem asli)
+    return ['class' => $centered ? ' centered' : '', 'arrow' => in_array($screen, ['verification', 'konfirmasi_lo'], true), 'spacer' => $centered];
 }
 
 function spbu_content_class(string $screen): string
 {
-    $hasWizardNav = in_array($screen, ['checklist', 'claim_loss', 'rating'], true);
+    $hasWizardNav = in_array($screen, ['checklist', 'claim_loss', 'rating', 'konfirmasi_lo'], true);
     $isFlexCol    = $screen === 'lo_list';
     return ($hasWizardNav ? ' content-with-nav' : '') . ($isFlexCol ? ' content-flex-col' : '');
 }
