@@ -17,7 +17,8 @@ foreach ($checked as $id => $isChecked) {
     }
 }
 
-$checkIcon = '<svg viewBox="0 0 24 24" width="14" height="14" style="display:block;fill:none;stroke:#fff;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;"><path d="M5 13l4 4L19 7"/></svg>';
+// Ikon centang: kotak biru + tanda centang putih tebal (gaya di .lo-checkbox, verification.css)
+$checkIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
 ?>
 <form method="post" action="index.php" id="loListForm" style="display:flex;flex-direction:column;flex:1 1 auto;">
 <input type="hidden" name="action" value="kirim_checklist">
@@ -26,8 +27,8 @@ $checkIcon = '<svg viewBox="0 0 24 24" width="14" height="14" style="display:blo
     <p style="font-size:12px;color:#64748b;margin-bottom:20px;">Pilih LO untuk mengisi checklist</p>
 
     <div data-tour="daftar-lo">
-    <a href="index.php?screen=lo_list&toggle_all=1" class="lo-select-all" style="display:flex;align-items:center;gap:0.75rem;background:#fff;border:1px solid #e2e8f0;border-radius:1.25rem;box-shadow:0 2px 12px -4px rgba(0,0,0,0.08);padding:1rem;margin-bottom:1rem;font-size:0.875rem;font-weight:600;color:#334155;">
-        <span class="lo-checkbox<?php echo $allChecked ? ' checked' : ''; ?>" style="width:1.25rem;height:1.25rem;border-radius:0.3125rem;border:1px solid #cbd5e1;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:<?php echo $allChecked ? '#2563eb' : '#fff'; ?>;<?php echo $allChecked ? 'border-color:#2563eb;' : ''; ?>">
+    <a href="index.php?screen=lo_list&toggle_all=1" class="lo-select-all">
+        <span class="lo-checkbox<?php echo $allChecked ? ' checked' : ''; ?>">
             <?php if ($allChecked) echo $checkIcon; ?>
         </span>
         <span>Pilih Semua</span>
@@ -87,14 +88,14 @@ $checkIcon = '<svg viewBox="0 0 24 24" width="14" height="14" style="display:blo
     </div>
 </div>
 
-<!-- Pop up konfirmasi sebelum checklist dikirim -->
-<div class="modal-backdrop" id="kirimModal" hidden>
-    <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="kirimJudul">
+<!-- Pop up konfirmasi sebelum checklist dikirim (dialog di tengah layar, sama seperti sistem asli) -->
+<div class="modal-backdrop confirm-backdrop" id="kirimModal" hidden>
+    <div class="modal-sheet confirm-sheet" role="dialog" aria-modal="true" aria-labelledby="kirimJudul">
         <h2 id="kirimJudul">Kirim Checklist</h2>
-        <p>Pastikan data yang diisi sudah benar. Apakah Anda yakin ingin mengirim checklist ini?</p>
-        <p style="color:#94a3b8;">Note : Data yang tersimpan tidak dapat diubah kembali setelah dikirim.</p>
-        <button type="submit" class="btn-primary" id="btnYaKirim">Ya, Kirim</button>
-        <button type="button" class="btn-outline modal-close" id="btnBatalKirim">Batal</button>
+        <p class="confirm-text">Pastikan data yang diisi sudah benar. Apakah Anda yakin ingin mengirim checklist ini?</p>
+        <p class="confirm-note">Note : Data yang tersimpan tidak dapat diubah kembali setelah dikirim.</p>
+        <button type="submit" class="btn-primary confirm-btn-yes" id="btnYaKirim">Ya, Kirim</button>
+        <button type="button" class="btn-outline modal-close confirm-btn-no" id="btnBatalKirim">Batal</button>
     </div>
 </div>
 </form>

@@ -24,6 +24,7 @@ const SPBU_HEADER_TITLES = [
     'rating'                => 'Beri Penilaian',
     'done'                  => 'Pengiriman Selesai',
     'claim_loss'            => 'Ajukan Claim Loss',
+    'konfirmasi_lo'         => 'Konfirmasi LO',
 ];
 
 // Teks tutorial (persis App.tsx -> getTutorialText)
@@ -47,13 +48,15 @@ const SPBU_TUTORIAL_TEXTS = [
     'done'                 => "Selesai! Seluruh proses dari Order BBM hingga Pembongkaran berhasil dicatat.",
     // Halaman detail "Ajukan Claim Loss" tanpa kotak petunjuk (form fokus penuh)
     'claim_loss'           => '',
+    // Layar Konfirmasi LO (di luar soal checklist) tanpa kotak petunjuk
+    'konfirmasi_lo'        => '',
 ];
 
 // Judul singkat tiap layar untuk indikator "Bagian X dari Y" pada
 // tutorial terpandu (hanya layar yang memang dilalui alur SPBU).
 const SPBU_TOUR_SCREEN_ORDER = [
     'dashboard', 'shipments_list', 'shipment', 'verification',
-    'lo_list', 'checklist', 'notifikasi', 'qr_code', 'rating', 'done',
+    'lo_list', 'checklist', 'konfirmasi_lo', 'notifikasi', 'qr_code', 'rating', 'done',
 ];
 const SPBU_TOUR_SCREEN_LABELS = [
     'dashboard'      => 'Beranda',
@@ -62,6 +65,7 @@ const SPBU_TOUR_SCREEN_LABELS = [
     'verification'   => 'Tiba di Lokasi',
     'lo_list'        => 'Daftar LO',
     'checklist'      => 'Checklist',
+    'konfirmasi_lo'  => 'Konfirmasi LO',
     'notifikasi'     => 'Notifikasi',
     'qr_code'        => 'Verifikasi Order',
     'rating'         => 'Rating AMT',
@@ -86,6 +90,7 @@ const SPBU_PREV_SCREEN = [
     'qr_code'               => 'shipment',
     'rating'                => 'shipment',
     'claim_loss'            => 'checklist',
+    'konfirmasi_lo'         => 'checklist',
 ];
 
 // Urutan alur maju, dipakai sebagai fallback "next" default
@@ -125,4 +130,5 @@ const SPBU_SCREEN_CSS = [
     'rating'                => ['verification'],
     'done'                  => ['verification'],
     'claim_loss'            => ['verification'],
+    'konfirmasi_lo'         => ['verification'],
 ];

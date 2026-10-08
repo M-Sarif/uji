@@ -50,7 +50,7 @@ $arrowRight   = '<svg class="arrow-icon" viewBox="0 0 24 24"><path stroke-lineca
 $chevronRight = '<svg class="chevron-icon" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 18l6-6-6-6"/></svg>';
 ?>
 <div class="progress-row">
-    <?php for ($i = 1; $i <= 15; $i++): ?>
+    <?php for ($i = 1; $i <= CHECKLIST_PROGRESS_TOTAL; $i++): ?>
         <?php
         $segClass = 'progress-seg';
         if ($i < $step)      { $segClass .= ' done'; }
@@ -58,16 +58,10 @@ $chevronRight = '<svg class="chevron-icon" viewBox="0 0 24 24"><path stroke-line
         ?>
         <div class="<?php echo $segClass; ?>"></div>
     <?php endfor; ?>
-    <span class="progress-count"><?php echo str_pad((string) $step, 2, '0', STR_PAD_LEFT); ?>/15</span>
+    <span class="progress-count"><?php echo str_pad((string) $step, 2, '0', STR_PAD_LEFT); ?>/<?php echo CHECKLIST_PROGRESS_TOTAL; ?></span>
 </div>
 
-<?php
-// Soal 15 (Konfirmasi Status LO): seluruh kartu -- judul, keterangan, dan
-// SEMUA kartu LO -- yang disorot tutorial (lihat CHECKLIST_SOAL15_TOUR_STEPS),
-// bukan hanya satu kartu LO.
-$cardTourAttr = ($stepData['type'] === 'konfirmasi_lo') ? ' data-tour="konfirmasi-lo-card"' : '';
-?>
-<div class="checklist-card"<?php echo $cardTourAttr; ?>>
+<div class="checklist-card">
     <h2><?php echo h($stepData['text']); ?> <span class="req">*</span></h2>
 
     <?php switch ($stepData['type']):
@@ -288,34 +282,6 @@ $cardTourAttr = ($stepData['type'] === 'konfirmasi_lo') ? ' data-tour="konfirmas
                 </p>
             </div>
         <?php break;
-
-        case 'konfirmasi_lo': ?>
-            <p class="section-sub">Tentukan status bongkar untuk LO yang dipilih.</p>
-            <?php
-            // Dipakai tutorial Soal 15 (CHECKLIST_SOAL15_TOUR_STEPS): jumlah
-            // LO yang statusnya sudah dipilih + kelas 'is-set' per kartu.
-            $konfirmasiDoneCount = 0;
-            foreach ($activeLoIds as $kId) {
-                if (!empty($_SESSION['lo_bongkar'][$kId])) { $konfirmasiDoneCount++; }
-            }
-            ?>
-            <div data-tour="konfirmasi-lo-group" data-tour-done-count="<?php echo $konfirmasiDoneCount; ?>">
-            <?php foreach ($activeLoIds as $loId):
-                $lo     = LO_LIST[$loId];
-                $status = $_SESSION['lo_bongkar'][$loId] ?? null; ?>
-            <div class="konfirmasi-card<?php echo $status ? ' is-set' : ''; ?>">
-                <div class="lo-detail">
-                    <div class="lrow"><span class="label">Nomor LO</span><span class="val"><span class="colon">:</span><?php echo h($loId); ?></span></div>
-                    <div class="lrow"><span class="label">Order</span><span class="val"><span class="colon">:</span><?php echo h($lo['order']); ?></span></div>
-                </div>
-                <div class="row choice-group konfirmasi-actions">
-                    <a href="<?php echo $baseUrl; ?>&lo=<?php echo urlencode($loId); ?>&status=batal" class="btn-choice red<?php echo $status === 'batal' ? ' is-selected' : ''; ?>">Tidak Jadi</a>
-                    <a href="<?php echo $baseUrl; ?>&lo=<?php echo urlencode($loId); ?>&status=dibongkar" class="btn-choice blue<?php echo $status === 'dibongkar' ? ' is-selected' : ''; ?>">Sudah Dibongkar</a>
-                </div>
-            </div>
-            <?php endforeach; ?>
-            </div>
-        <?php break;
     endswitch; ?>
 </div>
 
@@ -333,17 +299,12 @@ $cardTourAttr = ($stepData['type'] === 'konfirmasi_lo') ? ' data-tour="konfirmas
     <?php endif; ?>
 
     <?php
-    // Langkah terakhir (15 - Konfirmasi Status LO) tidak langsung mengirim
-    // checklist. Tombolnya berlabel "Konfirmasi LO" dan baru aktif kalau
-    // SEMUA LO yang dikerjakan sudah dipilih statusnya (Tidak Jadi Bongkar
-    // / Sudah Dibongkar) -- lihat checklist_step_done(). Setelah diklik,
-    // pengguna dikembalikan ke Daftar LO dengan status "Draft" pada tiap
-    // LO, lalu benar-benar mengirimkan checklist-nya lewat tombol "Kirim"
-    // + pop up konfirmasi di halaman itu.
-    $nextHref  = $step < 15
+    // Soal terakhir (14) -> layar "Konfirmasi LO" yang berdiri sendiri
+    // (bukan soal; lihat views/konfirmasi_lo.php). Soal lain -> soal berikutnya.
+    $nextHref  = $step < count(CHECKLIST_STEPS)
         ? 'index.php?screen=checklist&step=' . $nextStep
-        : 'index.php?screen=lo_list&selesai=1';
-    $nextLabel = $step < 15 ? 'Selanjutnya' : 'Konfirmasi LO';
+        : 'index.php?screen=konfirmasi_lo';
+    $nextLabel = 'Selanjutnya';
     ?>
     <?php if ($stepDone): ?>
         <a href="<?php echo $nextHref; ?>" class="btn-wiz" data-tour="wizard-next">
@@ -368,12 +329,13 @@ $cardTourAttr = ($stepData['type'] === 'konfirmasi_lo') ? ' data-tour="konfirmas
         <input type="hidden" name="action" value="save_spp_produk">
         <input type="hidden" name="lo" value="<?php echo h($modalProduk); ?>">
 
+        <span class="sheet-grabber" aria-hidden="true"></span>
         <h3 class="spp-modal-title">Produk</h3>
 
         <div class="spp-modal-rows">
             <div class="spp-modal-row"><span class="label">Nomor LO</span><span class="value"><?php echo h($modalProduk); ?></span></div>
-            <div class="spp-modal-row"><span class="label">Produk</span><span class="value"><?php echo h($lo['produk']); ?></span></div>
-            <div class="spp-modal-row"><span class="label">Qty</span><span class="value"><?php echo h($lo['qty']); ?></span></div>
+            <div class="spp-modal-row"><span class="label">Produk / Material</span><span class="value"><?php echo h($lo['produk']); ?></span></div>
+            <div class="spp-modal-row"><span class="label">Quantity</span><span class="value"><?php echo h($lo['qty']); ?></span></div>
         </div>
 
         <p class="spp-modal-question">Bagaimana LO, Produk, dan Qty yang didapat?</p>
@@ -389,43 +351,68 @@ $cardTourAttr = ($stepData['type'] === 'konfirmasi_lo') ? ' data-tour="konfirmas
         </div>
 
         <button type="submit" class="spp-modal-save">Simpan</button>
-        <a href="<?php echo $baseUrl; ?>" class="spp-modal-cancel">Batal</a>
     </form>
 </div>
 <?php endif; ?>
 
 <script>
 /*
- * Pertahankan posisi scroll di halaman checklist ini (per langkah).
- * Tanpa ini, tiap kali form Produk/Segel disimpan (submit -> redirect
- * kembali ke langkah yang sama), browser me-render ulang halaman dari
- * atas -- padahal kartu yang belum diisi biasanya ada di bagian bawah
- * (mis. daftar Segel setelah daftar Produk). Posisi scroll disimpan
- * terus-menerus ke sessionStorage selagi pengguna men-scroll, lalu
- * dikembalikan begitu halaman yang sama (langkah yang sama) dimuat lagi.
+ * Pertahankan posisi scroll di halaman checklist ini.
+ *
+ * Yang men-scroll di aplikasi ini adalah wadah ".content" (tinggi wadah
+ * dikunci setinggi layar), BUKAN window -- makanya window.scrollTo / scrollY
+ * tidak berpengaruh dan halaman selalu kembali ke atas setelah pop up
+ * Produk/Segel dibuka lalu disimpan (halaman dimuat ulang).
+ *
+ * Solusi: tepat sebelum pengguna membuka pop up (klik kartu Produk/Segel),
+ * menutupnya (klik area gelap), atau menyimpannya (submit), posisi
+ * scrollTop ".content" disimpan ke sessionStorage + penanda "pending".
+ * Begitu halaman yang sama dimuat lagi, posisi itu dikembalikan SEKALI,
+ * lalu penanda dihapus -- jadi masuk lagi ke soal ini dari tempat lain
+ * tetap mulai dari atas, persis seperti sistem asli.
  */
 (function () {
-    var scrollKey = 'checklistScrollStep<?php echo (int) $step; ?>';
+    var step      = <?php echo (int) $step; ?>;
+    var posKey    = 'checklistScrollPos' + step;
+    var flagKey   = 'checklistScrollPending';
+    var scroller  = document.querySelector('.content');
+    if (!scroller) { return; }
 
-    var saved = sessionStorage.getItem(scrollKey);
-    if (saved !== null) {
-        var y = parseInt(saved, 10);
-        if (!isNaN(y)) {
-            // requestAnimationFrame supaya posisi di-set setelah layout selesai,
-            // termasuk saat pop up Produk/Segel sedang terbuka di atasnya.
-            requestAnimationFrame(function () { window.scrollTo(0, y); });
-        }
+    if ('scrollRestoration' in history) { history.scrollRestoration = 'manual'; }
+
+    function mark() {
+        try {
+            sessionStorage.setItem(posKey, String(scroller.scrollTop));
+            sessionStorage.setItem(flagKey, String(step));
+        } catch (e) {}
     }
 
-    var pending = false;
-    window.addEventListener('scroll', function () {
-        if (pending) { return; }
-        pending = true;
-        requestAnimationFrame(function () {
-            sessionStorage.setItem(scrollKey, String(window.scrollY));
-            pending = false;
-        });
-    }, { passive: true });
+    // Pulihkan posisi (hanya kalau penandanya milik soal ini)
+    var y = null;
+    try {
+        if (sessionStorage.getItem(flagKey) === String(step)) {
+            var saved = parseInt(sessionStorage.getItem(posKey), 10);
+            if (!isNaN(saved)) { y = saved; }
+        }
+        sessionStorage.removeItem(flagKey);
+    } catch (e) {}
+
+    if (y !== null) {
+        var apply = function () { scroller.scrollTop = y; };
+        apply();                                       // segera (sebelum paint pertama)
+        document.addEventListener('DOMContentLoaded', apply);
+        window.addEventListener('load', apply);
+        requestAnimationFrame(function () { apply(); requestAnimationFrame(apply); });
+        setTimeout(apply, 120);                        // jaga-jaga: font/gambar selesai dimuat
+    }
+
+    document.addEventListener('click', function (e) {
+        var t = e.target.closest ? e.target.closest('a.nav-item-card, a.spp-modal-dismiss') : null;
+        if (t) { mark(); }
+    }, true);
+    document.addEventListener('submit', function (e) {
+        if (e.target.closest && e.target.closest('.spp-modal')) { mark(); }
+    }, true);
 })();
 </script>
 
@@ -439,6 +426,7 @@ $cardTourAttr = ($stepData['type'] === 'konfirmasi_lo') ? ' data-tour="konfirmas
         <input type="hidden" name="action" value="save_spp_segel">
         <input type="hidden" name="segel" value="<?php echo h($modalSegel); ?>">
 
+        <span class="sheet-grabber" aria-hidden="true"></span>
         <h3 class="spp-modal-title">Segel <?php echo h($modalSegel); ?></h3>
 
         <p class="spp-modal-question">Bagaimana nomor segel yang didapat?</p>
@@ -457,16 +445,15 @@ $cardTourAttr = ($stepData['type'] === 'konfirmasi_lo') ? ' data-tour="konfirmas
         <div class="spp-opt-row" data-tour="spp-segel-kondisi">
             <label class="spp-opt danger">
                 <input type="radio" name="kondisi" value="rusak" required<?php echo $kondisi === 'rusak' ? ' checked' : ''; ?>>
-                <span>Rusak</span>
+                <span>Tidak Sesuai</span>
             </label>
             <label class="spp-opt">
                 <input type="radio" name="kondisi" value="baik" required<?php echo $kondisi === 'baik' ? ' checked' : ''; ?>>
-                <span>Baik</span>
+                <span>Sesuai</span>
             </label>
         </div>
 
         <button type="submit" class="spp-modal-save">Simpan</button>
-        <a href="<?php echo $baseUrl; ?>" class="spp-modal-cancel">Batal</a>
     </form>
 </div>
 <?php endif; ?>

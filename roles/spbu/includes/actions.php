@@ -291,8 +291,8 @@ function spbu_handle_get(string $screen): void
     }
 
     if ($screen === 'lo_list' && isset($_GET['selesai'])) {
-        // Wizard checklist dituntaskan sampai langkah terakhir ("Konfirmasi
-        // LO" di step 15) -- LO yang sedang dikerjakan ditandai "Draft" di
+        // Wizard checklist dituntaskan sampai langkah terakhir (layar "Konfirmasi
+        // LO") -- LO yang sedang dikerjakan ditandai "Draft" di
         // Daftar LO. Belum "Sudah Diisi": itu baru terjadi setelah pengguna
         // menekan tombol "Kirim" & konfirmasi "Ya, Kirim".
         foreach ($_SESSION['lo_checked'] as $id => $isChecked) {
@@ -327,7 +327,7 @@ function spbu_handle_get(string $screen): void
 
     if ($screen === 'checklist') {
         $step = isset($_GET['step']) ? (int) $_GET['step'] : ($_SESSION['checklist_step'] ?? 1);
-        $step = max(1, min(15, $step));
+        $step = max(1, min(count(CHECKLIST_STEPS), $step));
         $_SESSION['checklist_step'] = $step;
 
         // Jawaban "Tidak Dilakukan" / "Ya, dilakukan" pada langkah checklist
@@ -342,7 +342,13 @@ function spbu_handle_get(string $screen): void
             $_SESSION['checklist_answers_lawan'][$step] = $_GET['jawab_lawan'];
         }
 
-        // Langkah 15: status akhir tiap LO
+    }
+
+    // Layar Konfirmasi LO (di luar soal checklist): status akhir tiap LO
+    if ($screen === 'konfirmasi_lo') {
+        // Header "back" & tombol "Sebelumnya" kembali ke soal terakhir.
+        $_SESSION['checklist_step'] = count(CHECKLIST_STEPS);
+
         if (isset($_GET['lo'], $_GET['status'])
             && array_key_exists((string) $_GET['lo'], LO_LIST)
             && in_array($_GET['status'], ['dibongkar', 'batal'], true)

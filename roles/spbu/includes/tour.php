@@ -32,9 +32,9 @@ function spbu_tour_config(string $screen): array
     // Soal 8 (Test Report): hanya satu langkah -- setelah 5 detik tanpa aksi,
     // tutorial muncul menyorot "Selanjutnya" (tidak berpindah halaman sendiri).
     $isChecklistSoal8 = $screen === 'checklist' && ($_SESSION['checklist_step'] ?? null) === 8;
-    // Soal 15 (Konfirmasi Status LO) dan Daftar LO berstatus "Draft"
-    // (siap dikirim) masing-masing punya tutorial sendiri.
-    $isChecklistSoal15 = $screen === 'checklist' && ($_SESSION['checklist_step'] ?? null) === 15;
+    // Layar Konfirmasi LO (di luar soal checklist) dan Daftar LO berstatus
+    // "Draft" (siap dikirim) masing-masing punya tutorial sendiri.
+    $isChecklistSoal15 = $screen === 'konfirmasi_lo';
     // Rating AMT: langkah 2 (AMT 2, tombol "Kirim") punya tutorial sendiri.
     $isRatingAmt2 = $screen === 'rating' && (int) ($_SESSION['rating_step'] ?? 1) >= 2;
     $isLoKirim = $screen === 'lo_list' && !empty(array_filter($_SESSION['lo_draft'] ?? []));

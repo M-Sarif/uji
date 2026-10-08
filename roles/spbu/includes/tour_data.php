@@ -323,7 +323,7 @@ const CHECKLIST_SOAL6_TOUR_STEPS = [
         'target'     => '[data-tour="spp-segel-kondisi"]',
         'highlight'  => '.spp-modal',
         'title'      => 'Kondisi Segel',
-        'text'       => 'Verifikasi "Bagaimana kondisi segel yang didapat?" — pilih "Baik" atau "Rusak".',
+        'text'       => 'Verifikasi "Bagaimana kondisi segel yang didapat?" — pilih "Sesuai" atau "Tidak Sesuai".',
         'place'      => 'top',
         'quietIf'    => '[data-tour="spp-segel-group"] .chip-done',
         'quietIfMin' => [
@@ -454,8 +454,8 @@ const CHECKLIST_SOAL7_TOUR_STEPS = [
         'screen'    => 'claim_loss',
         'target'    => '[data-tour="hasil-primary-action"]',
         'highlight' => '.hasil-generate-sheet',
-        'title'     => 'Hasil Generate Claim Losses',
-        'text'      => 'Sistem menampilkan selisih kekurangan (Claim Losses) beserta status generate-nya. Untuk mengetahui apakah kekurangan ini dapat diklaim, baca "Syarat Claim Losses". Kalau sudah sesuai, ketuk tombol simpan/ajukan di bawah.',
+        'title'     => 'Hasil Generate Claim Loss',
+        'text'      => 'Sistem menampilkan selisih kekurangan (Claim Losses) beserta status generate-nya. Untuk mengetahui apakah kekurangan ini dapat diklaim, baca "Syarat Claim Losses". Kalau sudah sesuai, ketuk "Ajukan Klaim" atau "Simpan Tanpa Klaim" di bawah.',
         'place'     => 'top',
         'quietIf'   => '.hasil-generate-sheet[data-tour-any-done="1"]',
         'gotoOnLoad' => [
@@ -518,8 +518,8 @@ const CHECKLIST_SOAL8_TOUR_STEPS = [
     ],
 ];
 
-// Tutorial terpandu Soal 15 ("Konfirmasi Status LO") -- layar 'checklist'
-// step 15. Pola sama seperti Soal 7: intro SATU KALI, lalu diarahkan ke LO
+// Tutorial terpandu layar "Konfirmasi LO" (screen 'konfirmasi_lo', bukan
+// lagi soal checklist). Pola sama seperti Soal 7: intro SATU KALI, lalu diarahkan ke LO
 // yang statusnya BELUM dipilih, baru menyorot tombol "Konfirmasi LO" begitu
 // SEMUA LO sudah dipilih statusnya. Dipakai lewat $tourSubKey
 // 'checklist_soal15' di roles/spbu/includes/tour.php.
@@ -532,7 +532,7 @@ const CHECKLIST_SOAL15_TOUR_STEPS = [
         // dan semua kartu LO di dalamnya); ketukan pada LO mana pun di dalam
         // grup tetap melanjutkan tutorial.
         'highlight' => '[data-tour="konfirmasi-lo-card"]',
-        'title'  => 'Soal 15 · Konfirmasi Status LO',
+        'title'  => 'Konfirmasi Status LO',
         'text'   => 'Tentukan status bongkar tiap LO: ketuk "Sudah Dibongkar" kalau BBM untuk LO ini jadi dibongkar, atau "Tidak Jadi" kalau pembongkaran dibatalkan. Mulai dari LO pertama.',
         'place'  => 'bottom',
         'gotoOnLoad' => [

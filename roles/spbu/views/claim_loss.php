@@ -116,31 +116,28 @@ foreach ($ukurActiveLoIds as $ukurCheckId) {
 <?php if ($showResult): ?>
 <div class="modal-backdrop" id="hasilModal">
     <div class="modal-sheet hasil-generate-sheet" role="dialog" aria-modal="true" aria-labelledby="hasilJudul" data-tour-any-done="<?php echo $ukurAnyDone ? '1' : '0'; ?>">
-        <h2 id="hasilJudul">Hasil Generate Claim Losses</h2>
+        <span class="sheet-grabber" aria-hidden="true"></span>
+        <h2 id="hasilJudul">Hasil Generate Claim Loss</h2>
 
         <div class="hasil-row">
-            <span class="hasil-label">Selisih Kurang Claim Loss</span>
+            <span class="hasil-label">Selisih Kurang yang Dapat di Klaim</span>
             <span class="hasil-value">
-                <?php echo h(number_format($claimLossResult, $bisaKlaim ? 2 : 0, '.', ',')); ?> L
+                <span class="hasil-angka"><?php echo h(format_liter_asli($claimLossResult)); ?></span>
+                <span class="hasil-satuan">Liter</span>
             </span>
         </div>
         <div class="hasil-row">
             <span class="hasil-label">Status Generate</span>
             <span class="hasil-badge <?php echo $bisaKlaim ? 'bisa' : 'tidak-bisa'; ?>">
                 <?php echo $bisaKlaim ? 'Dapat di Klaim' : 'Tidak Bisa di Klaim'; ?>
+                <?php if ($bisaKlaim): ?>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#16a34a"/><path d="M7.5 12.5l3 3 6-6.5" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <?php endif; ?>
             </span>
         </div>
 
-        <p class="hasil-caption">
-            <?php if ($bisaKlaim): ?>
-                Ada selisih kurang <strong><?php echo h(number_format($claimLossResult, 2, '.', ',')); ?> L</strong> pada pengukuran ini — bukan aman, LO ini bisa diajukan claim loss.
-            <?php else: ?>
-                Tidak ada selisih kurang (<strong>0 L</strong>) pada pengukuran ini — LO ini aman, tidak ada yang bisa diklaim.
-            <?php endif; ?>
-        </p>
-
         <div class="hasil-barrel">
-            <img src="<?php echo SPBU_URL; ?>/img/ilustrasi/fuel-barrel.png" alt="Claim Losses">
+            <img src="<?php echo SPBU_URL; ?>/img/ilustrasi/fuel-barrel.png" alt="Claim Loss">
         </div>
 
         <?php if ($bisaKlaim): ?>
@@ -149,14 +146,14 @@ foreach ($ukurActiveLoIds as $ukurCheckId) {
                 <input type="hidden" name="lo" value="<?php echo h((string) $loId); ?>">
                 <input type="hidden" name="metode" value="<?php echo h($method); ?>">
                 <input type="hidden" name="klaim" value="ajukan">
-                <button type="submit" class="btn-primary" data-tour="hasil-primary-action">Ajukan Claim Losses</button>
+                <button type="submit" class="btn-primary hasil-btn-main" data-tour="hasil-primary-action">Ajukan Klaim</button>
             </form>
             <form method="post" action="index.php">
                 <input type="hidden" name="action" value="save_claim_loss">
                 <input type="hidden" name="lo" value="<?php echo h((string) $loId); ?>">
                 <input type="hidden" name="metode" value="<?php echo h($method); ?>">
                 <input type="hidden" name="klaim" value="tanpa">
-                <button type="submit" class="btn-outline hasil-btn-full">Simpan Tanpa Klaim</button>
+                <button type="submit" class="btn-outline hasil-btn-full hasil-btn-second">Simpan Tanpa Klaim</button>
             </form>
         <?php else: ?>
             <form method="post" action="index.php">
@@ -164,11 +161,11 @@ foreach ($ukurActiveLoIds as $ukurCheckId) {
                 <input type="hidden" name="lo" value="<?php echo h((string) $loId); ?>">
                 <input type="hidden" name="metode" value="<?php echo h($method); ?>">
                 <input type="hidden" name="klaim" value="">
-                <button type="submit" class="btn-primary" data-tour="hasil-primary-action">Simpan</button>
+                <button type="submit" class="btn-primary hasil-btn-main" data-tour="hasil-primary-action">Simpan</button>
             </form>
         <?php endif; ?>
 
-        <a href="<?php echo h($batalHref); ?>" class="btn-outline hasil-btn-full modal-close" id="btnHasilBatal">Batal</a>
+        <a href="<?php echo h($batalHref); ?>" class="hasil-batal modal-close" id="btnHasilBatal">Batal</a>
     </div>
 </div>
 <script>

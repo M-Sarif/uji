@@ -322,16 +322,15 @@ function hitung_vcf(float $densityObs, float $suhuObs): float
  * Hitung selisih kurang (claim loss) dalam liter untuk satu Nomor LO,
  * berdasarkan metode pengukuran & isian form-nya.
  *
- * - Flow Meter: volume yang benar-benar terukur (volume_meter) dibandingkan
- *   dengan Qty Order pada LO. Selisih kurang = Qty Order - volume_meter
- *   (tidak pernah negatif; kalau volume terukur >= order, tidak ada claim loss).
- * - IJKBOUT: selisih level dipstick (mm) antara "Level BBM di SPP" (saat
- *   muat) dan "Level BBM Sebelum Bongkar" (saat sampai tujuan) dikonversi
- *   ke liter memakai rasio tera kompartemen (COMPARTMENT_TERA_RATE), lalu
- *   dikoreksi ke suhu standar 15°C memakai VCF dari suhu & density obs.
- *   Selisih dihitung sebagai nilai mutlak (abs) kedua level supaya hasilnya
- *   tetap benar berapa pun arah bacaan dipstick-nya. Kalau kedua level
- *   sama persis, selisihnya 0 (tidak ada claim loss).
+ * - Flow Meter: Qty Order pada LO dikurangi volume_meter (tidak pernah negatif).
+ * - IJKBOUT: selisih level dipstick (mm) antara "Level BBM di SPP" dan
+ *   "Level BBM Sebelum Bongkar" dikali rasio tera kompartemen
+ *   (COMPARTMENT_TERA_RATE, L/mm). Hasil TIDAK dibulatkan -- sama persis
+ *   dengan sistem asli (mis. 12 mm => 22.285714285714285 L).
+ *
+ * Catatan: koreksi suhu/density (hitung_vcf) tidak lagi dipakai di sini karena
+ * hasil sistem asli untuk isian yang sama (kompartemen 1, 1212 mm, 1200 mm,
+ * 28 C, 0.778) = 22.285714285714285 L, bukan 65.52 L.
  */
 function hitung_claim_loss(string $metode, array $nilai, string $loId): float
 {
@@ -345,18 +344,21 @@ function hitung_claim_loss(string $metode, array $nilai, string $loId): float
     // IJKBOUT
     $kompartemen = (int) ($nilai['kompartemen'] ?? 0);
     $literPerMm  = COMPARTMENT_TERA_RATE[$kompartemen] ?? COMPARTMENT_TERA_RATE['default'];
+    $selisihMm   = abs(($nilai['level_spp'] ?? 0) - ($nilai['level_sebelum_bongkar'] ?? 0));
 
-    // Selisih level dipstick (mm) antara "Level BBM di SPP" (saat muat) dan
-    // "Level BBM Sebelum Bongkar" (saat tiba di tujuan). Dipakai nilai
-    // MUTLAK (abs) karena arah selisih tergantung cara baca dipstick di
-    // lapangan (innage: makin besar makin banyak isi, atau ullage: makin
-    // besar makin sedikit isi) -- yang penting adalah BESAR selisihnya,
-    // bukan angka mana yang lebih besar. Kalau kedua level sama persis,
-    // selisihnya otomatis 0 (tidak ada claim loss).
-    $selisihMm = abs(($nilai['level_spp'] ?? 0) - ($nilai['level_sebelum_bongkar'] ?? 0));
-    $volumeObs = $selisihMm * $literPerMm;
+    return (float) ($selisihMm * $literPerMm);
+}
 
-    $vcf = hitung_vcf((float) ($nilai['density_obs'] ?? 0), (float) ($nilai['temperatur_obs'] ?? 15));
-
-    return round($volumeObs * $vcf, 2);
+/**
+ * Tampilkan angka liter apa adanya (presisi penuh, tanpa pembulatan) seperti
+ * sistem asli: 22.285714285714285 -> "22.285714285714285".
+ */
+function format_liter_asli(float $nilai): string
+{
+    $str = json_encode($nilai);
+    if ($str === false) {
+        return (string) $nilai;
+    }
+    // json_encode(0.0) menghasilkan "0.0" -> tampilkan "0" (seperti JavaScript)
+    return substr($str, -2) === '.0' ? substr($str, 0, -2) : $str;
 }
