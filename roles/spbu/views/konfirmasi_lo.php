@@ -35,7 +35,7 @@ $arrowRight = '<svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-line
     <h2 class="konfirmasi-title">Konfirmasi Status LO</h2>
     <p class="konfirmasi-sub">Tentukan status bongkar untuk LO yang dipilih.</p>
 
-    <div data-tour="konfirmasi-lo-group" data-tour-done-count="<?php echo (int) $konfirmasiDoneCount; ?>">
+    <div data-tour="konfirmasi-lo-group" data-tour-done-count="<?php echo (int) $konfirmasiDoneCount; ?>" data-all-done="<?php echo $semuaTerpilih ? '1' : '0'; ?>">
     <?php foreach ($activeLoIds as $loId):
         $lo     = LO_LIST[$loId];
         $status = $_SESSION['lo_bongkar'][$loId] ?? null; ?>

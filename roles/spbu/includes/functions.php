@@ -150,7 +150,46 @@ function spbu_reset_flow_state(): void
         $_SESSION['activity_done'],
         $_SESSION['arrive_unlock_at']
     );
+    spbu_tour_bump();   // siklus baru -> catatan tutorial "selesai" dihapus, tutorial muncul lagi dari awal
     spbu_init_session();
+}
+
+/**
+ * "Epoch" tutorial SPBU: penanda siklus. Setiap kali alur SPBU dimulai dari awal (kembali ke beranda,
+ * ganti peran), nilainya berganti. Mesin tutorial (roles/spbu/assets/js/tutorial.js) membandingkannya dengan
+ * yang tersimpan di browser dan otomatis menghapus catatan "tutorial sudah selesai / dilewati" bila berbeda.
+ * Jadi tutorial selalu muncul lagi di siklus baru. (Pola yang sama dengan amt_tour_epoch() milik AMT.)
+ */
+function spbu_tour_epoch(): string
+{
+    if (empty($_SESSION['spbu_tour_epoch'])) {
+        $_SESSION['spbu_tour_epoch'] = bin2hex(random_bytes(6));
+    }
+    return (string) $_SESSION['spbu_tour_epoch'];
+}
+
+function spbu_tour_bump(): void
+{
+    $_SESSION['spbu_tour_epoch'] = bin2hex(random_bytes(6));
+}
+
+/**
+ * "Fresh" tutorial SPBU: penanda KUNJUNGAN BARU ke peran SPBU. Berganti HANYA saat layar pilih peran dibuka.
+ * Begitu berbeda, status tutorial "dimatikan" (hasil Lewati / selesai) dihapus, sehingga:
+ *   - memilih SPBU dari layar pilih peran -> tutorial otomatis muncul lagi;
+ *   - setelah Lewati / selesai -> tutorial tidak muncul lagi (kecuali lewat tombol "?").
+ */
+function spbu_tour_fresh(): string
+{
+    if (empty($_SESSION['spbu_tour_fresh'])) {
+        $_SESSION['spbu_tour_fresh'] = bin2hex(random_bytes(6));
+    }
+    return (string) $_SESSION['spbu_tour_fresh'];
+}
+
+function spbu_tour_fresh_bump(): void
+{
+    $_SESSION['spbu_tour_fresh'] = bin2hex(random_bytes(6));
 }
 
 /** Jawaban yang tersimpan untuk satu langkah checklist ('ya' | 'tidak' | null) */

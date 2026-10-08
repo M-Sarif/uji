@@ -110,7 +110,15 @@ $chevronRight = '<svg class="chevron-icon" viewBox="0 0 24 24"><path stroke-line
         <?php break;
 
         case 'form_spp': ?>
-            <div data-tour="spp-produk-group">
+            <?php
+            // Penanda untuk tutorial (lihat spbu_tour_checklist_steps() di roles/spbu/includes/tour_data.php):
+            // data-all-done="1" bila SEMUA Produk sudah terisi -> tutorial lanjut ke bagian Segel.
+            $produkAllDone = true;
+            foreach ($activeLoIds as $produkCheckId) {
+                if (empty($_SESSION['spp_produk'][$produkCheckId])) { $produkAllDone = false; break; }
+            }
+            ?>
+            <div data-tour="spp-produk-group" data-all-done="<?php echo $produkAllDone ? '1' : '0'; ?>">
             <p class="section-heading">Produk</p>
             <p class="section-sub">Isi kesesuaian produk yang telah diterima pihak SPBU.</p>
             <?php foreach ($activeLoIds as $loId): $lo = LO_LIST[$loId]; $filled = !empty($_SESSION['spp_produk'][$loId]); ?>
@@ -126,17 +134,15 @@ $chevronRight = '<svg class="chevron-icon" viewBox="0 0 24 24"><path stroke-line
             </div>
 
             <?php
-            // Dipakai oleh tutorial (lihat CHECKLIST_SOAL6_TOUR_STEPS di
-            // roles/spbu/includes/tour_data.php) untuk membedakan "baru saja 1 segel
-            // terisi" (masih perlu ditampilkan hint "Isi Sisa Segel") dari
-            // "2 atau lebih sudah terisi" (hint itu tidak perlu diulang
-            // lagi, tutorial diam sampai semuanya lengkap).
+            // Dipakai oleh tutorial (lihat spbu_tour_checklist_steps() di
+            // roles/spbu/includes/tour_data.php): data-all-done="1" bila SEMUA nomor
+            // Segel sudah dibongkar -> tutorial lanjut ke tombol "Selanjutnya".
             $segelDoneCount = 0;
             foreach (SEGEL_LIST as $s) {
                 if (!empty($_SESSION['spp_segel'][$s])) { $segelDoneCount++; }
             }
             ?>
-            <div data-tour="spp-segel-group" data-tour-done-count="<?php echo $segelDoneCount; ?>">
+            <div data-tour="spp-segel-group" data-tour-done-count="<?php echo $segelDoneCount; ?>" data-all-done="<?php echo $segelDoneCount === count(SEGEL_LIST) ? '1' : '0'; ?>">
             <p class="section-heading section-heading-gap">Segel</p>
             <p class="section-sub">Pilih nomor segel yang dibongkar di SPBU saat ini.</p>
             <?php foreach (SEGEL_LIST as $segel): $bongkar = !empty($_SESSION['spp_segel'][$segel]); ?>
@@ -154,17 +160,15 @@ $chevronRight = '<svg class="chevron-icon" viewBox="0 0 24 24"><path stroke-line
 
         case 'form_ukur': ?>
             <?php
-            // Dipakai oleh tutorial Soal 7 (lihat CHECKLIST_SOAL7_TOUR_STEPS
-            // di roles/spbu/includes/tour_data.php), sama seperti data-tour-done-count pada
-            // bagian Segel di Soal 6: membedakan "baru 1 LO yang formnya
-            // terisi" (hint "Lengkapi Sisa LO" perlu ditampilkan) dari
-            // "2 atau lebih sudah terisi" (hint itu tidak perlu diulang).
+            // Dipakai oleh tutorial Soal 7 (lihat spbu_tour_checklist_steps()
+            // di roles/spbu/includes/tour_data.php): data-all-done="1" bila form
+            // pengukuran SEMUA LO sudah terisi -> tutorial lanjut ke "Selanjutnya".
             $ukurDoneCount = 0;
             foreach ($activeLoIds as $doneCheckId) {
                 if (!empty($_SESSION['lo_form'][$doneCheckId])) { $ukurDoneCount++; }
             }
             ?>
-            <div data-tour="ukur-lo-group" data-tour-done-count="<?php echo $ukurDoneCount; ?>">
+            <div data-tour="ukur-lo-group" data-tour-done-count="<?php echo $ukurDoneCount; ?>" data-all-done="<?php echo $ukurDoneCount === count($activeLoIds) ? '1' : '0'; ?>">
             <p class="section-heading">Daftar LO</p>
             <p class="section-sub">Isi satu persatu data LO terlebih dahulu untuk keperluan verifikasi order.</p>
             <?php foreach ($activeLoIds as $loId):

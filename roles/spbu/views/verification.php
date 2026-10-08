@@ -13,16 +13,16 @@
 $arrivalError = $_SESSION['arrival_error'] ?? '';
 unset($_SESSION['arrival_error']);
 ?>
-<form method="post" action="index.php" class="arrival-wrap" id="arrivalForm">
+<form method="post" action="index.php" class="arrival-wrap" id="arrivalForm" data-all="0">
     <input type="hidden" name="action" value="kirim_verifikasi">
 
     <div class="content-pad arrival-body">
 
-        <!-- Ringkasan waktu tiba -->
-        <div class="card arrival-info">
+        <!-- Ringkasan waktu tiba (tanpa kartu, teks langsung di atas latar halaman) -->
+        <div class="arrival-info">
             <div class="arrival-info-col">
                 <span class="label">Waktu Tiba</span>
-                <span class="value"><?php echo h($_SESSION['arrival_time'] ?? date('d/m/Y H:i:s')); ?></span>
+                <span class="value"><?php echo h($_SESSION['arrival_time'] ?? date('d/m/Y H:i:s')); ?> WIB</span>
             </div>
             <div class="arrival-info-col">
                 <span class="label">SPBU ke</span>
@@ -49,18 +49,21 @@ unset($_SESSION['arrival_error']);
                     </div>
                 </div>
 
+                <div class="subject-divider"></div>
+
                 <p class="question"><?php echo h($subject['question']); ?></p>
+                <p class="question-hint"><?php echo h($subject['hint'] ?? ''); ?></p>
 
                 <div class="row choice-group" data-group="<?php echo h($name); ?>">
                     <label class="btn-choice red<?php echo $answer === false ? ' is-selected' : ''; ?>">
                         <input type="radio" name="<?php echo h($name); ?>" value="tidak"
                                <?php echo $answer === false ? 'checked' : ''; ?>>
-                        Tidak sesuai
+                        Tidak Sesuai
                     </label>
                     <label class="btn-choice blue<?php echo $answer === true ? ' is-selected' : ''; ?>">
                         <input type="radio" name="<?php echo h($name); ?>" value="ya"
                                <?php echo $answer === true ? 'checked' : ''; ?>>
-                        Ya, sesuai
+                        Sesuai
                     </label>
                 </div>
             </div>
@@ -115,9 +118,16 @@ unset($_SESSION['arrival_error']);
             });
 
             if (isAnswered) { answered++; }
+
+            // Penanda untuk tutorial: kartu yang sudah dijawab tidak disorot lagi.
+            var card = group.closest('.subject-card');
+            if (card) { card.classList.toggle('is-answered', isAnswered); }
         });
 
         btn.disabled = (answered !== groups.length);
+
+        // Penanda untuk tutorial: langkah "jawab ketiga kartu" selesai bila semuanya sudah dijawab.
+        form.setAttribute('data-all', btn.disabled ? '0' : '1');
 
         // Kalau tutorial sedang menunggu tombol "Simpan" ini aktif, langsung
         // coba tampilkan sekarang juga (tidak menunggu polling 400ms).

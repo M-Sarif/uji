@@ -65,15 +65,7 @@ $checkIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4
 
     <div class="row" style="margin-top:auto;padding-top:24px;">
         <?php if ($anyChecked): ?>
-            <?php
-            // Kalau baru SEBAGIAN LO yang dicentang (belum semua), beri
-            // tutorial jeda 2 detik dulu sebelum sorotan pindah ke tombol
-            // ini - supaya pengguna sempat menyadari masih ada LO lain
-            // yang belum dipilih. Begitu semua LO tercentang, atribut ini
-            // tidak dipasang sama sekali sehingga sorotan langsung pindah.
-            $tourDelayAttr = $allChecked ? '' : ' data-tour-delay="2000"';
-            ?>
-            <a href="index.php?screen=checklist&step=1" class="btn-outline" style="flex:1;" data-tour="mulai-checklist"<?php echo $tourDelayAttr; ?>>
+            <a href="index.php?screen=checklist&step=1" class="btn-outline" style="flex:1;" data-tour="mulai-checklist">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path stroke-linecap="round" stroke-linejoin="round" d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                 Mulai Checklist
             </a>

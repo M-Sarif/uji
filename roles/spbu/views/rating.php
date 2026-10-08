@@ -166,8 +166,16 @@ function render_stars(string $amtKey, string $catKey, int $selected): void
             btnLanjut.disabled = !complete;
         }
 
-        // Penanda untuk tutorial: langkah "nilai semua kategori" dilewati
-        // begitu semuanya lengkap, lalu tutorial menyorot tombol lanjut/kirim.
+        // Penanda untuk tutorial: kartu yang sudah berbintang (.is-rated), jumlahnya (data-rated),
+        // dan data-complete="1" bila semuanya lengkap -> tutorial menyorot tombol lanjut/kirim.
+        var rated = 0;
+        groups.forEach(function (group) {
+            var card  = form.querySelector('[data-rating-card="' + group + '"]');
+            var isSet = form.querySelector('[data-group="' + group + '"]:checked') !== null;
+            if (card) { card.classList.toggle('is-rated', isSet); }
+            if (isSet) { rated++; }
+        });
+        form.setAttribute('data-rated', String(rated));
         if (complete) { form.setAttribute('data-complete', '1'); }
         else { form.removeAttribute('data-complete'); }
 

@@ -60,7 +60,7 @@ const COMPARTMENT_TERA_RATE = [
 // Jumlah segmen pada bar progres (sama dengan sistem asli: nn/15). Soal-soal
 // checklist ada 14; segmen ke-15 adalah layar "Konfirmasi LO" yang berdiri
 // sendiri (bukan soal) -- lihat views/konfirmasi_lo.php.
-const CHECKLIST_PROGRESS_TOTAL = 15;
+const CHECKLIST_PROGRESS_TOTAL = 14;
 
 // 14 soal checklist pra-pembongkaran
 const CHECKLIST_STEPS = [
@@ -106,6 +106,7 @@ const ARRIVAL_SUBJECTS = [
         'name'     => 'B 9170 SEJ',
         'sub'      => '16 KL',
         'question' => 'Apakah mobil tangki sesuai?',
+        'hint'     => 'Pastikan nomor plat fisik sama dengan yang tertera di aplikasi',
     ],
     'amt_ok' => [
         'photo'    => SPBU_URL . '/img/avatar/avatar-amt1.svg',
@@ -113,6 +114,7 @@ const ARRIVAL_SUBJECTS = [
         'name'     => 'MOHAMMAD FARHAN AWAFI',
         'sub'      => 'AMT 1',
         'question' => 'Apakah AMT 1 sesuai?',
+        'hint'     => 'Pastikan wajah AMT 1 sesuai dengan foto',
     ],
     'amt2_ok' => [
         'photo'    => SPBU_URL . '/img/avatar/avatar-amt2.svg',
@@ -120,6 +122,7 @@ const ARRIVAL_SUBJECTS = [
         'name'     => 'IMAMAL KHOIR',
         'sub'      => 'AMT 2',
         'question' => 'Apakah AMT 2 sesuai?',
+        'hint'     => 'Pastikan wajah AMT 2 sesuai dengan foto',
     ],
 ];
 

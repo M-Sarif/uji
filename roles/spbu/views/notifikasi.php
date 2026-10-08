@@ -145,8 +145,8 @@ $loIds     = !empty($checked) ? array_keys($checked) : array_keys(LO_LIST);
 
     var modal = document.getElementById('verifOrderModal');
 
-    /* Tutorial Langkah 8 menyorot pop up itu sendiri (lihat TOUR_STEPS
-       'notifikasi' di roles/spbu/includes/tour_data.php). Kalau pop up ditutup, tandai
+    /* Tutorial menyorot pop up itu sendiri (lihat spbu_tour_notifikasi_steps()
+       di roles/spbu/includes/tour_data.php). Kalau pop up ditutup, tandai
        data-dismissed supaya tutorial pindah menyorot kartu notifikasinya. */
     function tutupModal() {
         modal.hidden = true;

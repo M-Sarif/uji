@@ -1,7 +1,6 @@
 <?php
 /**
- * SPBU - daftar layar, judul header, tombol back, urutan alur, indikator
- * tutorial, dan css per layar. HANYA layar milik peran SPBU
+ * SPBU - daftar layar, judul header, tombol back, urutan alur, dan css per layar. HANYA layar milik peran SPBU
  * (layar AMT ada di roles/amt/module.php).
  *
  * Letak: roles/spbu/includes/screens.php
@@ -52,25 +51,8 @@ const SPBU_TUTORIAL_TEXTS = [
     'konfirmasi_lo'        => '',
 ];
 
-// Judul singkat tiap layar untuk indikator "Bagian X dari Y" pada
-// tutorial terpandu (hanya layar yang memang dilalui alur SPBU).
-const SPBU_TOUR_SCREEN_ORDER = [
-    'dashboard', 'shipments_list', 'shipment', 'verification',
-    'lo_list', 'checklist', 'konfirmasi_lo', 'notifikasi', 'qr_code', 'rating', 'done',
-];
-const SPBU_TOUR_SCREEN_LABELS = [
-    'dashboard'      => 'Beranda',
-    'shipments_list' => 'Daftar Shipment',
-    'shipment'       => 'Detail Order',
-    'verification'   => 'Tiba di Lokasi',
-    'lo_list'        => 'Daftar LO',
-    'checklist'      => 'Checklist',
-    'konfirmasi_lo'  => 'Konfirmasi LO',
-    'notifikasi'     => 'Notifikasi',
-    'qr_code'        => 'Verifikasi Order',
-    'rating'         => 'Rating AMT',
-    'done'           => 'Selesai',
-];
+// (Urutan layar & label tutorial terpandu ada di includes/tour_data.php:
+//  SPBU_TOUR_SCREEN_ORDER, SPBU_TOUR_SCREEN_LABELS, SPBU_TOUR_JOURNEYS.)
 
 // Layar sebelumnya, dipakai untuk tombol "back" di header
 const SPBU_PREV_SCREEN = [

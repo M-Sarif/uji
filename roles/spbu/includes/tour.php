@@ -4,65 +4,77 @@
  * Dipakai core/layout_bottom.php lewat hook spbu_tour_config().
  * Data langkah: roles/spbu/includes/tour_data.php.
  *
+ * Bentuk konfigurasi SAMA dengan amt_tour_config() (roles/amt/includes/tutorial.php),
+ * karena SPBU kini memakai mesin tutorial yang sama dengan AMT.
+ *
  * Letak: roles/spbu/includes/tour.php
  */
 
 /**
- * @return array{steps:array, subKey:?string, journey:?array, startDelay:int, epoch:?string,
- *               persist:bool, screenOrder:array, screenLabels:array, restartEveryVisit:bool}
+ * @return array{steps:array, subKey:?string, journey:?array, startDelay:int, epoch:string, fresh:string,
+ *               persist:bool, screenOrder:array, screenLabels:array, noFab:bool}
  */
 function spbu_tour_config(string $screen): array
 {
-    // Soal 6 ("Periksa kesesuaian SPP...") pada wizard checklist punya
-    // tutorial tersendiri (CHECKLIST_SOAL6_TOUR_STEPS) yang menyorot
-    // sub-langkah verifikasi Produk lalu Segel lewat pop up -- lihat
-    // catatan panjang di roles/spbu/includes/tour_data.php. $tourSubKey memisahkan
-    // status "sudah ditonton"-nya dari tutorial umum layar 'checklist'
-    // (langkah 1-15 lainnya), supaya tetap tampil pertama kali soal ini
-    // dicapai walau tutorial umum sudah pernah ditonton.
-    $isChecklistSoal6 = $screen === 'checklist' && ($_SESSION['checklist_step'] ?? null) === 6;
-    // Soal 7 ("Isi form Metode Pengukuran...") mencakup DUA layar: daftar
-    // LO di 'checklist' (step 7) dan form pengukurannya sendiri di layar
-    // terpisah 'claim_loss' -- makanya subKey-nya sama ('checklist_soal7')
-    // untuk KEDUANYA, supaya progres tutorialnya tetap nyambung dan
-    // dilacak sebagai SATU rangkaian tutorial yang sama walau berpindah
-    // layar (lihat catatan panjang di roles/spbu/includes/tour_data.php).
-    $isChecklistSoal7 = ($screen === 'checklist' && ($_SESSION['checklist_step'] ?? null) === 7)
-        || $screen === 'claim_loss';
-    // Soal 8 (Test Report): hanya satu langkah -- setelah 5 detik tanpa aksi,
-    // tutorial muncul menyorot "Selanjutnya" (tidak berpindah halaman sendiri).
-    $isChecklistSoal8 = $screen === 'checklist' && ($_SESSION['checklist_step'] ?? null) === 8;
-    // Layar Konfirmasi LO (di luar soal checklist) dan Daftar LO berstatus
-    // "Draft" (siap dikirim) masing-masing punya tutorial sendiri.
-    $isChecklistSoal15 = $screen === 'konfirmasi_lo';
-    // Rating AMT: langkah 2 (AMT 2, tombol "Kirim") punya tutorial sendiri.
-    $isRatingAmt2 = $screen === 'rating' && (int) ($_SESSION['rating_step'] ?? 1) >= 2;
-    $isLoKirim = $screen === 'lo_list' && !empty(array_filter($_SESSION['lo_draft'] ?? []));
-    $tourSteps  = $isChecklistSoal6 ? CHECKLIST_SOAL6_TOUR_STEPS
-        : ($isChecklistSoal7 ? CHECKLIST_SOAL7_TOUR_STEPS
-        : ($isChecklistSoal8 ? CHECKLIST_SOAL8_TOUR_STEPS
-        : ($isChecklistSoal15 ? CHECKLIST_SOAL15_TOUR_STEPS
-        : ($isLoKirim ? LO_KIRIM_TOUR_STEPS
-        : ($isRatingAmt2 ? RATING_AMT2_TOUR_STEPS
-        : (SPBU_TOUR_STEPS[$screen] ?? []))))));
-    $tourSubKey = $isChecklistSoal6 ? 'checklist_soal6'
-        : ($isChecklistSoal7 ? 'checklist_soal7'
-        : ($isChecklistSoal8 ? 'checklist_soal8'
-        : ($isChecklistSoal15 ? 'checklist_soal15'
-        : ($isLoKirim ? 'lo_list_kirim'
-        : ($isRatingAmt2 ? 'rating_amt2' : null)))));
+    // Setiap layar menyusun paket langkahnya sendiri (berdasarkan keadaan session saat ini).
+    // 'subKey' memisahkan catatan "sudah selesai" untuk keadaan berbeda pada layar yang sama
+    // (mis. Detail Order sebelum / sesudah Tiba di Lokasi, soal checklist per tipe).
+    switch ($screen) {
+        case 'dashboard':
+            // Seluruh aktifitas baru saja tuntas -> kartu ucapan selamat (sekali tampil)
+            $finished = !empty($_SESSION['spbu_tour_finished']);
+            unset($_SESSION['spbu_tour_finished']);
+            $pack = spbu_tour_dashboard_steps($finished);
+            break;
+        case 'shipments_list':
+            $pack = spbu_tour_shipments_steps();
+            break;
+        case 'shipment':
+            $pack = spbu_tour_shipment_steps();
+            break;
+        case 'verification':
+            $pack = spbu_tour_verification_steps();
+            break;
+        case 'lo_list':
+            $pack = spbu_tour_lo_list_steps();
+            break;
+        case 'checklist':
+            $pack = spbu_tour_checklist_steps();
+            break;
+        case 'claim_loss':
+            $pack = spbu_tour_claim_loss_steps();
+            break;
+        case 'konfirmasi_lo':
+            $pack = spbu_tour_konfirmasi_steps();
+            break;
+        case 'notifikasi':
+            $pack = spbu_tour_notifikasi_steps();
+            break;
+        case 'qr_code':
+            $pack = spbu_tour_qr_steps();
+            break;
+        case 'rating':
+            $pack = spbu_tour_rating_steps();
+            break;
+        default:
+            // Layar lain (pilih peran, Buat Order, Pengiriman, Selesai): belum ada tutorial.
+            $pack = ['journey' => 'kirim', 'subKey' => null, 'steps' => []];
+    }
 
     return [
-        'steps'        => $tourSteps,
-        'subKey'       => $tourSubKey,
-        'journey'      => null,    // hanya dipakai mesin tutorial AMT
-        'startDelay'   => 0,       // hanya dipakai mesin tutorial AMT
-        'epoch'        => null,    // hanya dipakai mesin tutorial AMT
-        'persist'      => true,
+        'steps'        => array_values($pack['steps']),
+        'subKey'       => $pack['subKey'] ?? null,
+        'journey'      => SPBU_TOUR_JOURNEYS[$pack['journey']] ?? null,
+        'startDelay'   => (int) ($pack['startDelay'] ?? 0),
+        'epoch'        => spbu_tour_epoch(),
+        'fresh'        => spbu_tour_fresh(),
+        // Layar Rating: JANGAN catat "selesai" permanen (Kirim bisa ditolak server lalu halaman dimuat
+        // ulang) -> tutorial tampil lagi otomatis setiap dibuka. Layar lain mencatat "selesai" per
+        // paket langkah (subKey), jadi tiap tahap hanya tampil sekali per siklus.
+        'persist'      => $screen !== 'rating',
         'screenOrder'  => SPBU_TOUR_SCREEN_ORDER,
         'screenLabels' => SPBU_TOUR_SCREEN_LABELS,
-        // Layar simulasi bertimer: tutorial selalu mulai dari langkah pertama
-        // tiap layar dibuka (lihat tutorial.js -> restartEveryVisit).
-        'restartEveryVisit' => in_array($screen, ['notifikasi', 'qr_code', 'rating'], true),
+        // Layar tanpa tutorial tetap punya tombol "?" (menampilkan pesan "Belum ada tutorial").
+        'noFab'        => false,
     ];
 }

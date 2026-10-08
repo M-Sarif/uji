@@ -27,11 +27,8 @@ $bisaKlaim        = $claimLossResult > 0;
 $batalHref        = 'index.php?screen=claim_loss&metode=' . urlencode($method) . $loQuery;
 
 // Sama seperti $activeLoIds di views/checklist.php: LO yang sedang
-// dikerjakan pada wizard ini. Dipakai HANYA untuk tutorial Soal 7 (lihat
-// CHECKLIST_SOAL7_TOUR_STEPS di roles/spbu/includes/tour_data.php) supaya langkah-langkah
-// di layar claim_loss ini tahu apakah ini LO PERTAMA yang diisi (tampilkan
-// penjelasan lengkap) atau LO kedua dan seterusnya (diam-diam saja,
-// penjelasannya sudah pernah ditampilkan sebelumnya di LO pertama).
+// dikerjakan pada wizard ini. Dipakai untuk penanda data-tour-any-done
+// (apakah sudah ada LO lain yang terisi sebelumnya).
 $ukurActiveLoIds = array_keys(array_filter($_SESSION['lo_checked']));
 if (empty($ukurActiveLoIds)) {
     $ukurActiveLoIds = array_keys(LO_LIST);
@@ -41,7 +38,7 @@ foreach ($ukurActiveLoIds as $ukurCheckId) {
     if (!empty($_SESSION['lo_form'][$ukurCheckId])) { $ukurAnyDone = true; break; }
 }
 ?>
-<form method="post" action="index.php" id="claimForm">
+<form method="post" action="index.php" id="claimForm" data-ready="0">
     <input type="hidden" name="action" value="generate_claim_loss">
     <input type="hidden" name="lo" value="<?php echo h((string) $loId); ?>">
     <input type="hidden" name="metode" value="<?php echo h($method); ?>">
@@ -209,6 +206,8 @@ foreach ($ukurActiveLoIds as $ukurCheckId) {
             if (!fieldFilled(el)) { lengkap = false; }
         });
         btn.disabled = !lengkap;
+        // Penanda untuk tutorial: langkah "isi form pengukuran" selesai bila semua kolom wajib terisi.
+        form.setAttribute('data-ready', lengkap ? '1' : '0');
     }
 
     inputs.forEach(function (el) { el.addEventListener('input', refresh); });

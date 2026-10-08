@@ -5,12 +5,12 @@
  * SELURUH kode peran SPBU berada di folder "roles/spbu/":
  *   includes/data.php        data domain (LO, segel, checklist, rating, aktifitas)
  *   includes/screens.php     daftar layar, judul header, tombol back, css per layar
- *   includes/tour_data.php   data tutorial terpandu (guided tour)
+ *   includes/tour_data.php   data tutorial terpandu (guided tour, format yang sama dengan tutorial AMT)
  *   includes/tour.php        penyusun konfigurasi tutorial per layar
  *   includes/functions.php   state session, checklist, QR simulasi, claim loss
  *   includes/actions.php     proses form POST + aksi GET
  *   views/                   satu file per layar SPBU (+ partials/header_dashboard.php)
- *   assets/                  css/, js/ (tutorial.js), img/
+ *   assets/                  css/ (tutorial.css), js/ (tutorial.js = mesin tutorial, sama dengan AMT), img/
  *
  * Mengubah SPBU = cukup buka folder ini. Tidak ada kode AMT di sini.
  * File ini juga mendefinisikan "hook" yang dipanggil core (lihat core/roles.php).
@@ -90,8 +90,9 @@ function spbu_header_partial(string $screen): ?string
 /** Header layar lain: tombol back + judul. Ajukan Claim Loss: judul di tengah. */
 function spbu_header_style(string $screen): array
 {
-    $centered = $screen === 'claim_loss';
-    return ['class' => $centered ? ' centered' : '', 'arrow' => false, 'spacer' => $centered];
+    // Ajukan Claim Loss & Tiba di Lokasi: judul di tengah; Tiba di Lokasi memakai panah "←" (sama seperti aplikasi asli)
+    $centered = in_array($screen, ['claim_loss', 'verification'], true);
+    return ['class' => $centered ? ' centered' : '', 'arrow' => $screen === 'verification', 'spacer' => $centered];
 }
 
 function spbu_content_class(string $screen): string
@@ -101,16 +102,24 @@ function spbu_content_class(string $screen): string
     return ($hasWizardNav ? ' content-with-nav' : '') . ($isFlexCol ? ' content-flex-col' : '');
 }
 
-/** CSS global SPBU yang dimuat di <head> semua halaman (gaya tutorial terpandu) */
+/** CSS global SPBU yang dimuat di <head> semua halaman (gaya tutorial terpandu, sama dengan AMT) */
 function spbu_global_css(): array
 {
     return [SPBU_URL . '/css/tutorial.css'];
 }
 
-/** Mesin tutorial SPBU */
+/** Mesin tutorial SPBU (salinan mesin AMT: tampilan & logika berbasis kondisi yang sama) */
 function spbu_tour_assets(): array
 {
     return ['engine' => SPBU_URL . '/js/tutorial.js', 'css' => []];
+}
+
+/** Layar pilih peran dibuka => kunjungan baru: tutorial SPBU otomatis aktif lagi saat SPBU dipilih. */
+function spbu_on_role_select_screen(): void
+{
+    spbu_tour_bump();
+    spbu_tour_fresh_bump();
+    unset($_SESSION['spbu_tour_finished']);
 }
 
 /** Peran lain dipilih -> alur SPBU dimulai dari awal supaya state tidak bocor antar peran */
@@ -124,6 +133,10 @@ function spbu_on_home(string $screen): bool
 {
     if ($screen !== 'dashboard') {
         return false;
+    }
+    // Seluruh aktifitas tuntas sebelum kembali ke beranda -> beranda menampilkan ucapan selamat tutorial.
+    if ((int) ($_SESSION['activity_done'] ?? 0) >= count(ACTIVITY_STEPS)) {
+        $_SESSION['spbu_tour_finished'] = true;
     }
     spbu_reset_flow_state();
     return true;
