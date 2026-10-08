@@ -141,7 +141,7 @@ const ACTIVITY_STEPS = [
     ],
     'verifikasi' => [
         'label' => 'Verifikasi Order',
-        'icon'  => SPBU_URL . '/img/langkah/step-surat-jalan.png',
+        'icon'  => SPBU_URL . '/img/tidak-dipakai/step-verification.png',
         'href'  => 'index.php?screen=notifikasi',
     ],
     'rating' => [
@@ -149,4 +149,12 @@ const ACTIVITY_STEPS = [
         'icon'  => SPBU_URL . '/img/langkah/step-rate-spbu.png',
         'href'  => 'index.php?screen=rating',
     ],
+];
+
+// Informasi Pengiriman pada Detail Order (tab Aktifitas). Nopol MT dan nama AMT
+// diambil dari ARRIVAL_SUBJECTS supaya sama dengan layar "Tiba di Lokasi".
+const SHIPMENT_INFO = [
+    'shipment_no' => 'ONEFIS-1791351941655-ZQUFT1',
+    'spbu_no'     => '2438203',
+    'kapasitas'   => '16.000 L',
 ];

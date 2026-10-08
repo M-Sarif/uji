@@ -763,6 +763,12 @@ function spbu_tour_konfirmasi_steps(): array
 
 /* ------------------------------------------------------------
  * Notifikasi (permintaan Verifikasi Order dari AMT masuk ±5 detik setelah dibuka)
+ *
+ * Langkah 1 TIDAK menyorot bagian apa pun (target null): hanya kartu penjelasan di tengah layar
+ * yang memberi tahu bahwa sebentar lagi akan ada notifikasi dari AMT, dan bahwa AMT akan memindai
+ * (scan) kode yang tampil di layar Petugas SPBU. Kartu tampil 20 detik; hilang saat "Mengerti" diketuk, atau
+ * hilang sendiri setelah 20 detik bila tidak diketuk ('autoHide'). Pop up permintaan dari AMT (views/notifikasi.php)
+ * baru dimunculkan SETELAH kartu ini hilang, supaya kartu tidak terpotong oleh pop up.
  * ------------------------------------------------------------ */
 function spbu_tour_notifikasi_steps(): array
 {
@@ -770,16 +776,17 @@ function spbu_tour_notifikasi_steps(): array
         return ['journey' => 'verifikasi', 'subKey' => null, 'steps' => []];
     }
     $dismissed = '#verifOrderModal[data-dismissed]';   // pop up ditutup ("Tutup")
+    $muncul    = '#verifOrderModal:not([hidden])';     // pop up sedang tampil
     return ['journey' => 'verifikasi', 'subKey' => 'notifikasi', 'steps' => [
         [
             'no'     => 2,
             'label'  => 'Verifikasi Order',
-            'target' => '.notif-date',
-            'title'  => 'Menunggu permintaan dari AMT',
-            'text'   => 'AMT sedang mengirim permintaan Verifikasi Order ke SPBU Anda. Tunggu sekitar 5 detik sampai muncul pop up “Permintaan Verifikasi Order”.',
-            'hint'   => '⏳ Menunggu permintaan dari AMT…',
-            'skip'   => $dismissed,
-            'done'   => '#verifOrderModal:not([hidden])',
+            'target' => null,                          // tidak ada bagian yang disorot
+            'title'  => 'Tunggu pemberitahuan dari AMT',
+            'text'   => 'Sebentar lagi akan ada pemberitahuan dari AMT yang meminta Verifikasi Order. AMT akan memindai (scan) kode yang muncul di layar HP Anda. Anda tidak perlu melakukan apa-apa dulu, cukup tunggu sampai pemberitahuannya muncul.',
+            'button' => 'Mengerti',
+            'autoHide' => 20000,                       // tampil 20 detik penuh; tidak diketuk -> hilang sendiri
+            'done'   => null,
         ],
         [
             // Pop up disorot penuh; bila ditutup, kartu cadangan di bawah mengarahkan ke kartu notifikasi.
@@ -787,10 +794,10 @@ function spbu_tour_notifikasi_steps(): array
             'label'     => 'Verifikasi Order',
             'target'    => '#btnLihatNotifikasi',
             'highlight' => '#verifOrderModal .modal-sheet',
-            'when'      => '#verifOrderModal:not([hidden])',
+            'when'      => $muncul,
             'skip'      => $dismissed,
-            'title'     => 'Ketuk “Lihat Notifikasi”',
-            'text'      => 'AMT meminta Verifikasi Order. Ketuk “Lihat Notifikasi” untuk membuka Kode QR / Kode Konfirmasi yang harus Anda berikan kepada AMT.',
+            'title'     => 'AMT meminta verifikasi',
+            'text'      => 'AMT sedang meminta Verifikasi Order. Ketuk “Lihat Notifikasi” untuk membuka kode yang akan dipindai (scan) oleh AMT.',
             'hint'      => '👆 Ketuk tombol biru “Lihat Notifikasi”',
             'done'      => null,
         ],
@@ -799,8 +806,8 @@ function spbu_tour_notifikasi_steps(): array
             'label'  => 'Verifikasi Order',
             'target' => '#notifVerifikasiCard',
             'when'   => '#notifVerifikasi:not([hidden])',
-            'title'  => 'Buka notifikasi Verifikasi Order',
-            'text'   => 'Notifikasi Verifikasi Order berstatus “Aktif” dari AMT ada di sini. Ketuk kartunya untuk membuka Kode QR / Kode Konfirmasi.',
+            'title'  => 'Ketuk pemberitahuan ini',
+            'text'   => 'Pemberitahuan “Verifikasi Order” dari AMT ada di sini. Ketuk untuk membuka kode yang akan dipindai (scan) oleh AMT.',
             'hint'   => '👆 Ketuk kartu “Verifikasi Order”',
             'done'   => null,
         ],

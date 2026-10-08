@@ -158,14 +158,30 @@ $loIds     = !empty($checked) ? array_keys($checked) : array_keys(LO_LIST);
        verifikasi -> kartu notifikasi "Aktif" muncul + pop up
        "Permintaan Verifikasi Order" + tutorial. Sebelum itu halaman
        kosong dan tutorial menunggu. */
-    setTimeout(function () {
+    function munculkanPermintaan() {
         notifArrived = true;
         notifCard.setAttribute('data-tour', 'notif-verifikasi');
         notifList.hidden = false;
         applyFilter();
         modal.hidden = false;
         if (window.OneFISTour) { window.OneFISTour.rescan(); }
-    }, 5000);
+    }
+
+    /* Kartu tutorial "Tunggu pemberitahuan dari AMT" tampil 20 detik penuh (atau sampai
+       "Mengerti" diketuk). Pop up permintaan baru dimunculkan SETELAH kartu itu hilang,
+       paling cepat 5 detik setelah halaman dibuka. Bila tutorial tidak aktif, pop up
+       tetap muncul di detik ke-5. */
+    function kartuTutorialTampil() {
+        return !!document.querySelector('.sptt-panel.is-on');
+    }
+    function tungguTutorial() {
+        if (kartuTutorialTampil()) { setTimeout(tungguTutorial, 300); return; }
+        munculkanPermintaan();
+    }
+    setTimeout(function () {
+        // beri waktu mesin tutorial memasang kartunya dulu
+        setTimeout(tungguTutorial, 1200);
+    }, 3800);
 
     document.getElementById('btnTutupVerifOrder').addEventListener('click', tutupModal);
     modal.addEventListener('click', function (e) {

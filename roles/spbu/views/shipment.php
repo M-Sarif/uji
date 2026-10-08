@@ -96,31 +96,64 @@ $subtitles = [
         </div>
     </div>
 
-    <h2 class="section-title" style="margin: 1.25rem 0 0.75rem 0.25rem;">Order List</h2>
+    <?php
+    // LO yang tampil = semua LO pada order ini. Status mengikuti progres:
+    // "Belum Diverifikasi" sampai langkah Verifikasi Order selesai.
+    $sudahVerif = ($done >= 3);
+    ?>
+    <h2 class="section-title" style="margin: 1.25rem 0 0.75rem 0.25rem;">Rincian Order</h2>
 
-    <div class="card order-list-card">
-        <div class="order-row">
-            <span class="label">Nomor LO</span>
-            <span class="value">8119038717</span>
+    <?php foreach (LO_LIST as $loNo => $lo): ?>
+    <div class="card rincian-card">
+        <div class="rincian-grid">
+            <div class="rincian-col">
+                <span class="rincian-label">Nomor LO</span>
+                <span class="rincian-value"><?php echo h($loNo); ?></span>
+            </div>
+            <div class="rincian-col">
+                <span class="rincian-label">Status</span>
+                <span class="rincian-status <?php echo $sudahVerif ? 'ok' : 'wait'; ?>"><?php echo $sudahVerif ? 'Sudah Diverifikasi' : 'Belum Diverifikasi'; ?></span>
+            </div>
+            <div class="rincian-col">
+                <span class="rincian-label">Nama Produk</span>
+                <span class="rincian-value"><?php echo h($lo['produk']); ?></span>
+            </div>
+            <div class="rincian-col">
+                <span class="rincian-label">Jumlah Order</span>
+                <span class="rincian-value"><?php echo h($lo['qty']); ?></span>
+            </div>
         </div>
-        <?php if ($done >= $total): ?>
-            <div class="order-row">
-                <span class="label">Order</span>
-                <span class="value-chip ok">
-                    PERTALITE 6000 L
-                    <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                </span>
-            </div>
-            <div class="order-row">
-                <span class="label">Status Order</span>
-                <span class="value-chip ok">Sudah Diverifikasi</span>
-            </div>
-        <?php else: ?>
-            <div class="order-row">
-                <span class="label">Produk</span>
-                <span class="value-chip">PERTALITE 6000 L</span>
-            </div>
-        <?php endif; ?>
+        <button type="button" class="rincian-report" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M7 3h7l5 5v13H7z"/><path stroke-linecap="round" stroke-linejoin="round" d="M14 3v5h5"/></svg>
+            Lihat Test Report
+        </button>
+    </div>
+    <?php endforeach; ?>
+
+    <h2 class="section-title" style="margin: 1.25rem 0 0.75rem 0.25rem;">Informasi Pengiriman</h2>
+
+    <div class="card info-kirim-card">
+        <div class="info-kirim-row">
+            <span class="info-kirim-label">Nomor Shipment</span>
+            <span class="info-kirim-value"><?php echo h(SHIPMENT_INFO['shipment_no']); ?></span>
+        </div>
+        <div class="info-kirim-row">
+            <span class="info-kirim-label">Nomor SPBU</span>
+            <span class="info-kirim-value"><?php echo h(SHIPMENT_INFO['spbu_no']); ?></span>
+        </div>
+        <div class="info-kirim-row">
+            <span class="info-kirim-label">Nomor Polisi MT</span>
+            <span class="info-kirim-value"><?php echo h(ARRIVAL_SUBJECTS['mt_ok']['name']); ?></span>
+        </div>
+        <div class="info-kirim-row">
+            <span class="info-kirim-label">Kapasitas Tangki</span>
+            <span class="info-kirim-value"><?php echo h(SHIPMENT_INFO['kapasitas']); ?></span>
+        </div>
+        <div class="info-kirim-row">
+            <span class="info-kirim-label">AMT</span>
+            <span class="info-kirim-value"><?php echo h(ARRIVAL_SUBJECTS['amt_ok']['name']); ?> (AMT 1)</span>
+            <span class="info-kirim-value"><?php echo h(ARRIVAL_SUBJECTS['amt2_ok']['name']); ?> (AMT 2)</span>
+        </div>
     </div>
 
 </div>
