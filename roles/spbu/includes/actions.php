@@ -20,6 +20,10 @@ const SPBU_POST_ACTIONS = [
     'generate_claim_loss',
     'save_claim_loss',
     'ajukan_claim_bulk',
+    'upload_dipstick',
+    'hapus_dipstick',
+    'save_qr_amt',
+    'kirim_klaim',
     'kirim_checklist',
     'reset_flow',
 ];
@@ -207,31 +211,119 @@ function spbu_handle_post(string $action): void
             $klaim = (string) ($_POST['klaim'] ?? '');
 
             $draft = $_SESSION['lo_form_draft'][$loId] ?? null;
+            $saved = false;
             if (array_key_exists($loId, LO_LIST) && $draft !== null && $draft['metode'] === $metode) {
+                // 'diajukan' baru menjadi true setelah "Kirim Klaim" di halaman
+                // Upload Dokumen Klaim (aksi kirim_klaim). Sampai saat itu LO ini
+                // berstatus "menunggu diajukan" (diajukan = false).
                 $_SESSION['lo_form'][$loId] = [
                     'metode'     => $draft['metode'],
                     'nilai'      => $draft['nilai'],
                     'claim_loss' => $draft['claim_loss'],
-                    'diajukan'   => $klaim === 'ajukan',
+                    'diajukan'   => false,
                 ];
                 unset($_SESSION['lo_form_draft'][$loId]);
+                $saved = true;
+            }
+            // "Ajukan Klaim" (dan ada selisih yang bisa diklaim) -> pindah ke
+            // halaman Upload Dokumen Klaim. Pilihan lain kembali ke langkah 7.
+            if ($saved && $klaim === 'ajukan' && (float) $_SESSION['lo_form'][$loId]['claim_loss'] > 0) {
+                spbu_claim_start([$loId]);
+                go_to('claim_upload');
             }
             go_to('checklist', ['step' => 7]);
             break;
 
         case 'ajukan_claim_bulk':
             // Tombol "Ajukan Claim Losses" di bawah Daftar LO (langkah 7):
-            // menandai SEKALIGUS semua LO yang dipilih (yang tadi punya
-            // selisih & belum diajukan) menjadi "diajukan" = true, supaya
-            // tombolnya tidak nyangkut/muncul lagi walau klaim-nya sudah
-            // diajukan (lihat $pendingClaimLoIds di views/checklist.php).
-            $loIdsToClaim = (array) ($_POST['lo_ids'] ?? []);
-            foreach ($loIdsToClaim as $idToClaim) {
+            // setelah konfirmasi "Ya, Ajukan", pindah ke halaman Upload Dokumen
+            // Klaim untuk SEMUA LO yang dipilih (yang punya selisih & belum
+            // diajukan). Status "diajukan" baru diset saat "Kirim Klaim"
+            // (aksi kirim_klaim) -- lihat $pendingClaimLoIds di views/checklist.php.
+            $loIdsToClaim = [];
+            foreach ((array) ($_POST['lo_ids'] ?? []) as $idToClaim) {
                 $idToClaim = (string) $idToClaim;
-                if (array_key_exists($idToClaim, LO_LIST) && isset($_SESSION['lo_form'][$idToClaim])) {
-                    $_SESSION['lo_form'][$idToClaim]['diajukan'] = true;
+                $form = $_SESSION['lo_form'][$idToClaim] ?? null;
+                if (array_key_exists($idToClaim, LO_LIST) && $form && (float) $form['claim_loss'] > 0 && empty($form['diajukan'])) {
+                    $loIdsToClaim[] = $idToClaim;
                 }
             }
+            if (empty($loIdsToClaim)) {
+                go_to('checklist', ['step' => 7]);
+            }
+            spbu_claim_start($loIdsToClaim);
+            go_to('claim_upload');
+            break;
+
+        case 'upload_dipstick':
+            // Halaman Upload Dokumen Klaim: Sertifikat Dipstick (PDF/JPG/PNG).
+            // Dikirim otomatis begitu file dipilih; file disimpan di server
+            // (uploads/claim) supaya tidak hilang saat pindah ke layar Scan QR.
+            if (empty(spbu_claim_lo_ids())) {
+                go_to('checklist', ['step' => 7]);
+            }
+            $uploadError = spbu_claim_store_upload($_FILES['dipstick'] ?? null);
+            if ($uploadError !== null) {
+                $_SESSION['claim_error'] = $uploadError;
+            } else {
+                unset($_SESSION['claim_error']);
+            }
+            go_to('claim_upload');
+            break;
+
+        case 'hapus_dipstick':
+            spbu_claim_remove_dipstick();
+            unset($_SESSION['claim_error']);
+            go_to('claim_upload');
+            break;
+
+        case 'save_qr_amt':
+            // Layar Scan QR AMT: isi QR Code hasil scan (kamera / gambar dari
+            // galeri) dikirim oleh claim-scan.js, divalidasi di sini.
+            if (empty(spbu_claim_lo_ids())) {
+                go_to('checklist', ['step' => 7]);
+            }
+            $qrResult = spbu_claim_parse_qr((string) ($_POST['qr'] ?? ''));
+            if (!$qrResult['ok']) {
+                $_SESSION['claim_scan_error'] = $qrResult['error'];
+                go_to('claim_scan_qr');
+            }
+            unset($_SESSION['claim_scan_error']);
+            $_SESSION['claim_docs']['qr'] = $qrResult['data'];
+            go_to('claim_upload');
+            break;
+
+        case 'kirim_klaim':
+            // Tombol "Kirim Klaim": hanya berhasil bila Sertifikat Dipstick
+            // DAN QR Code AMT sudah terisi. Semua LO yang diajukan ditandai
+            // "diajukan", lalu kembali ke Daftar LO (langkah 7).
+            $loIdsKlaim = spbu_claim_lo_ids();
+            if (empty($loIdsKlaim)) {
+                go_to('checklist', ['step' => 7]);
+            }
+            if (!spbu_claim_ready()) {
+                $_SESSION['claim_error'] = 'Lengkapi Sertifikat Dipstick dan QR Code AMT terlebih dahulu.';
+                go_to('claim_upload');
+            }
+            $dok = spbu_claim_docs();
+            foreach ($loIdsKlaim as $idKlaim) {
+                if (isset($_SESSION['lo_form'][$idKlaim])) {
+                    $_SESSION['lo_form'][$idKlaim]['diajukan']  = true;
+                    $_SESSION['lo_form'][$idKlaim]['dokumen']   = [
+                        'dipstick' => $dok['dipstick']['file'],
+                        'qr_token' => $dok['qr']['token'],
+                        'dikirim'  => time(),
+                    ];
+                }
+            }
+            // File sudah resmi terkirim -> jangan ikut terhapus oleh reset state
+            $_SESSION['claim_docs']   = ['dipstick' => null, 'qr' => null];
+            $_SESSION['claim_submit'] = ['lo_ids' => []];
+            unset($_SESSION['claim_error'], $_SESSION['claim_scan_error']);
+            $_SESSION['flash_success'] = [
+                'title' => 'Klaim Terkirim',
+                'body'  => 'Pengajuan Claim Loss berhasil dikirim.',
+            ];
             go_to('checklist', ['step' => 7]);
             break;
 

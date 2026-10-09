@@ -74,6 +74,16 @@ function spbu_init_session(): void
         // menyimpan hasilnya.
         $_SESSION['lo_form_draft'] = [];
     }
+    if (!isset($_SESSION['claim_submit'])) {
+        // Pengajuan Claim Loss yang sedang berjalan (halaman "Upload Dokumen
+        // Klaim"): daftar Nomor LO yang diklaim. Kosong = tidak ada pengajuan.
+        $_SESSION['claim_submit'] = ['lo_ids' => []];
+    }
+    if (!isset($_SESSION['claim_docs'])) {
+        // Dokumen pengajuan Claim Loss: 'dipstick' = Sertifikat Dipstick
+        // (file yang diupload), 'qr' = hasil scan QR Code AMT. null = belum ada.
+        $_SESSION['claim_docs'] = ['dipstick' => null, 'qr' => null];
+    }
     if (!isset($_SESSION['lo_bongkar'])) {
         // Langkah 15 - status akhir tiap LO (id => 'dibongkar' | 'batal')
         $_SESSION['lo_bongkar'] = [];
@@ -127,6 +137,7 @@ function set_activity_done(int $jumlah): void
 /** Reset seluruh state alur SPBU (kembali ke beranda dari layar "done", ganti peran, dst) */
 function spbu_reset_flow_state(): void
 {
+    spbu_claim_remove_dipstick();   // file upload yang belum dikirim ikut dibersihkan
     unset(
         $_SESSION['order'],
         $_SESSION['lo_checked'],
@@ -139,6 +150,10 @@ function spbu_reset_flow_state(): void
         $_SESSION['spp_segel'],
         $_SESSION['lo_form'],
         $_SESSION['lo_form_draft'],
+        $_SESSION['claim_submit'],
+        $_SESSION['claim_docs'],
+        $_SESSION['claim_error'],
+        $_SESSION['claim_scan_error'],
         $_SESSION['lo_bongkar'],
         $_SESSION['ratings'],
         $_SESSION['rating_step'],
@@ -400,4 +415,165 @@ function format_liter_asli(float $nilai): string
     }
     // json_encode(0.0) menghasilkan "0.0" -> tampilkan "0" (seperti JavaScript)
     return substr($str, -2) === '.0' ? substr($str, 0, -2) : $str;
+}
+
+/* ============================================================
+ * Pengajuan Claim Loss - halaman "Upload Dokumen Klaim" + "Scan QR AMT"
+ * Alur: Ajukan Claim Loss -> claim_upload (Sertifikat Dipstick + QR Code AMT)
+ *       -> tombol "Kirim Klaim" -> kembali ke Daftar LO (langkah 7).
+ * ============================================================ */
+
+const CLAIM_UPLOAD_MAX_BYTES = 5 * 1024 * 1024;                 // batas ukuran Sertifikat Dipstick (5 MB)
+const CLAIM_UPLOAD_EXT       = ['pdf', 'jpg', 'jpeg', 'png'];   // jenis dokumen yang diterima
+const CLAIM_QR_PREFIX        = 'ONEFIS-PBK';                    // awalan isi QR Code yang dibuat AMT
+
+/** Folder penyimpanan Sertifikat Dipstick (di luar folder kode: <folder index.php>/uploads/claim) */
+function spbu_claim_upload_dir(): string
+{
+    return APP_ROOT . '/uploads/claim';
+}
+
+/** Mulai pengajuan untuk daftar Nomor LO. Dokumen lama dipertahankan bila daftar LO-nya sama. */
+function spbu_claim_start(array $loIds): void
+{
+    $valid = [];
+    foreach ($loIds as $id) {
+        $id = (string) $id;
+        if (array_key_exists($id, LO_LIST) && !in_array($id, $valid, true)) {
+            $valid[] = $id;
+        }
+    }
+    sort($valid);
+
+    $current = (array) ($_SESSION['claim_submit']['lo_ids'] ?? []);
+    sort($current);
+    if ($current !== $valid) {
+        spbu_claim_remove_dipstick();
+        $_SESSION['claim_docs'] = ['dipstick' => null, 'qr' => null];
+    }
+    $_SESSION['claim_submit'] = ['lo_ids' => $valid];
+}
+
+/** Nomor LO yang sedang diajukan klaimnya */
+function spbu_claim_lo_ids(): array
+{
+    return array_values((array) ($_SESSION['claim_submit']['lo_ids'] ?? []));
+}
+
+/** Dokumen pengajuan saat ini: ['dipstick' => ?array, 'qr' => ?array] */
+function spbu_claim_docs(): array
+{
+    $d = $_SESSION['claim_docs'] ?? [];
+    return ['dipstick' => $d['dipstick'] ?? null, 'qr' => $d['qr'] ?? null];
+}
+
+/** Tombol "Kirim Klaim" aktif hanya bila KEDUA dokumen sudah terisi */
+function spbu_claim_ready(): bool
+{
+    $d = spbu_claim_docs();
+    return $d['dipstick'] !== null && $d['qr'] !== null;
+}
+
+/** Hapus file Sertifikat Dipstick yang tersimpan (bila ada) dan kosongkan datanya */
+function spbu_claim_remove_dipstick(): void
+{
+    $file = $_SESSION['claim_docs']['dipstick']['file'] ?? null;
+    if (is_string($file) && $file !== '' && preg_match('/^dipstick_[a-f0-9]{16}\.(pdf|jpe?g|png)$/', $file)) {
+        $path = spbu_claim_upload_dir() . '/' . $file;
+        if (is_file($path)) {
+            @unlink($path);
+        }
+    }
+    if (isset($_SESSION['claim_docs'])) {
+        $_SESSION['claim_docs']['dipstick'] = null;
+    }
+}
+
+/**
+ * Simpan file Sertifikat Dipstick yang diupload.
+ * @return string|null pesan error, atau null bila berhasil
+ */
+function spbu_claim_store_upload($file): ?string
+{
+    if (!is_array($file) || !isset($file['error'])) {
+        return 'Dokumen tidak terbaca. Silakan coba lagi.';
+    }
+    switch ($file['error']) {
+        case UPLOAD_ERR_OK:
+            break;
+        case UPLOAD_ERR_NO_FILE:
+            return 'Pilih dokumen terlebih dahulu.';
+        case UPLOAD_ERR_INI_SIZE:
+        case UPLOAD_ERR_FORM_SIZE:
+            return 'Ukuran dokumen terlalu besar (maksimal 5 MB).';
+        default:
+            return 'Dokumen gagal diupload. Silakan coba lagi.';
+    }
+    if (!is_uploaded_file($file['tmp_name']) || (int) $file['size'] <= 0) {
+        return 'Dokumen tidak valid.';
+    }
+    if ((int) $file['size'] > CLAIM_UPLOAD_MAX_BYTES) {
+        return 'Ukuran dokumen terlalu besar (maksimal 5 MB).';
+    }
+
+    $ext = strtolower(pathinfo((string) $file['name'], PATHINFO_EXTENSION));
+    if (!in_array($ext, CLAIM_UPLOAD_EXT, true)) {
+        return 'Format dokumen harus PDF, JPG, atau PNG.';
+    }
+    // Cek isi file (bukan hanya nama/ekstensi) bila ekstensi fileinfo tersedia
+    if (class_exists('finfo')) {
+        $mime = (new finfo(FILEINFO_MIME_TYPE))->file($file['tmp_name']);
+        if (!in_array($mime, ['application/pdf', 'image/jpeg', 'image/png'], true)) {
+            return 'Format dokumen harus PDF, JPG, atau PNG.';
+        }
+    }
+
+    $dir = spbu_claim_upload_dir();
+    if (!is_dir($dir) && !@mkdir($dir, 0755, true)) {
+        return 'Folder penyimpanan tidak bisa dibuat. Periksa izin folder "uploads".';
+    }
+    // Lindungi folder upload: tidak ada daftar isi & tidak ada eksekusi skrip (Apache)
+    $ht = $dir . '/.htaccess';
+    if (!is_file($ht)) {
+        @file_put_contents($ht, "Options -Indexes\n<FilesMatch \"\\.(php|phtml|phar)$\">\n    Require all denied\n</FilesMatch>\n");
+    }
+
+    $stored = 'dipstick_' . bin2hex(random_bytes(8)) . '.' . ($ext === 'jpeg' ? 'jpg' : $ext);
+    if (!@move_uploaded_file($file['tmp_name'], $dir . '/' . $stored)) {
+        return 'Dokumen gagal disimpan. Periksa izin folder "uploads".';
+    }
+
+    spbu_claim_remove_dipstick();   // ganti file lama (bila ada)
+    $name = preg_replace('/[^\w.\- ()]+/u', '_', basename((string) $file['name']));
+    $_SESSION['claim_docs']['dipstick'] = [
+        'name' => (string) $name,
+        'file' => $stored,
+        'size' => (int) $file['size'],
+    ];
+    return null;
+}
+
+/**
+ * Periksa isi QR Code AMT hasil scan. Format (dibuat AMT, lihat amt_pbk_qr_payload()):
+ *   ONEFIS-PBK|<id pengiriman>|<no SPBU>|<token 24 hex>|<waktu kedaluwarsa unix>
+ * @return array{ok:bool,error:string,data:?array}
+ */
+function spbu_claim_parse_qr(string $raw): array
+{
+    $raw   = trim($raw);
+    $parts = explode('|', $raw);
+    if ($raw === '' || strlen($raw) > 300 || count($parts) !== 5 || $parts[0] !== CLAIM_QR_PREFIX
+        || !preg_match('/^[a-f0-9]{24}$/', $parts[3]) || !ctype_digit($parts[4])) {
+        return ['ok' => false, 'error' => 'QR Code bukan QR Code AMT dari OneFIS. Silakan scan ulang.', 'data' => null];
+    }
+    if ((int) $parts[4] <= time()) {
+        return ['ok' => false, 'error' => 'QR Code AMT sudah kedaluwarsa. Minta AMT menekan "Regenerate", lalu scan ulang.', 'data' => null];
+    }
+    return ['ok' => true, 'error' => '', 'data' => [
+        'shipment' => $parts[1],
+        'spbu'     => $parts[2],
+        'token'    => $parts[3],
+        'exp'      => (int) $parts[4],
+        'scan_at'  => time(),
+    ]];
 }

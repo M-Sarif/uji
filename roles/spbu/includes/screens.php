@@ -23,6 +23,8 @@ const SPBU_HEADER_TITLES = [
     'rating'                => 'Beri Penilaian',
     'done'                  => 'Pengiriman Selesai',
     'claim_loss'            => 'Ajukan Claim Loss',
+    'claim_upload'          => 'Ajukan Claim Loss',   // Upload Dokumen Klaim (Sertifikat Dipstick + QR Code AMT)
+    'claim_scan_qr'         => 'Scan QR AMT',         // kamera pemindai QR Code AMT
     'konfirmasi_lo'         => 'Konfirmasi LO',
 ];
 
@@ -47,6 +49,9 @@ const SPBU_TUTORIAL_TEXTS = [
     'done'                 => "Selesai! Seluruh proses dari Order BBM hingga Pembongkaran berhasil dicatat.",
     // Halaman detail "Ajukan Claim Loss" tanpa kotak petunjuk (form fokus penuh)
     'claim_loss'           => '',
+    // Upload Dokumen Klaim & Scan QR AMT: tanpa kotak petunjuk
+    'claim_upload'         => '',
+    'claim_scan_qr'        => '',
     // Layar Konfirmasi LO (di luar soal checklist) tanpa kotak petunjuk
     'konfirmasi_lo'        => '',
 ];
@@ -72,6 +77,9 @@ const SPBU_PREV_SCREEN = [
     'qr_code'               => 'shipment',
     'rating'                => 'shipment',
     'claim_loss'            => 'checklist',
+    // Upload Dokumen Klaim kembali ke Daftar LO (langkah 7); Scan QR kembali ke Upload Dokumen Klaim
+    'claim_upload'          => 'checklist',
+    'claim_scan_qr'         => 'claim_upload',
     'konfirmasi_lo'         => 'checklist',
 ];
 
@@ -112,5 +120,7 @@ const SPBU_SCREEN_CSS = [
     'rating'                => ['verification'],
     'done'                  => ['verification'],
     'claim_loss'            => ['verification'],
+    'claim_upload'          => ['verification', 'claim-upload'],
+    'claim_scan_qr'         => ['claim-upload'],
     'konfirmasi_lo'         => ['verification'],
 ];

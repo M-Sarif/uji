@@ -1,0 +1,107 @@
+/* ============================================================
+   OneFIS - claim-upload.css
+   Halaman "Ajukan Claim Loss" -> Upload Dokumen Klaim (claim_upload)
+   dan layar kamera "Scan QR AMT" (claim_scan_qr).
+   Letak: roles/spbu/assets/css/claim-upload.css
+   ============================================================ */
+
+/* ---------- Upload Dokumen Klaim ---------- */
+.cu-body { flex: 1 0 auto; }
+.cu-pad { padding: 1.25rem 1rem 1rem 1rem; }
+.cu-title { font-size: 1.25rem; font-weight: 700; color: #1e293b; letter-spacing: -0.01em; }
+.cu-sub { font-size: 0.9375rem; color: #94a3b8; line-height: 1.5; margin: 0.25rem 0 1.25rem 0; }
+
+.cu-alert {
+    margin-bottom: 1rem; padding: 0.625rem 0.75rem; border-radius: 0.625rem;
+    background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c;
+    font-size: 0.8125rem; line-height: 1.45;
+}
+
+.cu-field { margin-bottom: 1.25rem; }
+.cu-label { display: block; font-size: 1rem; font-weight: 600; color: #1e293b; margin-bottom: 0.5rem; }
+.cu-label .req { color: #ef4444; font-weight: 600; }
+.cu-file { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+
+/* Baris isian: [tombol biru] | teks status */
+.cu-row {
+    display: flex; align-items: stretch; background: #fff;
+    border: 1px solid #e2e8f0; border-radius: 0.75rem; overflow: hidden; min-height: 3.25rem;
+}
+.cu-row.is-filled { border-color: #bbf7d0; }
+.cu-action {
+    flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center;
+    padding: 0 1rem; font-size: 0.875rem; font-weight: 600; color: #2563eb;
+    background: #fff; border: 0; border-right: 1px solid #e2e8f0; cursor: pointer;
+    text-decoration: none; white-space: nowrap; font-family: inherit;
+}
+.cu-action:hover { background: #eff6ff; }
+.cu-value {
+    flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; justify-content: center;
+    padding: 0.5rem 0.875rem; font-size: 0.875rem; color: #94a3b8;
+}
+.cu-value.filled { color: #0f172a; }
+.cu-name { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cu-meta { font-size: 0.6875rem; color: #64748b; margin-top: 0.125rem; }
+.cu-clear {
+    flex: 0 0 auto; width: 2.75rem; border: 0; background: transparent; color: #94a3b8;
+    display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.cu-clear:hover { color: #ef4444; }
+.cu-clear svg { width: 1.125rem; height: 1.125rem; fill: none; stroke: currentColor; stroke-width: 2; }
+.cu-check { flex: 0 0 auto; display: inline-flex; align-items: center; padding: 0 0.875rem 0 0; }
+.cu-check svg { width: 1.25rem; height: 1.25rem; }
+.cu-hint { font-size: 0.75rem; color: #94a3b8; margin-top: 0.4375rem; line-height: 1.5; }
+.cu-hint.is-error { color: #dc2626; }
+.cu-noscript { margin-top: 0.5rem; padding: 0.5rem 0.75rem; }
+
+/* Tombol "Kirim Klaim" menempel di bawah layar */
+.content-with-nav > form.cu-footer { flex: 0 0 auto; }
+.cu-nav { background: transparent; border-top: 0; margin-top: 0; }
+.cu-submit {
+    width: 100%; padding: 0.9375rem 1rem; border: 0; border-radius: 0.625rem;
+    font-family: inherit; font-size: 0.9375rem; font-weight: 600; cursor: pointer;
+    background: #2563eb; color: #fff; transition: background 0.15s ease;
+}
+.cu-submit:hover { background: #1d4ed8; }
+.cu-submit:disabled { background: #d1d5db; color: #fff; cursor: not-allowed; }
+
+/* ---------- Scan QR AMT (layar kamera) ---------- */
+.content.content-scan { background: #6b6b6b; display: flex; flex-direction: column; padding-bottom: 0; }
+
+.scan-header {
+    height: calc(3.5rem + env(safe-area-inset-top)); padding: env(safe-area-inset-top) 0.5rem 0 0.5rem;
+    background: #6b6b6b; color: #fff; display: flex; align-items: center; gap: 0.25rem;
+    flex-shrink: 0; z-index: 10; position: sticky; top: 0;
+}
+.scan-header h1 {
+    flex: 1; text-align: center; font-size: 1rem; font-weight: 600; color: #fff;
+    letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.scan-back, .scan-gallery {
+    width: 2.5rem; height: 2.5rem; border-radius: 50%; border: 0; background: transparent; color: #fff;
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.scan-back:hover, .scan-gallery:hover { background: rgba(255, 255, 255, 0.15); }
+.scan-back svg, .scan-gallery svg { width: 1.375rem; height: 1.375rem; fill: none; stroke: currentColor; stroke-width: 2; }
+
+.scan-stage {
+    flex: 1 1 auto; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 1rem 1rem 4rem 1rem; gap: 1.25rem;
+}
+.scan-frame {
+    position: relative; width: min(74%, 20rem); aspect-ratio: 1 / 1;
+    background: #3f2a1e; overflow: hidden;
+}
+.scan-video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.scan-corner { position: absolute; width: 1.375rem; height: 1.375rem; border: 0 solid #2563eb; }
+.scan-corner.tl { top: 0; left: 0; border-top-width: 4px; border-left-width: 4px; }
+.scan-corner.tr { top: 0; right: 0; border-top-width: 4px; border-right-width: 4px; }
+.scan-corner.bl { bottom: 0; left: 0; border-bottom-width: 4px; border-left-width: 4px; }
+.scan-corner.br { bottom: 0; right: 0; border-bottom-width: 4px; border-right-width: 4px; }
+.scan-msg {
+    max-width: 20rem; text-align: center; font-size: 0.8125rem; line-height: 1.5;
+    color: rgba(255, 255, 255, 0.85);
+}
+.scan-msg.is-error {
+    color: #fff; background: rgba(185, 28, 28, 0.9); padding: 0.5rem 0.75rem; border-radius: 0.5rem;
+}

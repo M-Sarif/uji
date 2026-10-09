@@ -56,7 +56,7 @@
 // Layar yang dilalui alur SPBU (untuk label bila langkah tidak punya alur bernomor)
 const SPBU_TOUR_SCREEN_ORDER = [
     'dashboard', 'shipments_list', 'shipment', 'verification',
-    'lo_list', 'checklist', 'claim_loss', 'konfirmasi_lo', 'notifikasi', 'qr_code', 'rating', 'done',
+    'lo_list', 'checklist', 'claim_loss', 'claim_upload', 'claim_scan_qr', 'konfirmasi_lo', 'notifikasi', 'qr_code', 'rating', 'done',
 ];
 
 const SPBU_TOUR_SCREEN_LABELS = [
@@ -67,6 +67,8 @@ const SPBU_TOUR_SCREEN_LABELS = [
     'lo_list'        => 'Daftar LO',
     'checklist'      => 'Checklist Pra-Pembongkaran',
     'claim_loss'     => 'Metode Pengukuran',
+    'claim_upload'   => 'Upload Dokumen Klaim',
+    'claim_scan_qr'  => 'Scan QR AMT',
     'konfirmasi_lo'  => 'Konfirmasi LO',
     'notifikasi'     => 'Notifikasi',
     'qr_code'        => 'Verifikasi Order',
@@ -417,6 +419,12 @@ function spbu_tour_checklist_steps(): array
     $type  = CHECKLIST_STEPS[$step]['type'] ?? '';
     $next  = '[data-tour="wizard-next"]';   // tombol lanjut ada = soal ini sudah lengkap dijawab
 
+    // Tombol jawaban (Tidak Dilakukan / Ya). Kartu tutorial selalu diminta menghindari TOMBOL INI
+    // (bukan seluruh kartu soal, yang di soal panjang / dua bagian lebih tinggi dari layar HP),
+    // jadi tombol yang harus diketuk tidak pernah tertutup kartu.
+    $ownGroup   = '.checklist-card .choice-group:not([data-tour="verif-lawan"])';   // jawaban mandiri / satu-satunya
+    $lawanGroup = '[data-tour="verif-lawan"]';                                      // "Verifikasi Tugas Role Lawan"
+
     // ---- Soal 6: kesesuaian SPP (Produk lalu Segel) ----
     if ($type === 'form_spp') {
         $modalProduk = '.spp-modal input[name="action"][value="save_spp_produk"]';
@@ -588,38 +596,54 @@ function spbu_tour_checklist_steps(): array
         ]]];
     }
 
-    // ---- Soal terakhir (14): dua bagian, lalu ke Konfirmasi LO ----
+    // ---- Soal terakhir (14): dua bagian (satu langkah per bagian), lalu ke Konfirmasi LO ----
     if ($step === $total) {
         return ['journey' => 'checklist', 'subKey' => 'checklist_last', 'steps' => [
             [
                 'no'     => 3,
-                'label'  => 'Soal Terakhir',
-                'target' => '.checklist-card',
-                'title'  => 'Soal terakhir',
-                'text'   => 'Jawab kedua bagian soal ini: verifikasi pekerjaan Anda sendiri, dan “Verifikasi Tugas Role Lawan” untuk tugas AMT.',
-                'hint'   => '👆 Jawab kedua bagian soal',
-                'done'   => $next,
+                'label'  => 'Soal Terakhir · Bagian 1',
+                'target' => $ownGroup,
+                'title'  => 'Soal terakhir: tugas Anda',
+                'text'   => 'Soal terakhir punya dua bagian. Bagian pertama: verifikasi pekerjaan Anda sendiri. Pilih “Ya, dilakukan” atau “Tidak Dilakukan”. Foto bukti boleh dilewati.',
+                'hint'   => '👆 Pilih salah satu jawaban',
+                'done'   => $ownGroup . ' .btn-choice.is-selected',
+                'ok'     => '✅ Bagian 1 sudah dijawab',
+            ],
+            [
+                'no'     => 3,
+                'label'  => 'Soal Terakhir · Bagian 2',
+                'target' => $lawanGroup,
+                'title'  => 'Verifikasi Tugas Role Lawan',
+                'text'   => 'Bagian kedua: pilih apakah AMT sudah mengerjakan tugasnya. Periksa langsung di lapangan, lalu jawab sesuai kenyataan.',
+                'hint'   => '👆 Pilih salah satu jawaban',
+                'done'   => $lawanGroup . ' .btn-choice.is-selected',
                 'ok'     => '✅ Semua jawaban sudah dipilih',
             ],
             spbu_tour_next_card(true),
         ]];
     }
 
-    // ---- Soal dengan dua bagian (11, 13) ----
+    // ---- Soal dengan dua bagian (11, 13): satu langkah per bagian ----
     if ($type === 'dual_verif') {
         return ['journey' => 'checklist', 'subKey' => 'checklist_dual', 'steps' => [
             [
                 'no'     => 3,
-                'label'  => 'Soal Dua Bagian',
-                'target' => '.checklist-card',
-                'title'  => 'Soal dengan dua bagian',
-                'text'   => 'Soal ini punya dua bagian yang wajib dijawab:',
-                'list'   => [
-                    'Bagian atas: verifikasi pekerjaan Anda sendiri. Pilih “Ya, dilakukan” atau “Tidak Dilakukan”. Foto bukti boleh dilewati.',
-                    'Bagian bawah “Verifikasi Tugas Role Lawan”: pilih apakah AMT sudah mengerjakan tugasnya.',
-                ],
-                'hint'   => '👆 Jawab kedua bagian soal',
-                'done'   => $next,
+                'label'  => 'Soal Dua Bagian · Bagian 1',
+                'target' => $ownGroup,
+                'title'  => 'Bagian 1: tugas Anda',
+                'text'   => 'Soal ini punya dua bagian yang wajib dijawab. Bagian pertama: verifikasi pekerjaan Anda sendiri. Pilih “Ya, dilakukan” atau “Tidak Dilakukan”. Foto bukti boleh dilewati.',
+                'hint'   => '👆 Pilih salah satu jawaban',
+                'done'   => $ownGroup . ' .btn-choice.is-selected',
+                'ok'     => '✅ Bagian 1 sudah dijawab',
+            ],
+            [
+                'no'     => 3,
+                'label'  => 'Soal Dua Bagian · Bagian 2',
+                'target' => $lawanGroup,
+                'title'  => 'Bagian 2: Verifikasi Tugas Role Lawan',
+                'text'   => 'Bagian kedua: pilih apakah AMT sudah mengerjakan tugasnya. Periksa langsung di lapangan, lalu jawab sesuai kenyataan.',
+                'hint'   => '👆 Pilih salah satu jawaban',
+                'done'   => $lawanGroup . ' .btn-choice.is-selected',
                 'ok'     => '✅ Semua jawaban sudah dipilih',
             ],
             spbu_tour_next_card(),
@@ -632,7 +656,7 @@ function spbu_tour_checklist_steps(): array
             [
                 'no'     => 3,
                 'label'  => 'Soal Tugas AMT',
-                'target' => '.checklist-card',
+                'target' => $ownGroup,
                 'title'  => 'Soal Verifikasi Tugas AMT',
                 'text'   => 'Soal ini adalah tugas yang dikerjakan AMT. Periksa langsung di lapangan, lalu pilih “Ya, dilakukan” bila AMT sudah mengerjakannya, atau “Tidak Dilakukan” bila belum. Jawab sesuai kenyataan.',
                 'hint'   => '👆 Pilih salah satu jawaban',
@@ -643,24 +667,13 @@ function spbu_tour_checklist_steps(): array
         ]];
     }
 
-    // ---- Tugas SPBU sendiri (tipe "self_action_photo" / "photo"); soal 1 diawali pengantar ----
+    // ---- Tugas SPBU sendiri (tipe "self_action_photo" / "photo") ----
+    // (Kartu pengantar "Checklist 14 soal" di soal 1 sudah dihapus: tutorial langsung ke soalnya.)
     $steps = [];
-    if ($step === 1) {
-        $steps[] = [
-            'no'       => 3,
-            'label'    => 'Checklist Pra-Pembongkaran',
-            'target'   => '.progress-row',
-            'title'    => 'Checklist 14 soal',
-            'text'     => 'Anda akan menjawab 14 soal satu per satu, lalu mengonfirmasi status tiap LO. Jawab sesuai kondisi sebenarnya di lapangan. Angka di kanan atas bar (mis. 01/15) menunjukkan posisi Anda.',
-            'button'   => 'Mengerti',
-            'remember' => true,
-            'done'     => null,
-        ];
-    }
     $steps[] = [
         'no'     => 3,
         'label'  => 'Soal Tugas Anda',
-        'target' => '.checklist-card',
+        'target' => $ownGroup,
         'title'  => 'Soal Tugas Petugas SPBU',
         'text'   => 'Soal ini adalah tugas Anda sendiri sebagai Petugas SPBU. Kerjakan tugasnya, lalu pilih “Ya, Dilakukan” bila sudah, atau “Tidak Dilakukan” bila belum. Foto bukti boleh dilewati.',
         'hint'   => '👆 Pilih salah satu jawaban',
@@ -722,9 +735,71 @@ function spbu_tour_claim_loss_steps(): array
             'when'      => '#hasilModal',
             'optional'  => true,
             'title'     => 'Hasil Generate Claim Loss',
-            'text'      => 'Sistem menampilkan selisih kekurangan (Claim Losses) beserta statusnya. Bila “Dapat di Klaim”, ketuk “Ajukan Klaim” (atau “Simpan Tanpa Klaim”). Bila tidak ada selisih, ketuk “Simpan”. Anda kembali ke daftar LO.',
+            'text'      => 'Sistem menampilkan selisih kekurangan (Claim Losses) beserta statusnya. Bila “Dapat di Klaim”, ketuk “Ajukan Klaim” untuk melengkapi dokumen klaim (atau “Simpan Tanpa Klaim”). Bila tidak ada selisih, ketuk “Simpan” dan Anda kembali ke daftar LO.',
             'hint'      => '👆 Ketuk tombol biru di bawah',
             'done'      => null,
+        ],
+    ]];
+}
+
+/* ------------------------------------------------------------
+ * Upload Dokumen Klaim (layar claim_upload) -- lanjutan "Ajukan Klaim" pada soal 7
+ * Status dibaca dari class .is-filled pada baris isian (dipasang view claim_upload.php):
+ *   [data-tour="cu-dipstick"].is-filled   Sertifikat Dipstick sudah diupload
+ *   [data-tour="cu-qr"].is-filled         QR Code AMT sudah discan
+ * ------------------------------------------------------------ */
+function spbu_tour_claim_upload_steps(): array
+{
+    return ['journey' => 'checklist', 'subKey' => 'claim_upload', 'steps' => [
+        [
+            'no'     => 5,
+            'label'  => 'Claim Loss · Sertifikat Dipstick',
+            'target' => '[data-tour="cu-dipstick"] .cu-action',
+            'highlight' => '[data-tour="cu-dipstick"]',
+            'title'  => 'Upload Sertifikat Dipstick',
+            'text'   => 'Ketuk “Upload”, lalu pilih foto atau file (PDF, JPG, PNG, maksimal 5 MB) Sertifikat Dipstick. Dokumen ini wajib untuk mengajukan Claim Loss.',
+            'hint'   => '👆 Ketuk “Upload”',
+            'done'   => '[data-tour="cu-dipstick"].is-filled',
+            'ok'     => '✅ Sertifikat Dipstick sudah diupload',
+        ],
+        [
+            'no'     => 5,
+            'label'  => 'Claim Loss · QR Code AMT',
+            'target' => '[data-tour="cu-qr"] .cu-action',
+            'highlight' => '[data-tour="cu-qr"]',
+            'title'  => 'Scan QR Code AMT',
+            'text'   => 'Ketuk “Scan Sekarang”, lalu arahkan kamera ke QR Code Claim Loss yang ditunjukkan AMT. QR berlaku 3 menit; bila kedaluwarsa, minta AMT menekan “Regenerate”.',
+            'hint'   => '👆 Ketuk “Scan Sekarang”',
+            'done'   => '[data-tour="cu-qr"].is-filled',
+            'ok'     => '✅ QR Code AMT sudah discan',
+        ],
+        [
+            'no'     => 5,
+            'label'  => 'Claim Loss · Kirim Klaim',
+            'target' => '#btnKirimKlaim',
+            'title'  => 'Ketuk “Kirim Klaim”',
+            'text'   => 'Kedua dokumen sudah lengkap, jadi tombol “Kirim Klaim” menyala. Ketuk untuk mengirim pengajuan Claim Loss. Anda kembali ke daftar LO.',
+            'hint'   => '👆 Ketuk tombol biru “Kirim Klaim”',
+            'done'   => null,
+        ],
+    ]];
+}
+
+/* ------------------------------------------------------------
+ * Scan QR AMT (layar claim_scan_qr) -- kamera pemindai, satu kartu penjelasan
+ * ------------------------------------------------------------ */
+function spbu_tour_claim_scan_steps(): array
+{
+    return ['journey' => 'checklist', 'subKey' => 'claim_scan', 'steps' => [
+        [
+            'no'       => 5,
+            'label'    => 'Claim Loss · Scan QR AMT',
+            'target'   => '.scan-frame',
+            'title'    => 'Arahkan kamera ke QR AMT',
+            'text'     => 'Minta AMT menampilkan QR Code Claim Loss, lalu arahkan kamera sampai QR berada di dalam kotak. Setelah terbaca, Anda otomatis kembali ke halaman dokumen. Kamera tidak bisa dipakai? Ketuk ikon gambar di kanan atas untuk memilih foto QR dari galeri.',
+            'button'   => 'Mengerti',
+            'remember' => true,
+            'done'     => null,
         ],
     ]];
 }

@@ -211,7 +211,7 @@ $chevronRight = '<svg class="chevron-icon" viewBox="0 0 24 24"><path stroke-line
                         </li>
                         <?php endforeach; ?>
                     </ul>
-                    <p style="color:#94a3b8;">Setelah diajukan, klaim untuk LO di atas tidak dapat dibatalkan lagi dari sini.</p>
+                    <p style="color:#94a3b8;">Anda akan diarahkan ke halaman Upload Dokumen Klaim untuk melengkapi Sertifikat Dipstick dan QR Code AMT sebelum klaim dikirim.</p>
                     <form method="post" action="index.php">
                         <input type="hidden" name="action" value="ajukan_claim_bulk">
                         <?php foreach ($pendingClaimLoIds as $pendingLoId): ?>

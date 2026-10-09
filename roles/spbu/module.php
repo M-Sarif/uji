@@ -84,6 +84,9 @@ function spbu_screen_css(string $screen): array
 /** Layar dashboard memakai header khusus (logo + tombol ganti peran + lonceng) */
 function spbu_header_partial(string $screen): ?string
 {
+    if ($screen === 'claim_scan_qr') {
+        return SPBU_VIEW_DIR . '/partials/header_scan_qr.php';   // header gelap: panah + judul + ikon galeri
+    }
     return $screen === 'dashboard' ? SPBU_VIEW_DIR . '/partials/header_dashboard.php' : null;
 }
 
@@ -91,16 +94,17 @@ function spbu_header_partial(string $screen): ?string
 function spbu_header_style(string $screen): array
 {
     // Ajukan Claim Loss & Tiba di Lokasi: judul di tengah; Tiba di Lokasi memakai panah "←" (sama seperti aplikasi asli)
-    $centered = in_array($screen, ['claim_loss', 'verification', 'konfirmasi_lo'], true);
-    // Konfirmasi LO juga memakai panah "←" abu-abu dan judul di tengah (sama seperti sistem asli)
-    return ['class' => $centered ? ' centered' : '', 'arrow' => in_array($screen, ['verification', 'konfirmasi_lo'], true), 'spacer' => $centered];
+    $centered = in_array($screen, ['claim_loss', 'claim_upload', 'verification', 'konfirmasi_lo'], true);
+    // Konfirmasi LO & Upload Dokumen Klaim juga memakai panah "←" abu-abu dan judul di tengah (sama seperti sistem asli)
+    return ['class' => $centered ? ' centered' : '', 'arrow' => in_array($screen, ['verification', 'konfirmasi_lo', 'claim_upload'], true), 'spacer' => $centered];
 }
 
 function spbu_content_class(string $screen): string
 {
-    $hasWizardNav = in_array($screen, ['checklist', 'claim_loss', 'rating', 'konfirmasi_lo'], true);
+    $hasWizardNav = in_array($screen, ['checklist', 'claim_loss', 'rating', 'konfirmasi_lo', 'claim_upload'], true);
     $isFlexCol    = $screen === 'lo_list';
-    return ($hasWizardNav ? ' content-with-nav' : '') . ($isFlexCol ? ' content-flex-col' : '');
+    $isScan       = $screen === 'claim_scan_qr';   // layar kamera: latar abu-abu gelap, tanpa padding
+    return ($hasWizardNav ? ' content-with-nav' : '') . ($isFlexCol ? ' content-flex-col' : '') . ($isScan ? ' content-scan' : '');
 }
 
 /** CSS global SPBU yang dimuat di <head> semua halaman (gaya tutorial terpandu, sama dengan AMT) */
@@ -146,4 +150,16 @@ function spbu_on_home(string $screen): bool
 function spbu_accepts_post(string $action): bool
 {
     return in_array($action, SPBU_POST_ACTIONS, true);
+}
+
+/**
+ * Penjagaan akses layar (GET) peran SPBU: Upload Dokumen Klaim & Scan QR AMT hanya bisa
+ * dibuka saat ada pengajuan Claim Loss yang berjalan (dimulai dari tombol "Ajukan Claim Loss").
+ * Dibuka langsung lewat alamat -> diarahkan balik ke Daftar LO (langkah 7 checklist).
+ */
+function spbu_guard(string $screen): void
+{
+    if (in_array($screen, ['claim_upload', 'claim_scan_qr'], true) && empty(spbu_claim_lo_ids())) {
+        go_to('checklist', ['step' => 7]);
+    }
 }

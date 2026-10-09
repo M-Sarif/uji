@@ -44,6 +44,12 @@ function spbu_tour_config(string $screen): array
         case 'claim_loss':
             $pack = spbu_tour_claim_loss_steps();
             break;
+        case 'claim_upload':
+            $pack = spbu_tour_claim_upload_steps();
+            break;
+        case 'claim_scan_qr':
+            $pack = spbu_tour_claim_scan_steps();
+            break;
         case 'konfirmasi_lo':
             $pack = spbu_tour_konfirmasi_steps();
             break;
