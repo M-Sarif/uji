@@ -70,6 +70,35 @@ function work_data(): array {
     return $_SESSION['work'] ?? [];
 }
 
+/* ------------------------------------------------------------
+ * MODE BEBAS (tutorial dimatikan)
+ * Mesin tutorial (assets/js/tutorial-amt.js) menyimpan status "Lewati / selesai" di
+ * localStorage dan MENYALINNYA ke cookie ini, supaya server tahu pengguna tidak sedang
+ * memakai mode tutorial. Pada mode bebas pengguna boleh langsung membuka menu Shipments
+ * tanpa Start Work -> Check-In -> PTI lebih dulu. Urutan langkah DI DALAM satu pengiriman
+ * (Tiba -> Checklist -> Verifikasi -> Surat Jalan -> Rating -> Selesai) tetap dijaga.
+ * Saat tutorial MENYALA, alur lengkap tetap wajib seperti sebelumnya.
+ * ------------------------------------------------------------ */
+const AMT_TOUR_OFF_COOKIE = 'onefis_amt_tour_off';
+
+/** Tutorial sedang dimatikan (pengguna menekan "Lewati" / sudah memakainya sampai selesai)? */
+function amt_tour_is_off(): bool {
+    return ($_COOKIE[AMT_TOUR_OFF_COOKIE] ?? '') === '1';
+}
+
+/** Hapus penanda mode bebas di server (dipanggil saat kembali ke layar pilih peran). */
+function amt_tour_off_forget(): void {
+    unset($_COOKIE[AMT_TOUR_OFF_COOKIE]);
+    if (!headers_sent()) {
+        setcookie(AMT_TOUR_OFF_COOKIE, '', ['expires' => time() - 3600, 'path' => '/', 'samesite' => 'Lax']);
+    }
+}
+
+/** Layar/aksi alur Shipment boleh dipakai: jam kerja berjalan ATAU tutorial dimatikan (mode bebas). */
+function amt_work_ok(): bool {
+    return work_is_running() || amt_tour_is_off();
+}
+
 function work_is_running(): bool {
     $w = work_data();
     return !empty($w['started_at']) && empty($w['ended_at']);

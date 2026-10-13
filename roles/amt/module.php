@@ -369,8 +369,8 @@ function amt_handle_post(string $action): void
 
         case 'submit_spbu_arrive':
             // "Ya, pengiriman telah tiba": hanya untuk pengiriman yang sedang berjalan,
-            // saat timer kerja berjalan, dan posisi berada dalam radius SPBU.
-            if (!work_is_running()) {
+            // saat timer kerja berjalan (atau mode bebas / tutorial dimatikan), dan posisi berada dalam radius SPBU.
+            if (!amt_work_ok()) {
                 go_to(amt_home_screen());
             }
             $s = amt_ship_find(amt_ship_post_id() ?: null);
@@ -498,6 +498,7 @@ function amt_accepts_post(string $action): bool
 /** Layar pilih peran dibuka => AMT dimulai dari awal: timer, Check-In, PTI, tutorial di-restart. */
 function amt_on_role_select_screen(): void
 {
+    amt_tour_off_forget();   // kunjungan baru: tutorial menyala lagi, mode bebas berakhir
     amt_reset_all();
     amt_tour_fresh_bump();   // kunjungan baru -> tutorial otomatis aktif lagi saat AMT dipilih
 }

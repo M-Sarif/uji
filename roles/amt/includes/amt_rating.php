@@ -76,7 +76,7 @@ function amt_rating_guard(string $screen): void
     if ($screen !== AMT_RATING_SCREEN) {
         return;
     }
-    if (!work_is_running()) {
+    if (!amt_work_ok()) {
         go_to(amt_home_screen());
     }
     $s = amt_ship_current();
@@ -95,7 +95,7 @@ function amt_rating_guard(string $screen): void
 /** "Kirim" di layar Beri Penilaian. Field: id, officer, rating[<kunci>] = 1..5, note (opsional). */
 function amt_rating_handle_post(): void
 {
-    if (!work_is_running()) {
+    if (!amt_work_ok()) {
         go_to(amt_home_screen());
     }
     $s = amt_ship_find(amt_ship_post_id() ?: null);
@@ -139,7 +139,7 @@ function amt_rating_handle_post(): void
 /** "Kirim" di pop up "Menyelesaikan Order": pengiriman selesai -> kembali ke beranda AMT. */
 function amt_order_finish_post(): void
 {
-    if (!work_is_running()) {
+    if (!amt_work_ok()) {
         go_to(amt_home_screen());
     }
     $s = amt_ship_find(amt_ship_post_id() ?: null);

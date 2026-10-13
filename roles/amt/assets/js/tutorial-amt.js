@@ -71,14 +71,25 @@
         var d = readDone().filter(function (k) { return k.indexOf(key + '#') !== 0; });
         try { localStorage.setItem(LS_DONE, JSON.stringify(d)); } catch (e) {}
     }
+    // Salinan status "tutorial dimatikan" di cookie: server (PHP) membacanya untuk MODE BEBAS, yaitu
+    // menu Shipments boleh dipakai langsung tanpa Start Work / Check-In / PTI. Lihat amt_tour_is_off()
+    // di roles/amt/includes/work.php (nama cookie harus sama).
+    var CK_OFF = 'onefis_amt_tour_off';
+    function writeOffCookie(on) {
+        try {
+            document.cookie = CK_OFF + '=' + (on ? '1; max-age=31536000' : '; max-age=0') + '; path=/; SameSite=Lax';
+        } catch (e) {}
+    }
     function isOff() {
         try { return localStorage.getItem(LS_OFF) === '1'; } catch (e) { return false; }
     }
     function setOff() {
         try { localStorage.setItem(LS_OFF, '1'); } catch (e) {}
+        writeOffCookie(true);
     }
     function clearOff() {
         try { localStorage.removeItem(LS_OFF); } catch (e) {}
+        writeOffCookie(false);
     }
     function isSkipped(key) {
         try { return sessionStorage.getItem(SS_SKIP + key) === '1'; } catch (e) { return false; }
@@ -916,6 +927,7 @@
             syncEpoch(config.epoch);
             syncFresh(config.fresh);
             if (forceRestart) { resetAll(); }
+            writeOffCookie(isOff() && !forceRestart);   // cookie selalu sama dengan status tutorial di browser
 
             // Tutorial dimatikan ("Lewati" / sudah dipakai sampai selesai): tampilkan HANYA langkah bertanda 'notice'
             // (pemberitahuan DCU, setelah PTI, pengembalian segel). Selebihnya tidak muncul otomatis.

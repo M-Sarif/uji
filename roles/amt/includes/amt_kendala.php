@@ -64,7 +64,7 @@ function amt_kendala_reset(): void
 /** Pengiriman yang sedang berjalan (syarat membuat laporan), atau null. */
 function amt_kendala_ship(): ?array
 {
-    if (!work_is_running()) {
+    if (!amt_work_ok()) {
         return null;
     }
     $s = amt_ship_find(amt_ship_request_id() ?: (amt_ship_post_id() ?: null));
@@ -85,7 +85,7 @@ function amt_kendala_guard(string $screen): void
     if ($screen !== AMT_KENDALA_SCREEN) {
         return;
     }
-    if (!work_is_running()) {
+    if (!amt_work_ok()) {
         go_to(amt_home_screen());
     }
     if (amt_kendala_ship() === null) {

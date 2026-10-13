@@ -136,7 +136,13 @@ function amt_ship_find(?string $id = null): ?array
  */
 function amt_home_route_ship(): ?array
 {
-    if (!work_is_running() || !amt_pti_is_done() || (amt_pti_state()['result'] ?? null) === 'NO GO' || amt_out_order_done()) {
+    if (amt_out_order_done()) {
+        return null;
+    }
+    // Mode normal (tutorial menyala): wajib Start Work + PTI selesai (bukan NO GO).
+    // Mode bebas (tutorial dimatikan): pengiriman langsung tampil tanpa langkah-langkah itu.
+    if (!amt_tour_is_off()
+        && (!work_is_running() || !amt_pti_is_done() || (amt_pti_state()['result'] ?? null) === 'NO GO')) {
         return null;
     }
     $s = amt_ship_find();

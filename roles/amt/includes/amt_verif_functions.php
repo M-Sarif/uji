@@ -165,7 +165,7 @@ function amt_verif_bootstrap($screen)
     }
 
     // Penjagaan akses
-    if (!work_is_running()) {
+    if (!amt_work_ok()) {
         go_to(amt_home_screen());
     }
     $ship = amt_ship_find(amt_verif_ship_id() ?: null);
