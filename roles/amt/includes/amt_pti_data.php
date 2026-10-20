@@ -127,7 +127,7 @@ function amt_pti_statement_lines()
     ];
 }
 
-/* ---------- Alur setelah Check-In (tutorial + aktivasi PTI) ---------- */
+/* ---------- Alur setelah Mulai Ritase (tutorial + aktivasi PTI) ---------- */
 
 /** Nama layar dashboard AMT (tujuan redirect kalau PTI belum aktif). Sesuaikan. */
 const AMT_DASHBOARD_SCREEN = 'amt_home';
@@ -136,17 +136,17 @@ const AMT_DASHBOARD_SCREEN = 'amt_home';
 const AMT_PTI_GUARD = true;
 
 /**
- * true = buka  ?screen=<dashboard>&amt_flow_demo=1  untuk mensimulasikan Check-In berhasil
- * (berguna untuk uji alur tanpa handler Check-In). Set false di produksi.
+ * true = buka  ?screen=<dashboard>&amt_flow_demo=1  untuk mensimulasikan Mulai Ritase berhasil
+ * (berguna untuk uji alur tanpa handler Mulai Ritase). Set false di produksi.
  */
 const AMT_FLOW_DEMO = false;
 
 /** Timing dalam milidetik. */
-const AMT_DCU_SHOW_DELAY         = 1000; // tutorial DCU muncul 1 detik setelah Check-In berhasil
+const AMT_DCU_SHOW_DELAY         = 1000; // tutorial DCU muncul 1 detik setelah Mulai Ritase berhasil
 const AMT_DCU_VISIBLE_FOR        = 7000; // hilang sendiri setelah 7 detik kalau tidak diklik
 const AMT_PTI_UNLOCK_DELAY       = 2000; // PTI aktif 2 detik setelah tutorial DCU hilang
 const AMT_PTI_HINT_DELAY         = 1000; // petunjuk "tekan PTI" muncul 1 detik setelah PTI aktif
-const AMT_PTI_FAILSAFE_SECONDS   = 30;  // PTI otomatis aktif 30 detik setelah Check-In walau tutorial tidak sempat ditutup
+const AMT_PTI_FAILSAFE_SECONDS   = 30;  // PTI otomatis aktif 30 detik setelah Mulai Ritase walau tutorial tidak sempat ditutup
 const AMT_PTI_DONE_VISIBLE_FOR   = 20000; // tutorial "PTI selesai" di dashboard hilang sendiri setelah 20 detik
 const AMT_PTI_DONE_PAGE_VISIBLE_FOR = 8000; // kartu tutorial "Inspeksi selesai" di halaman PTI hilang sendiri setelah 5 detik
 const AMT_ROUTE_INFO_VISIBLE_FOR = 20000; // info "Laporkan Kendala" (rute pengiriman di beranda) hilang sendiri setelah 20 detik
@@ -159,9 +159,9 @@ function amt_flow_tutorials()
 {
     return [
         'dcu' => [
-            'eyebrow' => 'Check-In Berhasil',
+            'eyebrow' => 'Mulai Ritase Berhasil',
             'title'   => 'Lakukan DCU dulu 🩺',
-            'body'    => 'Check-In berhasil. Sekarang lakukan DCU (cek kesehatan) terlebih dahulu. DCU dilakukan langsung di tempat, bukan lewat aplikasi ini.',
+            'body'    => 'Mulai Ritase berhasil. Sekarang lakukan DCU (cek kesehatan) terlebih dahulu. DCU dilakukan langsung di tempat, bukan lewat aplikasi ini.',
         ],
         'pti_hint' => [
             'eyebrow' => 'Langkah berikutnya',

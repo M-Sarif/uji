@@ -53,7 +53,7 @@
  *   'camera'    => (opsional) true = langkah ini dipandu DI DALAM kamera layar penuh (.amtcam). Biasanya kartu
  *                  tutorial disembunyikan saat kamera terbuka; langkah bertanda ini tetap tampil di atas kamera.
  *   'over'      => (opsional) true = kartu + sorotan ditampilkan di atas pop up/kamera (z-index lebih tinggi),
- *                  mis. pop up sukses "Lanjutkan ke Homepage". 'camera' otomatis ikut 'over'.
+ *                  mis. pop up sukses "Lanjutkan ke Beranda". 'camera' otomatis ikut 'over'.
  *
  * Halaman TIDAK digulir otomatis oleh tutorial. Kartu yang menyesuaikan
  * posisinya (atas / bawah) supaya tidak menutupi bagian yang disorot.
@@ -62,7 +62,7 @@
  * oleh roles/amt/views/_work_form.php:
  *   data-loc="1"   lokasi sudah sesuai titik kerja
  *   data-pin="1"   lokasi sesuai DAN peta (pin) sudah selesai dimuat
- *   data-act="1"   aktivitas sudah dipilih (End Work: selalu 1)
+ *   data-act="1"   aktivitas sudah dipilih (Selesai Kerja: selalu 1)
  *   data-photo="1" foto verifikasi sudah tersimpan
  *
  * Dipanggil dari core/layout_bottom.php lewat amt_tour_config($screen).
@@ -73,10 +73,10 @@ const AMT_TOUR_SCREEN_ORDER = ['amt_home', 'start_end', 'start_work', 'checkin',
 
 const AMT_TOUR_SCREEN_LABELS = [
     'amt_home'   => 'Beranda AMT',
-    'start_end'  => 'Start / End Work',
-    'start_work' => 'Start Work',
-    'checkin'    => 'Check-In',
-    'checkout'   => 'Check-Out',
+    'start_end'  => 'Absensi Kerja',
+    'start_work' => 'Mulai Kerja',
+    'checkin'    => 'Mulai Ritase',
+    'checkout'   => 'Selesai Ritase',
     'amt_pti'      => 'Pre-Trip Inspection',
     'amt_pti_form' => 'Form Inspeksi',
     'amt_pti_hasil' => 'Hasil Inspeksi',
@@ -92,17 +92,17 @@ const AMT_TOUR_SCREEN_LABELS = [
     'amt_surat_jalan' => 'Foto Surat Jalan',
     'amt_rating' => 'Beri Penilaian',
     'amt_kendala' => 'Laporkan Kendala',
-    'end_work'   => 'End Work',
+    'end_work'   => 'Selesai Kerja',
 ];
 
 // Alur tutorial; 'total' = jumlah langkah bernomor pada alur itu
 const AMT_TOUR_JOURNEYS = [
     'masuk'   => ['label' => 'Absen Masuk',  'total' => 6],
-    'checkin' => ['label' => 'Check-In',     'total' => 5],
-    // Absen pulang: 1 ketuk End Work (Start / End), 2 total waktu kerja, 3 lokasi, 4 foto End Work,
+    'checkin' => ['label' => 'Mulai Ritase',     'total' => 5],
+    // Absen pulang: 1 ketuk Selesai Kerja (Mulai / Selesai Kerja), 2 total jam kerja, 3 lokasi, 4 foto Selesai Kerja,
     // 5 ketuk "Akhiri Pekerjaan", 6 konfirmasi "Ya" pada dialog (pop up sukses memakai nomor 6 juga)
     'pulang'  => ['label' => 'Absen Pulang', 'total' => 6],
-    'dcu'     => ['label' => 'Check-In Berhasil', 'total' => 1],   // pemberitahuan DCU (tanpa nomor langkah)
+    'dcu'     => ['label' => 'Mulai Ritase Berhasil', 'total' => 1],   // pemberitahuan DCU (tanpa nomor langkah)
     // Inspeksi PTI: 1 buka menu, 2-3 ringkasan, 4-5 jawab item, 6 catatan, 7 kirim, 8 konfirmasi
     'pti'     => ['label' => 'Inspeksi PTI', 'total' => 8],
     // Pengiriman: 1 buka Detail Order, 2 buka kartu SPBU, 3 ketuk Tiba di Lokasi,
@@ -118,27 +118,27 @@ const AMT_TOUR_JOURNEYS = [
     // Rating Petugas SPBU: 1 buka kartu Rating, 2 nama petugas, 3 bintang (5 penilaian),
     // 4 Kirim, 5 ketuk Selesai di Aktifitas di SPBU, 6 konfirmasi “Kirim” pada pop up Menyelesaikan Order
     'rating' => ['label' => 'Rating Petugas SPBU', 'total' => 6],
-    // Check-Out: 1 buka menu Check-Out (setelah scan segel di AVM), 2 Riwayat Check-In, 3 lokasi, 4 aktivitas,
-    // 5 foto Check-Out, 6 kirim (pop up "Check-Out Berhasil" -> OK memakai nomor 6 juga)
-    'checkout' => ['label' => 'Check-Out', 'total' => 6],
+    // Selesai Ritase: 1 buka menu Selesai Ritase (setelah scan segel di AVM), 2 Riwayat Ritase, 3 lokasi, 4 aktivitas,
+    // 5 foto Selesai Ritase, 6 kirim (pop up "Selesai Ritase Berhasil" -> OK memakai nomor 6 juga)
+    'checkout' => ['label' => 'Selesai Ritase', 'total' => 6],
     // Laporkan Kendala: 1 jenis kendala, 2 estimasi kendala, 3 estimasi waktu (hanya bila "Ya, Bisa Diprediksi"),
     // 4 foto bukti, 5 justifikasi, 6 kirim laporan
     'kendala' => ['label' => 'Laporkan Kendala', 'total' => 6],
 ];
 
-// Jeda (ms) sebelum tutorial DCU muncul di beranda setelah Check-In berhasil
+// Jeda (ms) sebelum tutorial DCU muncul di beranda setelah Mulai Ritase berhasil
 // (nilainya diatur di roles/amt/includes/amt_pti_data.php)
 const AMT_TOUR_DCU_DELAY_MS = AMT_DCU_SHOW_DELAY;
 
 /**
- * Langkah foto selfie (dipakai Start Work, Check-In, End Work, dan Check-Out). Tiga aksi berurutan, semuanya
+ * Langkah foto selfie (dipakai Mulai Kerja, Mulai Ritase, Selesai Kerja, dan Selesai Ritase). Tiga aksi berurutan, semuanya
  * bernomor sama ($no) supaya bilah kemajuan tidak melompat:
  *   A) ketuk kartu selfie           -> selesai saat kamera terbuka (atau foto sudah tersimpan)
  *   B) ketuk "Foto" di kamera       -> selesai saat hasil foto tampil (mode tinjau)
  *   C) ketuk "Simpan Foto"          -> selesai saat foto tersimpan (data-photo="1"); "Ambil Ulang" memunculkan B lagi
  * B dan C tampil DI ATAS kamera layar penuh ('camera' => true; lihat tutorial-amt.js).
  *
- * @param bool $preview true = tampilan baru (End Work & Check-Out): foto yang tersimpan tampil sebagai
+ * @param bool $preview true = tampilan baru (Selesai Kerja & Selesai Ritase): foto yang tersimpan tampil sebagai
  *                      pratinjau dengan tombol merah "Hapus Foto". Bila foto dihapus, tutorial otomatis
  *                      kembali ke langkah A (data-photo kembali 0).
  * @return array<int,array>
@@ -181,7 +181,7 @@ function amt_tour_photo_steps(int $no, bool $preview = false): array
 }
 
 /**
- * Langkah sesudah "Kirim": pop up sukses ("Lanjutkan ke Homepage"), lihat roles/amt/views/_work_form.php.
+ * Langkah sesudah "Kirim": pop up sukses ("Lanjutkan ke Beranda"), lihat roles/amt/views/_work_form.php.
  * Kartu baru muncul setelah pop up tampil ('when'), dan tampil di atasnya ('over').
  *
  * @param string $mode 'start' | 'checkin' | 'end' | 'checkout'
@@ -189,34 +189,34 @@ function amt_tour_photo_steps(int $no, bool $preview = false): array
 function amt_tour_success_step(int $no, string $mode): array
 {
     $text = [
-        'start'    => 'Absen masuk berhasil dan Waktu Kerja sudah berjalan. Ketuk “Lanjutkan ke Homepage” untuk kembali ke beranda.',
-        'checkin'  => 'Check-In sudah tercatat. Ketuk “Lanjutkan ke Homepage”. Berikutnya lakukan DCU, lalu menu PTI akan menyala.',
-        'end'      => 'Waktu kerja Anda sudah berakhir. Ketuk “Lanjutkan ke Homepage” untuk kembali ke beranda.',
-        'checkout' => 'Check-Out berhasil dan Riwayat Check-In sudah direset. Ketuk “OK”, lalu akhiri kerja lewat menu Start / End.',
-    ][$mode] ?? 'Ketuk “Lanjutkan ke Homepage” untuk kembali ke beranda.';
-    // Check-Out: tombol pop up bertuliskan "OK" (bukan "Lanjutkan ke Homepage")
+        'start'    => 'Absen masuk berhasil dan Jam Kerja sudah berjalan. Ketuk “Lanjutkan ke Beranda” untuk kembali ke beranda.',
+        'checkin'  => 'Mulai Ritase sudah tercatat. Ketuk “Lanjutkan ke Beranda”. Berikutnya lakukan DCU, lalu menu PTI akan menyala.',
+        'end'      => 'Jam kerja Anda sudah berakhir. Ketuk “Lanjutkan ke Beranda” untuk kembali ke beranda.',
+        'checkout' => 'Selesai Ritase berhasil dan Riwayat Ritase sudah direset. Ketuk “OK”, lalu akhiri kerja lewat menu Mulai / Selesai Kerja.',
+    ][$mode] ?? 'Ketuk “Lanjutkan ke Beranda” untuk kembali ke beranda.';
+    // Selesai Ritase: tombol pop up bertuliskan "OK" (bukan "Lanjutkan ke Beranda")
     $isOk = ($mode === 'checkout');
     return [
         'no'        => $no,
-        // HANYA End Work yang menutup tutorial (alur selesai -> tidak muncul otomatis lagi, hanya lewat "?").
-        // Check-Out BUKAN akhir alur: sesudahnya tutorial otomatis lanjut ke Start / End -> End Work.
-        // (Dulu 'checkout' ikut 'final' sehingga tutorial dimatikan di sini dan arahan End Work tak pernah muncul.)
+        // HANYA Selesai Kerja yang menutup tutorial (alur selesai -> tidak muncul otomatis lagi, hanya lewat "?").
+        // Selesai Ritase BUKAN akhir alur: sesudahnya tutorial otomatis lanjut ke Mulai / Selesai Kerja -> Selesai Kerja.
+        // (Dulu 'checkout' ikut 'final' sehingga tutorial dimatikan di sini dan arahan Selesai Kerja tak pernah muncul.)
         // Lihat Tour.finish() di tutorial-amt.js.
         'final'     => $mode === 'end',
         'over'      => true,
         'target'    => '#wk-success-go',
         'highlight' => '.wk-modal-card',
         'when'      => '#wk-success:not([hidden])',
-        'title'     => $isOk ? 'Ketuk “OK”' : 'Ketuk “Lanjutkan ke Homepage”',
+        'title'     => $isOk ? 'Ketuk “OK”' : 'Ketuk “Lanjutkan ke Beranda”',
         'text'      => $text,
-        'hint'      => $isOk ? '👆 Ketuk tombol hijau “OK”' : '👆 Ketuk tombol hijau “Lanjutkan ke Homepage”',
+        'hint'      => $isOk ? '👆 Ketuk tombol hijau “OK”' : '👆 Ketuk tombol hijau “Lanjutkan ke Beranda”',
         'done'      => null,
     ];
 }
 
 /**
  * Langkah-langkah form (lokasi, aktivitas, foto, kirim).
- * Dipakai bersama oleh Start Work, Check-In, dan End Work supaya
+ * Dipakai bersama oleh Mulai Kerja, Mulai Ritase, dan Selesai Kerja supaya
  * bahasanya konsisten.
  *
  * @param string $mode 'start' | 'checkin' | 'end'
@@ -226,29 +226,29 @@ function amt_tour_form_steps(string $mode): array
     $isCheckin = ($mode === 'checkin');
     $isEnd     = ($mode === 'end');
 
-    $what = $isCheckin ? 'Check-In' : ($isEnd ? 'absen pulang' : 'absen masuk');
-    $n    = $isCheckin ? 2 : 3;   // nomor langkah pertama di form (End Work: 2 dipakai kartu "Total Waktu Kerja")
+    $what = $isCheckin ? 'Mulai Ritase' : ($isEnd ? 'absen pulang' : 'absen masuk');
+    $n    = $isCheckin ? 2 : 3;   // nomor langkah pertama di form (Selesai Kerja: 2 dipakai kartu "Total Jam Kerja")
     $steps = [];
 
-    // End Work (tampilan baru): kartu "Total Waktu Kerja Hari Ini" di bagian atas layar
+    // Selesai Kerja (tampilan baru): kartu "Total Jam Kerja Hari Ini" di bagian atas layar
     if ($isEnd) {
         $steps[] = [
             'no'     => 2,
             'target' => '#ew-timer',
-            'title'  => 'Total waktu kerja Anda',
-            'text'   => 'Kartu biru ini menunjukkan sudah berapa lama Anda bekerja hari ini, dihitung sejak Start Work. Pastikan pekerjaan hari ini memang sudah selesai sebelum mengakhirinya.',
+            'title'  => 'Total jam kerja Anda',
+            'text'   => 'Kartu biru ini menunjukkan sudah berapa lama Anda bekerja hari ini, dihitung sejak Mulai Kerja. Pastikan pekerjaan hari ini memang sudah selesai sebelum mengakhirinya.',
             'button' => 'Mengerti',
             'done'   => null,
         ];
     }
 
-    // Check-In punya dua tab: pastikan pengguna ada di tab "Verifikasi"
+    // Mulai Ritase punya dua tab: pastikan pengguna ada di tab "Verifikasi"
     if ($isCheckin) {
         $steps[] = [
             'no'     => null,
             'target' => '#ci-tab-verif',
             'title'  => 'Buka tab “Verifikasi”',
-            'text'   => 'Check-In dilakukan di tab “Verifikasi”. Tab “Riwayat Check-In” hanya untuk melihat daftar Check-In sebelumnya.',
+            'text'   => 'Mulai Ritase dilakukan di tab “Verifikasi”. Tab “Riwayat Ritase” hanya untuk melihat daftar Mulai Ritase sebelumnya.',
             'hint'   => '👆 Ketuk tab “Verifikasi”',
             'done'   => '#ci-pane-verifikasi:not([hidden])',
         ];
@@ -270,7 +270,7 @@ function amt_tour_form_steps(string $mode): array
         'condHint'  => '✅ Lokasi sudah sesuai. Pastikan pin tepat di area kerja.',
     ];
 
-    // 2) Aktivitas (tidak ada di End Work: mengikuti pilihan saat Start Work)
+    // 2) Aktivitas (tidak ada di Selesai Kerja: mengikuti pilihan saat Mulai Kerja)
     if (!$isEnd) {
         $n++;
         $steps[] = [
@@ -291,22 +291,22 @@ function amt_tour_form_steps(string $mode): array
     $n++;
     foreach (amt_tour_photo_steps($n, $isEnd) as $ps) { $steps[] = $ps; }
 
-    // 4) Kirim (End Work: tombol "Akhiri Pekerjaan" di bawah layar, lalu dialog konfirmasi "Ya")
+    // 4) Kirim (Selesai Kerja: tombol "Akhiri Pekerjaan" di bawah layar, lalu dialog konfirmasi "Ya")
     $n++;
     $steps[] = [
         'no'     => $n,
         'target' => '#wk-submit',
         'title'  => $isEnd ? 'Ketuk “Akhiri Pekerjaan”' : 'Kirim ' . $what,
         'text'   => $isCheckin
-            ? 'Semua sudah lengkap. Ketuk “Kirim”. Check-In Anda akan tercatat di tab “Riwayat Check-In”.'
+            ? 'Semua sudah lengkap. Ketuk “Kirim”. Mulai Ritase Anda akan tercatat di tab “Riwayat Ritase”.'
             : ($isEnd
-                ? 'Semua sudah lengkap. Ketuk tombol “Akhiri Pekerjaan” di bagian bawah layar. Anda akan ditanya sekali lagi sebelum waktu kerja benar-benar berakhir.'
-                : 'Semua sudah lengkap. Ketuk “Kirim” untuk mulai bekerja. Waktu Kerja langsung berjalan.'),
+                ? 'Semua sudah lengkap. Ketuk tombol “Akhiri Pekerjaan” di bagian bawah layar. Anda akan ditanya sekali lagi sebelum jam kerja benar-benar berakhir.'
+                : 'Semua sudah lengkap. Ketuk “Kirim” untuk mulai bekerja. Jam Kerja langsung berjalan.'),
         'hint'   => $isEnd ? '👆 Ketuk tombol biru “Akhiri Pekerjaan”' : '👆 Ketuk tombol biru “Kirim”',
         'done'   => null,
     ];
 
-    // End Work: dialog "Apakah Anda yakin ingin mengakhiri pekerjaan hari ini?" -> ketuk "Ya"
+    // Selesai Kerja: dialog "Apakah Anda yakin ingin mengakhiri pekerjaan hari ini?" -> ketuk "Ya"
     if ($isEnd) {
         $n++;
         $steps[] = [
@@ -322,7 +322,7 @@ function amt_tour_form_steps(string $mode): array
         ];
     }
 
-    // 5) Pop up sukses: Lanjutkan ke Homepage
+    // 5) Pop up sukses: Lanjutkan ke Beranda
     $steps[] = amt_tour_success_step($n, $mode);
 
     return $steps;
@@ -641,6 +641,10 @@ function amt_tour_pti_hasil_steps(): array
  */
 function amt_tour_pti_done_pack(int $checkins): array
 {
+    // CATATAN: tidak ada langkah 'notice' di sini. Saat tutorial dimatikan ("Lewati") HANYA pemberitahuan
+    // DCU (Mulai Ritase berhasil), Scan segel di AVM (amt_out.php), dan kartu "Tutorial Selesai" (setelah
+    // Selesai Kerja) yang tetap tampil; kartu PTI selesai, info Laporkan Kendala, dan sorotan Shipments
+    // ("Langkah berikutnya") hanya muncul selama tutorial menyala.
     $subKey = 'amt_home_ptidone_' . $checkins;
     $result = amt_pti_state()['result'] ?? null;
 
@@ -649,7 +653,6 @@ function amt_tour_pti_done_pack(int $checkins): array
             'no'     => null,
             'label'  => 'PTI Selesai',
             'target' => null,
-            'notice' => true,                             // pemberitahuan: tetap tampil walau tutorial dimatikan
             'title'  => 'Hasil inspeksi: NO GO',
             'text'   => 'Mobil tangki belum layak beroperasi. Laporkan ke pengawas sebelum berangkat.',
             'button' => 'Mengerti',
@@ -666,7 +669,6 @@ function amt_tour_pti_done_pack(int $checkins): array
             'no'       => null,
             'label'    => 'PTI Selesai',
             'target'   => null,
-            'notice'   => true,                           // pemberitahuan: tetap tampil walau tutorial dimatikan
             'title'    => 'PTI selesai ✅',
             'text'     => 'PTI sudah selesai. Lanjutkan dengan tahapan berikut:',
             'list'     => [
@@ -694,7 +696,6 @@ function amt_tour_pti_done_pack(int $checkins): array
             'when'      => '[data-amtr-report]',
             'optional'  => true,                          // bila tombolnya tak ada di halaman, langkah dilewati (tidak menghalangi Shipments)
             'delay'     => AMT_ROUTE_INFO_DELAY,          // muncul 3 detik setelah kartu "PTI selesai" tertutup
-            'notice'    => true,                          // pemberitahuan: tetap tampil walau tutorial dimatikan
             'title'     => 'Shipment sudah dibuat 🚚',
             'text'      => 'Shipment telah dibuat. Jika ada kendala saat di perjalanan, klik tombol “Laporkan Kendala”.',
             'hint'      => '👆 Ingin mencoba? Ketuk “Laporkan Kendala”',
@@ -709,7 +710,6 @@ function amt_tour_pti_done_pack(int $checkins): array
             'target' => '[data-tour="amt-menu-shipments"]',
             'when'   => '[data-tour="amt-menu-shipments"]',
             'delay'  => AMT_PTI_DONE_SHIPMENT_DELAY,     // 3 detik setelah info kendala tertutup (Mengerti / selesai lapor kendala)
-            'notice' => true,                            // tetap lanjut walau tutorial dimatikan: ini kelanjutan alur PTI -> Shipments
             'remember' => true,                          // sudah ditampilkan -> tidak diulang tiap kembali ke beranda
             // Keterangan: menu ini dipakai SETELAH AMT sampai di SPBU tujuan (bukan sekarang).
             'title'  => 'Sudah tiba di SPBU? Buka “Shipments”',
@@ -1428,20 +1428,20 @@ function amt_tour_kendala_steps(): array
  * Data langkah untuk satu layar.
  *
  * @param string $screen   nama layar
- * @param bool   $running  true bila timer Waktu Kerja sedang berjalan
- * @param int    $checkins jumlah Check-In yang sudah berhasil (0 = belum ada)
+ * @param bool   $running  true bila timer Jam Kerja sedang berjalan
+ * @param int    $checkins jumlah Mulai Ritase yang sudah berhasil (0 = belum ada)
  * @return array{steps:array, journey:string, startDelay?:int, subKey?:?string}
  */
 function amt_tour_steps_for(string $screen, bool $running, int $checkins = 0): array
 {
     // ---- Beranda AMT ----
     if ($screen === amt_home_screen()) {
-        // Check-In sudah berhasil -> AMT diberi tahu untuk melakukan DCU (cek
+        // Mulai Ritase sudah berhasil -> AMT diberi tahu untuk melakukan DCU (cek
         // kesehatan) lebih dulu. DCU dilakukan LANGSUNG di lokasi, bukan lewat
         // aplikasi, jadi tutorial ini hanya pemberitahuan (kartu di tengah).
         // Muncul AMT_TOUR_DCU_DELAY_MS setelah halaman dibuka.
         if ($running && $checkins > 0) {
-            // Order sudah diselesaikan -> scan segel di AVM dulu (bukan di aplikasi), lalu Check-Out
+            // Order sudah diselesaikan -> scan segel di AVM dulu (bukan di aplikasi), lalu Selesai Ritase
             $outPack = amt_out_tour_pack();
             if ($outPack !== null) {
                 return $outPack;
@@ -1453,11 +1453,11 @@ function amt_tour_steps_for(string $screen, bool $running, int $checkins = 0): a
             $dcuSeen = amt_flow_get('dcu_seen');
             $steps = [[
                 'no'       => null,
-                'label'    => 'Check-In Berhasil',
+                'label'    => 'Mulai Ritase Berhasil',
                 'target'   => null,
                 'notice'   => true,                                   // pemberitahuan: tetap tampil walau tutorial dimatikan
                 'title'    => 'Lakukan DCU dulu 🩺',
-                'text'     => 'Check-In berhasil. Sekarang lakukan DCU (cek kesehatan) terlebih dahulu. DCU dilakukan langsung di tempat, bukan lewat aplikasi ini. Menu PTI akan menyala setelah kartu ini ditutup.',
+                'text'     => 'Mulai Ritase berhasil. Sekarang lakukan DCU (cek kesehatan) terlebih dahulu. DCU dilakukan langsung di tempat, bukan lewat aplikasi ini. Menu PTI akan menyala setelah kartu ini ditutup.',
                 'button'   => 'Mengerti',
                 'autoHide' => AMT_DCU_VISIBLE_FOR,                    // tertutup sendiri setelah 7 detik
                 'announce' => true,                                   // PTI mulai menyala 2 detik setelah ini
@@ -1484,7 +1484,7 @@ function amt_tour_steps_for(string $screen, bool $running, int $checkins = 0): a
             ];
         }
         if ($running) {
-            // Sesudah Check-Out: tutorial mengarahkan ke Start / End -> End Work.
+            // Sesudah Selesai Ritase: tutorial mengarahkan ke Mulai / Selesai Kerja -> Selesai Kerja.
             $afterPack = amt_out_tour_after_pack();
             if ($afterPack !== null) {
                 return $afterPack;
@@ -1493,12 +1493,12 @@ function amt_tour_steps_for(string $screen, bool $running, int $checkins = 0): a
                 'no'     => 1,
                 'target' => '[data-tour="amt-menu-checkin"]',
                 'title'  => 'Absen masuk berhasil 🎉',
-                'text'   => 'Waktu Kerja sudah berjalan dan menu Check-In sekarang menyala. Ketuk Check-In saat Anda mendapat tugas pengiriman BBM. PTI menyala setelah Check-In dan DCU; Check-Out belum bisa dipakai.',
-                'hint'   => '👆 Ketuk menu “Check-In”',
+                'text'   => 'Jam Kerja sudah berjalan dan menu Mulai Ritase sekarang menyala. Ketuk Mulai Ritase saat Anda mendapat tugas pengiriman BBM; Jam Kerja Aktif baru mulai berjalan setelah itu, dijeda saat Selesai Ritase, dan lanjut lagi di Mulai Ritase berikutnya. PTI menyala setelah Mulai Ritase dan DCU; Selesai Ritase belum bisa dipakai.',
+                'hint'   => '👆 Ketuk menu “Mulai Ritase”',
                 'done'   => null,
             ]]];
         }
-        // Sesi kerja sudah berakhir (End Work berhasil) = pengguna sudah menyelesaikan seluruh alur tutorial.
+        // Sesi kerja sudah berakhir (Selesai Kerja berhasil) = pengguna sudah menyelesaikan seluruh alur tutorial.
         // Kartu sambutan diganti ucapan selamat: "Mulai" = ulangi dari awal, "Sudah cukup" = tutup.
         $tourFinished = !empty(work_data()['ended_at']);
         $welcome = $tourFinished
@@ -1506,7 +1506,7 @@ function amt_tour_steps_for(string $screen, bool $running, int $checkins = 0): a
                 'no'        => null,
                 'label'     => 'Tutorial Selesai',
                 'target'    => null,
-                'notice'    => true,     // tetap tampil walau tutorial dimatikan (End Work menutup tutorial)
+                'notice'    => true,     // tetap tampil walau tutorial dimatikan (Selesai Kerja menutup tutorial)
                 'restart'   => true,     // "Mulai" menyalakan tutorial lagi dari awal
                 'title'     => 'Selamat! Tutorial selesai 🎉',
                 'text'      => 'Selamat, Anda telah menyelesaikan sesi tutorial ini. Klik “Mulai” untuk memulai dari awal, atau pilih “Sudah cukup sampai di sini”.',
@@ -1527,24 +1527,24 @@ function amt_tour_steps_for(string $screen, bool $running, int $checkins = 0): a
             [
                 'no'     => 1,
                 'target' => '[data-tour="amt-menu-start_end"]',
-                'title'  => 'Buka menu “Start / End”',
+                'title'  => 'Buka menu “Mulai / Selesai Kerja”',
                 'text'   => 'Setiap hari kerja diawali dengan absen. Menu yang abu-abu belum bisa dipakai sebelum Anda absen.',
-                'hint'   => '👆 Ketuk menu “Start / End”',
+                'hint'   => '👆 Ketuk menu “Mulai / Selesai Kerja”',
                 'done'   => null,
             ],
         ]];
     }
 
-    // ---- Start / End Work ----
+    // ---- Absensi Kerja ----
     if ($screen === 'start_end') {
-        // Sesudah Check-Out: AMT diarahkan mengakhiri kerja (tanpa tombol "Mengerti", langsung End Work)
+        // Sesudah Selesai Ritase: AMT diarahkan mengakhiri kerja (tanpa tombol "Mengerti", langsung Selesai Kerja)
         if ($running && amt_out_after_checkout()) {
             return ['journey' => 'pulang', 'steps' => [[
                 'no'     => 1,
                 'target' => '[data-tour="btn-end-work"]',
-                'title'  => 'Ketuk “End Work”',
-                'text'   => 'Check-Out sudah selesai, jadi waktunya mengakhiri waktu kerja. Ketuk “End Work”, lalu isi form-nya.',
-                'hint'   => '👆 Ketuk tombol “End Work”',
+                'title'  => 'Ketuk “Selesai Kerja”',
+                'text'   => 'Ritase sudah ditutup, jadi waktunya mengakhiri jam kerja. Ketuk “Selesai Kerja”, lalu isi form-nya.',
+                'hint'   => '👆 Ketuk tombol “Selesai Kerja”',
                 'done'   => null,
             ]]];
         }
@@ -1552,9 +1552,9 @@ function amt_tour_steps_for(string $screen, bool $running, int $checkins = 0): a
             return ['journey' => 'pulang', 'steps' => [[
                 'no'     => 1,
                 'target' => '[data-tour="btn-end-work"]',
-                'title'  => 'Absen pulang: “End Work”',
-                'text'   => 'Saat jam kerja selesai, ketuk “End Work”. Kalau belum waktunya pulang, ketuk “Mengerti” saja.',
-                'hint'   => '👆 Ketuk “End Work” saat sudah selesai bekerja',
+                'title'  => 'Absen pulang: “Selesai Kerja”',
+                'text'   => 'Saat jam kerja selesai, ketuk “Selesai Kerja”. Kalau belum waktunya pulang, ketuk “Mengerti” saja.',
+                'hint'   => '👆 Ketuk “Selesai Kerja” saat sudah selesai bekerja',
                 'button' => 'Mengerti',
                 'done'   => null,
             ]]];
@@ -1562,9 +1562,9 @@ function amt_tour_steps_for(string $screen, bool $running, int $checkins = 0): a
         return ['journey' => 'masuk', 'steps' => [[
             'no'     => 2,
             'target' => '[data-tour="btn-start-work"]',
-            'title'  => 'Ketuk “Start Work”',
+            'title'  => 'Ketuk “Mulai Kerja”',
             'text'   => 'Ini tombol absen masuk. Pastikan Anda sudah berada di area terminal.',
-            'hint'   => '👆 Ketuk tombol hijau “Start Work”',
+            'hint'   => '👆 Ketuk tombol hijau “Mulai Kerja”',
             'done'   => null,
         ]]];
     }
@@ -1622,7 +1622,7 @@ function amt_tour_steps_for(string $screen, bool $running, int $checkins = 0): a
         return ['journey' => $pack['journey'], 'steps' => $pack['steps'], 'subKey' => $pack['subKey']];
     }
 
-    // ---- Check-Out: lokasi, aktivitas, foto, kirim ----
+    // ---- Selesai Ritase: lokasi, aktivitas, foto, kirim ----
     if ($screen === AMT_OUT_SCREEN) {
         return ['journey' => 'checkout', 'steps' => amt_out_tour_form_steps()];
     }
@@ -1645,7 +1645,7 @@ function amt_tour_steps_for(string $screen, bool $running, int $checkins = 0): a
 /**
  * Konfigurasi tutorial AMT untuk sebuah layar.
  * 'subKey' memisahkan catatan "sudah selesai" untuk keadaan berbeda pada
- * layar yang sama (beranda sebelum / sesudah Start Work, dst).
+ * layar yang sama (beranda sebelum / sesudah Mulai Kerja, dst).
  *
  * @return array{steps:array, subKey:?string, journey:?array, startDelay:int, epoch:string, persist:bool, screenOrder:array, screenLabels:array}
  */
@@ -1657,8 +1657,8 @@ function amt_tour_config(string $screen): array
     $subKey   = null;
 
     if ($running && $screen === amt_home_screen()) {
-        // Tiap Check-In berhasil punya catatan sendiri, jadi DCU diingatkan lagi
-        // setelah Check-In berikutnya (bukan hanya sekali seumur hidup).
+        // Tiap Mulai Ritase berhasil punya catatan sendiri, jadi DCU diingatkan lagi
+        // setelah Mulai Ritase berikutnya (bukan hanya sekali seumur hidup).
         // Kunci dari paket langkah (mis. tutorial "PTI selesai") diutamakan.
         $subKey = !empty($pack['subKey'])
             ? $pack['subKey']

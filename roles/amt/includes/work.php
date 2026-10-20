@@ -1,5 +1,5 @@
 <?php
-/* Fitur jam kerja AMT (Start Work / End Work).
+/* Fitur jam kerja AMT (Mulai Kerja / Selesai Kerja).
  * State di $_SESSION['work'] = [
  *   'started_at' => timestamp, 'ended_at' => timestamp|null,
  *   'activity'   => 'Hadir' dst, 'start_photo' => bool, 'end_photo' => bool ] */
@@ -21,28 +21,28 @@ const WORK_RADIUS_M = 500;          // batas jarak absen dari titik kerja (meter
 // di dalam, 1 = selalu di luar). "Perbarui Lokasi" selalu memindahkan ke dalam radius.
 const WORK_SIM_OUTSIDE_CHANCE = 0.5;
 
-// Pilihan aktivitas saat Start Work
+// Pilihan aktivitas saat Mulai Kerja
 const WORK_ACTIVITIES = ['Hadir', 'Sakit', 'Izin', 'Cuti', 'Alpa', 'Dinas Luar'];
 
-// Menu yang hanya aktif saat timer berjalan (setelah Start Work).
-// Saat ini hanya Check-In. PTI & Check-Out SENGAJA belum aktif (lihat
+// Menu yang hanya aktif saat timer berjalan (setelah Mulai Kerja).
+// Saat ini hanya Mulai Ritase. PTI & Selesai Ritase SENGAJA belum aktif (lihat
 // WORK_LOCKED_MENUS) sampai layarnya dibuat.
 const WORK_GATED_SCREENS = ['checkin'];
 
 // Menu yang SELALU terkunci walau timer sudah berjalan (belum ada layarnya).
-// Check-Out sudah punya layar: kuncinya diatur amt_out_unlocked() (roles/amt/includes/amt_out.php).
+// Selesai Ritase sudah punya layar: kuncinya diatur amt_out_unlocked() (roles/amt/includes/amt_out.php).
 const WORK_LOCKED_MENUS = [];
 
-// Pilihan aktivitas pada form Check-In (default sama dengan Start Work)
+// Pilihan aktivitas pada form Mulai Ritase (default sama dengan Mulai Kerja)
 const CHECKIN_ACTIVITIES = ['Tugas Rutin', 'Tugas Lembur'];
 
 // Judul header untuk layar tambahan (tidak ada di data.php)
 const WORK_SCREENS = [
-    'start_end'  => 'Start / End Work',
-    'start_work' => 'Start Work',
-    'end_work'   => 'End Work',
-    'checkin'    => 'Check-In',
-    'checkout'   => 'Check-Out',
+    'start_end'  => 'Absensi Kerja',
+    'start_work' => 'Mulai Kerja',
+    'end_work'   => 'Selesai Kerja',
+    'checkin'    => 'Mulai Ritase',
+    'checkout'   => 'Selesai Ritase',
     'amt_pti'      => 'Pre-Trip Inspection',
     'amt_pti_form' => 'Form Inspeksi',
     'amt_pti_hasil' => 'Hasil Inspeksi',
@@ -75,7 +75,7 @@ function work_data(): array {
  * Mesin tutorial (assets/js/tutorial-amt.js) menyimpan status "Lewati / selesai" di
  * localStorage dan MENYALINNYA ke cookie ini, supaya server tahu pengguna tidak sedang
  * memakai mode tutorial. Pada mode bebas pengguna boleh langsung membuka menu Shipments
- * tanpa Start Work -> Check-In -> PTI lebih dulu. Urutan langkah DI DALAM satu pengiriman
+ * tanpa Mulai Kerja -> Mulai Ritase -> PTI lebih dulu. Urutan langkah DI DALAM satu pengiriman
  * (Tiba -> Checklist -> Verifikasi -> Surat Jalan -> Rating -> Selesai) tetap dijaga.
  * Saat tutorial MENYALA, alur lengkap tetap wajib seperti sebelumnya.
  * ------------------------------------------------------------ */
@@ -109,7 +109,84 @@ function work_started_at(): int {
     return work_is_running() ? (int) $_SESSION['work']['started_at'] : 0;
 }
 
-/* Riwayat Check-In (hari/ritase ini). Tiap item:
+/* ------------------------------------------------------------
+ * JAM KERJA vs JAM KERJA AKTIF (beranda AMT)
+ *
+ *  - Jam Kerja        : mulai berjalan saat "Mulai Kerja", terus berjalan sampai "Selesai Kerja".
+ *  - Jam Kerja Aktif  : mulai berjalan saat "Mulai Ritase" (Mulai Ritase). Saat "Selesai Ritase"
+ *                       (Selesai Ritase) jam ini DIJEDA (angka terakhir tersimpan). Saat "Mulai Ritase"
+ *                       berikutnya, jam MELANJUTKAN dari angka terakhir.
+ *  - Kedua jam kembali ke 00:00:00 saat "Selesai Kerja" (dan saat "Mulai Kerja" baru).
+ *
+ * State di $_SESSION['work']:
+ *   'active_acc'   => detik yang sudah terkumpul dari sesi aktif yang SUDAH dijeda
+ *   'active_since' => timestamp sesi aktif yang SEDANG berjalan (0 = dijeda / belum mulai)
+ * Detik aktif sekarang = active_acc + (active_since > 0 ? sekarang - active_since : 0)
+ * ------------------------------------------------------------ */
+
+/* Detik jam aktif yang sudah terkumpul (tidak termasuk sesi yang sedang berjalan) */
+function work_active_acc(): int {
+    return work_is_running() ? max(0, (int) ($_SESSION['work']['active_acc'] ?? 0)) : 0;
+}
+
+/* Timestamp sesi aktif yang sedang berjalan (0 = dijeda / belum Mulai Ritase / kerja belum berjalan) */
+function work_active_since(): int {
+    return work_is_running() ? max(0, (int) ($_SESSION['work']['active_since'] ?? 0)) : 0;
+}
+
+/* Jam Kerja Aktif sedang berjalan (bukan dijeda)? */
+function work_active_is_running(): bool {
+    return work_active_since() > 0;
+}
+
+/* Total detik Jam Kerja Aktif saat ini (0 bila kerja belum mulai / sudah selesai) */
+function work_active_seconds(): int {
+    $since = work_active_since();
+    return work_active_acc() + ($since > 0 ? max(0, time() - $since) : 0);
+}
+
+/* Mulai Ritase (Mulai Ritase): jam aktif berjalan / MELANJUTKAN. Bila sudah berjalan, tidak diulang dari awal. */
+function work_active_resume(): void {
+    if (!work_is_running()) {
+        return;
+    }
+    if (empty($_SESSION['work']['active_since'])) {
+        $_SESSION['work']['active_since'] = time();
+    }
+    if (!isset($_SESSION['work']['active_acc'])) {
+        $_SESSION['work']['active_acc'] = 0;
+    }
+}
+
+/* Selesai Ritase (Selesai Ritase): jam aktif DIJEDA, detik yang sudah berjalan disimpan ke akumulasi. */
+function work_active_pause(): void {
+    if (!work_is_running()) {
+        return;
+    }
+    $since = (int) ($_SESSION['work']['active_since'] ?? 0);
+    if ($since > 0) {
+        $_SESSION['work']['active_acc'] = (int) ($_SESSION['work']['active_acc'] ?? 0) + max(0, time() - $since);
+    }
+    $_SESSION['work']['active_since'] = 0;
+}
+
+/* Selesai Kerja (Selesai Kerja): kedua jam kembali ke 0. Nilai akhir disimpan sebagai arsip (tidak ditampilkan). */
+function work_active_stop(): void {
+    if (!isset($_SESSION['work'])) {
+        return;
+    }
+    work_active_pause();
+    $_SESSION['work']['active_total'] = (int) ($_SESSION['work']['active_acc'] ?? 0);
+    $_SESSION['work']['active_acc'] = 0;
+}
+
+/* Format detik -> "HH:MM:SS" */
+function work_fmt_duration(int $sec): string {
+    $sec = max(0, $sec);
+    return sprintf('%02d:%02d:%02d', intdiv($sec, 3600), intdiv($sec % 3600, 60), $sec % 60);
+}
+
+/* Riwayat Ritase (hari/ritase ini). Tiap item:
  * ['at' => timestamp, 'activity' => 'Hadir', 'photo' => dataURL|''] */
 function work_checkins(): array {
     $c = $_SESSION['work']['checkins'] ?? [];
@@ -160,7 +237,7 @@ function work_avatar_html(int $size = 120): string {
     return '<img src="' . htmlspecialchars($url, ENT_QUOTES) . '" alt="AMT" style="width:' . $size . 'px;height:auto;max-height:' . round($size * 1.2) . 'px;object-fit:contain;display:block;margin:0 auto">';
 }
 
-/* CSS halaman Start/End Work (roles/amt/assets/css/work.css) */
+/* CSS halaman Absensi Kerja (roles/amt/assets/css/work.css) */
 function work_styles(): void
 {
     $v = (int) @filemtime(AMT_ASSET_DIR . '/css/work.css');

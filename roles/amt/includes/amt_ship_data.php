@@ -5,7 +5,7 @@
  * Alur layar:
  *   amt_home  ->  amt_shipments        (daftar pengiriman, filter status)
  *             ->  amt_shipment_detail  (Detail Order: info pengiriman + rute)
- *             ->  amt_spbu             (Aktifitas di SPBU + Order List)
+ *             ->  amt_spbu             (Aktifitas di SPBU + Daftar Order)
  *
  * Data di bawah adalah CONTOH (sesuai desain). Ganti isi amt_ship_all() dengan sumber data asli
  * (database / API) bila sudah tersedia; view tidak perlu diubah selama bentuk array-nya sama.
@@ -130,19 +130,25 @@ function amt_ship_find(?string $id = null): ?array
 
 /**
  * Pengiriman yang ditampilkan di panel "Rute Pengiriman" beranda AMT (null = panel tidak tampil).
- * Syarat: jam kerja berjalan, PTI sudah selesai dengan hasil bukan NO GO, order belum diselesaikan,
- * dan ada pengiriman berstatus "sedang". Dipakai oleh views/amt_home.php DAN tutorial.php supaya
- * tutorial hanya muncul bila panelnya benar-benar ada.
+ * Syarat (BERLAKU SAMA, tutorial menyala maupun dimatikan / mode bebas):
+ *   1. jam kerja berjalan (sudah Mulai Kerja),
+ *   2. sudah Mulai Ritase (alur DCU / tutorial dilewati lalu PTI dikerjakan),
+ *   3. PTI sudah selesai dengan hasil bukan NO GO,
+ *   4. order belum diselesaikan (setelah order selesai beranda masuk tahap "scan segel di AVM" -> Selesai Ritase,
+ *      jadi panel rute disembunyikan),
+ *   5. ada pengiriman berstatus "sedang".
+ * Selama syarat belum terpenuhi beranda menampilkan panel kosong "Pengiriman Aktif Belum Tersedia".
+ * Dipakai oleh views/amt_home.php DAN tutorial.php supaya tutorial hanya muncul bila panelnya benar-benar ada.
  */
 function amt_home_route_ship(): ?array
 {
     if (amt_out_order_done()) {
         return null;
     }
-    // Mode normal (tutorial menyala): wajib Start Work + PTI selesai (bukan NO GO).
-    // Mode bebas (tutorial dimatikan): pengiriman langsung tampil tanpa langkah-langkah itu.
-    if (!amt_tour_is_off()
-        && (!work_is_running() || !amt_pti_is_done() || (amt_pti_state()['result'] ?? null) === 'NO GO')) {
+    if (!work_is_running()
+        || amt_last_checkin_at() === 0
+        || !amt_pti_is_done()
+        || (amt_pti_state()['result'] ?? null) === 'NO GO') {
         return null;
     }
     $s = amt_ship_find();
@@ -178,13 +184,13 @@ function amt_ship_chip(string $status): string
  * "Tiba di Lokasi" (langkah pertama Aktifitas di SPBU)
  * Status kedatangan disimpan di session per pengiriman:
  *   $_SESSION['amt_spbu']['arrived'][<id>] = ['at' => time, 'lat' => .., 'lng' => ..]
- * Direset bersama siklus kerja AMT (Start Work / End Work / pilih peran).
+ * Direset bersama siklus kerja AMT (Mulai Kerja / Selesai Kerja / pilih peran).
  * ------------------------------------------------------------ */
 
 /**
  * Nama tempat SPBU untuk pin Google Maps pada popup "Tiba di Lokasi".
  * Bila lokasi sudah sesuai, peta menampilkan pin tempat SPBU tujuan (nama + kartu tempat, seperti pin
- * terminal di Start Work), bukan sekadar titik koordinat. Isi 'place' pada data pengiriman dengan nama
+ * terminal di Mulai Kerja), bukan sekadar titik koordinat. Isi 'place' pada data pengiriman dengan nama
  * persis seperti di Google Maps agar pin tepat; bila kosong dipakai "SPBU Pertamina" di sekitar koordinat.
  */
 function amt_spbu_place(array $s): string

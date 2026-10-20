@@ -1,7 +1,7 @@
 <?php
 /**
  * Layar: ?screen=amt_spbu&id=...  (role AMT)  -- "SPBU <kode>"
- * Aktifitas di SPBU (5 langkah) + Order List per Nomor LO. Header judul = "SPBU <kode>".
+ * Aktifitas di SPBU (5 langkah) + Daftar Order per Nomor LO. Header judul = "SPBU <kode>".
  *
  * Pengiriman berjalan : "Tiba di Lokasi" aktif (kartu biru), langkah lain redup, "Selesai" nonaktif.
  *   Ketuk "Tiba di Lokasi" -> popup (bottom sheet): peta lokasi + "Ya, pengiriman telah tiba".
@@ -136,7 +136,7 @@ $doneN    = $active ? ($arrived ? ($pbkDone ? ($verDone ? ($sjDone ? ($rateDone 
         </div>
     </div>
 
-    <h2 class="amts-h2 amts-h2--list">Order List</h2>
+    <h2 class="amts-h2 amts-h2--list">Daftar Order</h2>
     <?php foreach ($s['products'] as $p):
         $loVerified = !$active || amt_verif_is_verified($p['lo']);
         $sjAdded    = !$active || amt_sj_lo_done($s['id'], (string) $p['lo']); ?>
@@ -294,6 +294,19 @@ body:has(.amts-fin.is-open) .amtt-fab { display: none; }
     display: block; width: 100%; height: clamp(190px, 28vh, 240px);
     border: 0; border-radius: 12px; background: #e5e7eb;
 }
+/* Wadah peta + label nama SPBU di bawah pin. Pin Google (mode koordinat) selalu di tengah peta dan tidak punya
+   nama, jadi nama SPBU dari aplikasi ditaruh sebagai label tepat di bawah ujung pin. Hanya tampil bila lokasi sesuai. */
+.amts-sheet__mapbox { position: relative; }
+.amts-sheet__pinlabel {
+    position: absolute; left: 50%; top: calc(50% + 5px); transform: translateX(-50%);
+    max-width: 88%; padding: 3px 9px; border-radius: 999px;
+    background: #fff; border: 1px solid #cbd5e1; box-shadow: 0 2px 6px rgba(15, 23, 42, .25);
+    color: #0f172a; font-size: 11px; font-weight: 700; line-height: 1.3; letter-spacing: .01em;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; z-index: 2;
+}
+.amts-sheet__pinlabel[hidden] { display: none; }
+/* Pin sudah di lokasi SPBU: peta dikunci (tidak bisa digeser) supaya pin dan label nama SPBU selalu sejajar. */
+.amts-sheet__mapbox.is-pinned .amts-sheet__map { pointer-events: none; }
 #arr-loc { margin-bottom: 16px; }
 /* Tidak ada keterangan lokasi (sesuai / belum sesuai) di bawah peta; tetap terbaca oleh pembaca layar */
 .amts-sheet__geo {
@@ -345,7 +358,10 @@ body:has(.amts-sheet.is-open) .amtt-fab { display: none; }
                     Perbarui Lokasi
                 </a>
             </div>
-            <iframe id="arr-map" class="amts-sheet__map" allowfullscreen referrerpolicy="no-referrer-when-downgrade" title="Lokasi Anda"></iframe>
+            <div class="amts-sheet__mapbox" id="arr-mapbox">
+                <iframe id="arr-map" class="amts-sheet__map" allowfullscreen referrerpolicy="no-referrer-when-downgrade" title="Lokasi Anda"></iframe>
+                <span class="amts-sheet__pinlabel" id="arr-pinlabel" hidden><?= amt_e(amt_spbu_place($s)) ?></span>
+            </div>
             <p class="amts-sheet__geo" id="arr-geo" role="status">Mencari lokasi...</p>
         </div>
 
@@ -370,6 +386,8 @@ body:has(.amts-sheet.is-open) .amtt-fab { display: none; }
     var yes   = document.getElementById('arr-yes');
     var map   = document.getElementById('arr-map');
     var geo   = document.getElementById('arr-geo');
+    var pinLabel = document.getElementById('arr-pinlabel');   // nama SPBU di bawah pin
+    var mapBox   = document.getElementById('arr-mapbox');
     var latEl = document.getElementById('arr-lat');
     var lngEl = document.getElementById('arr-lng');
     var BASE      = { lat: parseFloat(sheet.dataset.lat), lng: parseFloat(sheet.dataset.lng) };
@@ -414,17 +432,23 @@ body:has(.amts-sheet.is-open) .amtt-fab { display: none; }
         var token = ++mapToken;
         clearTimeout(pinTimer);
         sheet.setAttribute('data-pin', '0');
+        // Nama SPBU HANYA tampil bila pin sudah di lokasi SPBU yang di-setting DAN petanya sudah selesai dimuat.
+        // Selama memuat, atau bila lokasi belum sesuai, nama SPBU tidak ditampilkan sama sekali.
+        if (pinLabel) { pinLabel.textContent = PLACE; pinLabel.hidden = true; }
+        if (mapBox) { mapBox.classList.remove('is-pinned'); }
         function pinReady() {
             if (token !== mapToken || !inRange) return;
             clearTimeout(pinTimer);
             map.onload = null;
+            if (pinLabel) { pinLabel.hidden = false; }
+            if (mapBox) { mapBox.classList.add('is-pinned'); }   // peta dikunci: pin & label tetap sejajar
             sheet.setAttribute('data-pin', '1');
             announce();
         }
         map.onload = inRange ? pinReady : null;
         if (inRange) pinTimer = setTimeout(pinReady, PIN_FALLBACK_MS);
 
-        // Lokasi sesuai -> pin di titik SPBU tujuan dengan label nomor SPBU (mis. "SPBU 62.938.839"), zoom dekat.
+        // Lokasi sesuai -> pin di titik SPBU tujuan + label nama SPBU (mis. "SPBU 62.938.839") setelah peta selesai dimuat (lihat pinReady), zoom dekat.
         // Belum sesuai -> pin biasa di koordinat pengguna, jelas berada jauh dari SPBU.
         map.src = inRange
             ? 'https://maps.google.com/maps?q=' + BASE.lat.toFixed(6) + ',' + BASE.lng.toFixed(6) +
@@ -459,6 +483,8 @@ body:has(.amts-sheet.is-open) .amtt-fab { display: none; }
         mapToken++;
         map.onload = null;
         map.removeAttribute('src');
+        if (pinLabel) { pinLabel.hidden = true; }
+        if (mapBox) { mapBox.classList.remove('is-pinned'); }
         sheet.setAttribute('data-loc', '0');
         sheet.setAttribute('data-pin', '0');
         document.removeEventListener('keydown', onKey);

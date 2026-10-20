@@ -1,6 +1,6 @@
 /* ============================================================
    OneFIS - AMT - work.css
-   Halaman Start / End Work: kartu status, form verifikasi
+   Halaman Absensi Kerja: kartu status, form verifikasi
    (lokasi, aktivitas, foto). Kamera layar penuh ada di camera.css.
    ============================================================ */
 
@@ -80,7 +80,7 @@
 .wk-idle:focus-visible { outline: 2px solid #2563eb; outline-offset: 6px; border-radius: 10px; }
 .wk-cta { display: inline-flex; gap: 6px; align-items: center; color: #2563eb; font-weight: 600; font-size: 12px; }
 
-/* ---- Pop up sukses (Work Start / Work End / Check-In / Check-Out) ---- */
+/* ---- Pop up sukses (Mulai Kerja / Selesai Kerja / Mulai Ritase / Selesai Ritase) ---- */
 .wk-modal {
   position: absolute; inset: 0; z-index: 1200;
   display: flex; align-items: center; justify-content: center; padding: 24px;
@@ -108,11 +108,11 @@
 @keyframes wk-pop { from { transform: scale(.94); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
 /* ============================================================
-   TAMPILAN BARU: End Work & Check-Out  (kelas .wk-v2 pada form)
+   TAMPILAN BARU: Selesai Kerja & Selesai Ritase  (kelas .wk-v2 pada form)
    - foto yang sudah diambil = pratinjau + "Hapus Foto"
-   - tombol kirim menempel di bawah layar (.wk-bar)
-   - kartu putih (.wk-v2-card), dialog konfirmasi End Work, pop up sukses polos
-   Start Work & Check-In TIDAK memakai blok ini.
+   - tombol kirim menempel di dasar layar (.wk-bar, berlaku untuk keempat mode)
+   - kartu putih (.wk-v2-card), dialog konfirmasi Selesai Kerja, pop up sukses polos
+   Mulai Kerja & Mulai Ritase TIDAK memakai blok ini.
    ============================================================ */
 .wk-v2 { padding: 12px 14px 0; font-size: 12px; color: #111827; }
 .wk-v2 .wk-title { font-size: 13px; font-weight: 700; color: #0f172a; margin: 6px 0 12px; }
@@ -161,17 +161,44 @@
 }
 .wk-v2 .wk-photo .wk-del:active { opacity: .6; }
 
-/* Tombol kirim menempel di bawah layar */
-.wk-v2 .wk-bar {
+/* ------------------------------------------------------------
+   Bar tombol Kirim (SEMUA mode: Mulai Kerja, Selesai Kerja, Mulai Ritase, Selesai Ritase)
+   Skrip di _work_form.php memindahkan #wk-bar ke dalam .app-container dan menambahkan .is-docked:
+   bar dipasang di DASAR layar (bukan agak ke atas) dan tidak tertutup apa pun. Karena setelah dipindah
+   bar tidak lagi berada di dalam .wk-wrap / .wk-v2 / .ci-page, semua gayanya ditulis pada .wk-bar sendiri.
+   Tanpa JS bar tetap menempel di bawah lewat position: sticky.
+   ------------------------------------------------------------ */
+.wk-bar {
   position: sticky; bottom: 0; z-index: 5;
-  margin: 14px -14px 0; padding: 10px 14px calc(10px + env(safe-area-inset-bottom, 0px));
+  margin: 14px -12px 0; padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px));
   background: #fff; box-shadow: 0 -4px 14px rgba(15, 23, 42, .07);
 }
-.wk-v2 .wk-submit { height: 44px; padding: 0 12px; border-radius: 8px; font-size: 13px; font-family: inherit; }
-.wk-v2 .wk-submit.wk-submit-end { background: #0891d1; }
-.wk-v2 .wk-submit.wk-submit-end:disabled, .wk-v2 .wk-submit:disabled { background: #d1d5db; color: #f9fafb; }
+.wk-v2 .wk-bar { margin: 14px -14px 0; padding-left: 14px; padding-right: 14px; }
+.ci-page .wk-bar { margin: 14px -16px 0; padding-left: 16px; padding-right: 16px; }
+.wk-bar[hidden] { display: none; }
 
-/* Pop up sukses polos (Check-Out Berhasil + OK) */
+/* Sudah dipasang di dasar layar (di dalam .app-container) */
+.wk-bar.is-docked {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 50; margin: 0;
+  padding: 10px 14px calc(10px + env(safe-area-inset-bottom, 0px));
+}
+
+/* Tombol Kirim: tampilan Mulai Kerja / Mulai Ritase */
+.wk-bar .wk-submit {
+  height: 46px; padding: 0 12px; border-radius: 10px; font-size: 14px; font-family: inherit;
+  box-shadow: 0 6px 16px -6px rgba(37, 99, 235, .55);
+}
+.wk-bar .wk-submit:disabled { box-shadow: none; }
+/* Tombol Kirim: tampilan Selesai Kerja / Selesai Ritase */
+.wk-bar-v2 .wk-submit { height: 44px; border-radius: 8px; font-size: 13px; box-shadow: none; }
+.wk-bar .wk-submit.wk-submit-end { background: #0891d1; }
+.wk-bar .wk-submit:disabled,
+.wk-bar .wk-submit.wk-submit-end:disabled { background: #d1d5db; color: #f9fafb; }
+
+/* Tombol bantuan "?" naik ke atas bar supaya tidak menutupi tombol Kirim (jarak diukur oleh skrip) */
+body.wk-docked .amtt-fab { bottom: var(--wk-fab-bottom, 6rem); }
+
+/* Pop up sukses polos (Selesai Ritase Berhasil + OK) */
 .wk-modal.is-plain .wk-modal-card { max-width: 300px; padding: 22px 18px 18px; border-radius: 14px; }
 .wk-modal.is-plain .wk-modal-ico { width: 40px; height: 40px; background: transparent; border: 2px solid #10b981; }
 .wk-modal.is-plain .wk-modal-ico svg { stroke: #10b981; }
@@ -179,7 +206,7 @@
 .wk-modal.is-plain .wk-modal-body { font-size: 11px; color: #059669; margin-bottom: 14px; }
 .wk-modal.is-plain .wk-modal-btn { display: inline-block; width: auto; min-width: 84px; padding: 8px 22px; font-size: 12px; border-radius: 8px; }
 
-/* Dialog konfirmasi End Work (Ya / Batal) */
+/* Dialog konfirmasi Selesai Kerja (Ya / Batal) */
 .wk-modal.wk-confirm { background: rgba(15, 23, 42, .4); backdrop-filter: none; -webkit-backdrop-filter: none; }
 .wk-confirm-card {
   width: 100%; max-width: 330px; box-sizing: border-box; background: #fff; border-radius: 14px;

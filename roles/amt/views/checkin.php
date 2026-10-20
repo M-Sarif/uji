@@ -1,9 +1,9 @@
 <?php
-/* Layar Check-In AMT (User Guide bagian B).
+/* Layar Mulai Ritase AMT (User Guide bagian B).
  * Dua tab:
  *   - Verifikasi        : form (lokasi, aktivitas, foto selfie, Kirim) -> _work_form.php
- *   - Riwayat Check-In  : daftar Check-In yang sudah dilakukan (per cycle/ritase)
- * Hanya bisa dibuka saat timer Waktu Kerja berjalan (dijaga amt_guard_work()). */
+ *   - Riwayat Ritase  : daftar Mulai Ritase yang sudah dilakukan (per cycle/ritase)
+ * Hanya bisa dibuka saat timer Jam Kerja berjalan (dijaga amt_guard_work()). */
 work_styles();
 ?>
 <link rel="stylesheet" href="<?= AMT_URL ?>/css/checkin.css?v=<?= (int) @filemtime(AMT_ASSET_DIR . '/css/checkin.css') ?>">
@@ -15,7 +15,7 @@ $checkins = work_checkins();
 <div class="ci-page">
 <div class="ci-tabs" role="tablist">
   <button type="button" role="tab" id="ci-tab-verif" class="ci-tab<?= $tab === 'verifikasi' ? ' is-active' : '' ?>" data-ci-tab="verifikasi">Verifikasi</button>
-  <button type="button" role="tab" id="ci-tab-riwayat" class="ci-tab<?= $tab === 'riwayat' ? ' is-active' : '' ?>" data-ci-tab="riwayat">Riwayat Check-In</button>
+  <button type="button" role="tab" id="ci-tab-riwayat" class="ci-tab<?= $tab === 'riwayat' ? ' is-active' : '' ?>" data-ci-tab="riwayat">Riwayat Ritase</button>
 </div>
 
 <!-- TAB: Verifikasi -->
@@ -23,26 +23,26 @@ $checkins = work_checkins();
   <?php $mode = 'checkin'; require __DIR__ . '/_work_form.php'; ?>
 </div>
 
-<!-- TAB: Riwayat Check-In -->
+<!-- TAB: Riwayat Ritase -->
 <div class="ci-pane" id="ci-pane-riwayat"<?= $tab === 'riwayat' ? '' : ' hidden' ?>>
   <div class="ci-info">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-    <span>Riwayat Check-In akan ter-reset setelah AMT melakukan Check-Out.</span>
+    <span>Riwayat Ritase akan direset setelah AMT menekan Selesai Ritase.</span>
   </div>
 
-  <p class="ci-heading">Riwayat Check-In</p>
+  <p class="ci-heading">Riwayat Ritase</p>
 
   <?php if (!$checkins): ?>
-    <div class="ci-empty">Belum ada Check-In.</div>
+    <div class="ci-empty">Belum ada riwayat Mulai Ritase.</div>
   <?php else: ?>
     <?php foreach ($checkins as $i => $c): ?>
       <div class="ci-card">
         <div class="ci-col">
-          <small>Check-In ke</small>
+          <small>Mulai Ritase ke</small>
           <strong><?= $i + 1 ?></strong>
         </div>
         <div class="ci-col">
-          <small>Waktu Check-In</small>
+          <small>Jam Mulai Ritase</small>
           <strong><?= h(date('d/m/y H:i', (int) $c['at'])) ?></strong>
         </div>
         <div class="ci-col">
@@ -71,7 +71,7 @@ $checkins = work_checkins();
 <!-- Pop up Lihat Foto -->
 <div class="ci-modal" id="ci-modal" hidden>
   <div class="ci-modal-box">
-    <img id="ci-modal-img" alt="Foto Verifikasi Check-In">
+    <img id="ci-modal-img" alt="Foto Verifikasi Mulai Ritase">
     <button type="button" class="ci-modal-close" id="ci-modal-close">Tutup</button>
   </div>
 </div>

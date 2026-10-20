@@ -1,7 +1,7 @@
 <?php
-/* Layar End Work AMT (Start / End -> End Work).
- * Isi: kartu info "Akhiri Pekerjaan Hari Ini" + kartu "Total Waktu Kerja Hari Ini" (jam berjalan),
- * lalu Form Verifikasi End Work (lokasi, aktivitas mengikuti Start Work, foto End Work) -> _work_form.php (mode 'end').
+/* Layar Selesai Kerja AMT (Mulai / Selesai Kerja -> Selesai Kerja).
+ * Isi: kartu info "Akhiri Pekerjaan Hari Ini" + kartu "Total Jam Kerja Hari Ini" (jam berjalan),
+ * lalu Form Verifikasi Selesai Kerja (lokasi, aktivitas mengikuti Mulai Kerja, foto Selesai Kerja) -> _work_form.php (mode 'end').
  * Tombol "Akhiri Pekerjaan" menempel di bawah layar dan membuka dialog konfirmasi (Ya / Batal). */
 work_styles();
 ?>
@@ -13,7 +13,7 @@ $ewText    = sprintf('%02d : %02d : %02d', intdiv($ewElapsed, 3600), intdiv($ewE
 ?>
 <div class="ew-page">
 
-  <!-- Info + total waktu kerja -->
+  <!-- Info + total jam kerja -->
   <div class="ew-card" id="ew-top">
     <div class="ew-info">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v5M12 16h.01"/></svg>
@@ -23,7 +23,7 @@ $ewText    = sprintf('%02d : %02d : %02d', intdiv($ewElapsed, 3600), intdiv($ewE
       </div>
     </div>
     <div class="ew-timer" id="ew-timer">
-      <small>Total Waktu Kerja Hari Ini</small>
+      <small>Total Jam Kerja Hari Ini</small>
       <span class="ew-time" id="ew-time"><?= h($ewText) ?></span>
     </div>
   </div>
@@ -34,7 +34,7 @@ $ewText    = sprintf('%02d : %02d : %02d', intdiv($ewElapsed, 3600), intdiv($ewE
 
 <script>
 (function () {
-  var START = <?= $ewStart ?>;                 // waktu Start Work (detik, dari server)
+  var START = <?= $ewStart ?>;                 // waktu Mulai Kerja (detik, dari server)
   var out = document.getElementById('ew-time');
   if (!START || !out) return;
   function pad(n) { return String(n).padStart(2, '0'); }

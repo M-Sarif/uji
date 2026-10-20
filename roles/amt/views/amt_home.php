@@ -1,32 +1,43 @@
 <?php
 /**
  * Beranda peran AMT (Awak Mobil Tangki).
- * Isi: kartu Waktu Kerja, menu cepat (7 menu), dan panel "Pengiriman Aktif".
+ * Isi: kartu Jam Kerja, menu cepat (7 menu), dan panel "Pengiriman Aktif".
  *
  * 'key'   : dipakai untuk penguncian (amt_menu_locked) dan penanda tutorial.
- *           Check-In aktif setelah Start Work (timer berjalan); PTI aktif setelah
- *           Check-In + tutorial DCU (amt_pti_unlocked); Check-Out belum aktif
+ *           Mulai Ritase aktif setelah Mulai Kerja (timer berjalan); PTI aktif setelah
+ *           Mulai Ritase + tutorial DCU (amt_pti_unlocked); Selesai Ritase belum aktif
  *           (WORK_LOCKED_MENUS di roles/amt/includes/work.php).
  * 'href'  => '#'  : layar tujuan belum tersedia.
  */
 $running = work_is_running();
 
 $amtMenus = [
-    ['key' => 'start_end',   'label' => 'Start / End',  'icon' => AMT_URL . '/img/menu/start-end.png',            'tone' => 'slate',  'href' => '?screen=start_end'],
-    ['key' => 'checkin',     'label' => 'Check-In',     'icon' => AMT_URL . '/img/menu/Check-In.png',             'tone' => 'green',  'href' => '?screen=checkin'],
+    ['key' => 'start_end',   'label' => 'Mulai / Selesai Kerja', 'icon' => AMT_URL . '/img/menu/start-end.png',            'tone' => 'slate',  'href' => '?screen=start_end'],
+    ['key' => 'checkin',     'label' => 'Mulai Ritase',  'icon' => AMT_URL . '/img/menu/Check-In.png',             'tone' => 'green',  'href' => '?screen=checkin'],
     ['key' => 'pti',         'label' => 'PTI',          'icon' => AMT_URL . '/img/menu/PTI.png',                  'tone' => 'peach',  'href' => '?screen=amt_pti'],
     ['key' => 'shipments',   'label' => 'Shipments',    'icon' => AMT_URL . '/img/ilustrasi/empty-delivery-truck.png', 'tone' => 'blue',   'href' => '?screen=amt_shipments'],
-    ['key' => 'checkout',    'label' => 'Check-Out',    'icon' => AMT_URL . '/img/menu/Check-Out.png',            'tone' => 'rose',   'href' => '?screen=checkout'],
+    ['key' => 'checkout',    'label' => 'Selesai Ritase', 'icon' => AMT_URL . '/img/menu/Check-Out.png',            'tone' => 'rose',   'href' => '?screen=checkout'],
     ['key' => 'performance', 'label' => 'Performance',  'icon' => AMT_URL . '/img/menu/performance.png',          'tone' => 'violet', 'href' => '?screen=amt_performance'],
     ['key' => 'safire',      'label' => 'SAFIRE',       'icon' => AMT_URL . '/img/menu/safire_icon.png',          'tone' => 'sky',    'href' => '#'],
 ];
 ?>
 <div class="amt-home" data-dcu-seen="<?php echo amt_flow_get('dcu_seen') ? '1' : '0'; ?>" data-seal-seen="<?php echo amt_out_seal_seen() ? '1' : '0'; ?>">
 
-    <!-- Waktu kerja -->
+    <!-- Jam Kerja (sejak Mulai Kerja) + Jam Kerja Aktif (sejak Mulai Ritase; dijeda saat Selesai Ritase) -->
+    <?php
+        $startedAt   = work_started_at();
+        $jamKerjaSec = $startedAt > 0 ? max(0, time() - $startedAt) : 0;
+        $jamAktifSec = work_active_seconds();
+    ?>
     <div class="amt-worktime">
-        <span class="amt-worktime-label">Waktu Kerja</span>
-        <span class="amt-worktime-value" id="amtWorktime">00:00:00</span>
+        <div class="amt-time-box" data-tour="home-jam-kerja">
+            <span class="amt-worktime-label">Jam Kerja</span>
+            <span class="amt-worktime-value<?php echo $startedAt > 0 ? ' is-on' : ''; ?>" id="amtWorktime"><?php echo h(work_fmt_duration($jamKerjaSec)); ?></span>
+        </div>
+        <div class="amt-time-box amt-time-box--active" data-tour="home-jam-aktif">
+            <span class="amt-worktime-label">Jam Kerja Aktif</span>
+            <span class="amt-worktime-value<?php echo work_active_is_running() ? ' is-on' : ''; ?>" id="amtActiveTime"><?php echo h(work_fmt_duration($jamAktifSec)); ?></span>
+        </div>
     </div>
 
     <!-- Menu cepat -->
@@ -112,7 +123,7 @@ $amtMenus = [
     <section class="amt-active">
         <img src="<?php echo AMT_URL; ?>/img/ilustrasi/empty-delivery-truck.png" alt="Ilustrasi pengiriman">
         <h3>Pengiriman Aktif Belum Tersedia</h3>
-        <p>Silahkan check-in untuk memulai pengiriman</p>
+        <p>Silakan tekan Mulai Ritase untuk memulai pengiriman</p>
     </section>
     <?php endif; ?>
 

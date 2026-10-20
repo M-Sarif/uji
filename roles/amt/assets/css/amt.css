@@ -1,6 +1,6 @@
 /* ============================================================
    OneFIS - amt.css
-   Beranda AMT: kartu Waktu Kerja, grid menu cepat, dan panel
+   Beranda AMT: kartu Jam Kerja + Jam Kerja Aktif, grid menu cepat, dan panel
    "Pengiriman Aktif". Scrollbar disembunyikan (scroll tetap jalan).
    ============================================================ */
 
@@ -25,21 +25,36 @@ a.badge { text-decoration: none; }
     min-height: 100%; padding: 1rem 0 0 0;
 }
 
-/* ---------- Waktu kerja ---------- */
+/* ---------- Jam Kerja + Jam Kerja Aktif ---------- */
 .amt-worktime {
-    margin: 0 1rem; padding: 1rem 1.25rem;
-    display: flex; flex-direction: column; gap: 0.25rem;
+    margin: 0 1rem; padding: 0.75rem;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 0.625rem;
     border-radius: 1.25rem;
     background: linear-gradient(135deg, rgba(219,234,254,0.75), rgba(255,255,255,0.65) 55%, rgba(251,232,240,0.6));
     border: 1px solid rgba(255,255,255,0.9);
     box-shadow: 0 6px 20px -10px rgba(37,99,235,0.25);
     -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
 }
-.amt-worktime-label { font-size: 0.8125rem; font-weight: 600; color: #334155; }
-.amt-worktime-value {
-    font-size: 1.625rem; font-weight: 700; letter-spacing: 0.02em;
-    color: #64748b; font-variant-numeric: tabular-nums;
+.amt-time-box {
+    min-width: 0; padding: 0.625rem 0.75rem;
+    display: flex; flex-direction: column; gap: 0.25rem;
+    border-radius: 0.875rem; border: 1px solid transparent;
 }
+/* Jam Kerja Aktif: kotak biru muda berbingkai (seperti desain) */
+.amt-time-box--active {
+    background: rgba(219,234,254,0.85);
+    border-color: rgba(147,179,240,0.9);
+    box-shadow: 0 2px 10px -4px rgba(37,99,235,0.3);
+}
+.amt-worktime-label { font-size: 0.75rem; font-weight: 600; color: #334155; white-space: nowrap; }
+.amt-worktime-value {
+    font-size: 1.25rem; font-weight: 700; letter-spacing: 0.02em;
+    color: #64748b; font-variant-numeric: tabular-nums; white-space: nowrap;
+    transition: color 0.2s ease;
+}
+/* Angka lebih gelap saat jam sedang berjalan; abu-abu saat 00:00:00 / dijeda */
+.amt-worktime-value.is-on { color: #0f172a; }
+.amt-time-box--active .amt-worktime-value.is-on { color: #1d4ed8; }
 
 /* ---------- Menu cepat ---------- */
 .amt-menu {
@@ -72,7 +87,9 @@ a.badge { text-decoration: none; }
 
 .amt-menu-label {
     font-size: 0.6875rem; font-weight: 500; color: #475569;
-    text-align: center; line-height: 1.25; white-space: nowrap;
+    text-align: center; line-height: 1.25;
+    /* Label panjang (mis. "Mulai / Selesai Kerja") turun ke baris kedua, tidak terpotong */
+    white-space: normal; overflow-wrap: anywhere; text-wrap: balance;
 }
 
 /* ---------- Pengiriman aktif ---------- */

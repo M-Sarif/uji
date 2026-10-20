@@ -72,7 +72,7 @@
         try { localStorage.setItem(LS_DONE, JSON.stringify(d)); } catch (e) {}
     }
     // Salinan status "tutorial dimatikan" di cookie: server (PHP) membacanya untuk MODE BEBAS, yaitu
-    // menu Shipments boleh dipakai langsung tanpa Start Work / Check-In / PTI. Lihat amt_tour_is_off()
+    // menu Shipments boleh dipakai langsung tanpa Mulai Kerja / Mulai Ritase / PTI. Lihat amt_tour_is_off()
     // di roles/amt/includes/work.php (nama cookie harus sama).
     var CK_OFF = 'onefis_amt_tour_off';
     function writeOffCookie(on) {
@@ -118,7 +118,7 @@
         } catch (e) {}
     }
 
-    // Siklus baru dari server (kembali ke index / Start Work / End Work):
+    // Siklus baru dari server (kembali ke index / Mulai Kerja / Selesai Kerja):
     // hapus semua catatan "selesai / dilewati" supaya tutorial muncul lagi dari awal.
     function syncEpoch(epoch) {
         if (!epoch) { return; }
@@ -395,7 +395,7 @@
     // Kirim bisa ditolak server lalu halaman dimuat ulang: tutorial harus muncul lagi.
     Tour.prototype.finish = function () {
         if (this.persist) { markDone(this.key); }
-        // Langkah terakhir bertanda 'final' (mis. pop up sukses Check-Out / End Work): pengguna sudah memakai
+        // Langkah terakhir bertanda 'final' (mis. pop up sukses Selesai Ritase / Selesai Kerja): pengguna sudah memakai
         // tutorial sampai selesai -> tidak perlu muncul otomatis lagi di layar mana pun.
         var last = this.steps[this.steps.length - 1];
         if (last && last.final) { setOff(); }
@@ -929,13 +929,15 @@
             if (forceRestart) { resetAll(); }
             writeOffCookie(isOff() && !forceRestart);   // cookie selalu sama dengan status tutorial di browser
 
-            // Tutorial dimatikan ("Lewati" / sudah dipakai sampai selesai): tampilkan HANYA langkah bertanda 'notice'
-            // (pemberitahuan DCU, setelah PTI, pengembalian segel). Selebihnya tidak muncul otomatis.
+            // Tutorial dimatikan ("Lewati" / sudah dipakai sampai selesai): tampilkan HANYA langkah bertanda 'notice'.
+            // Yang bertanda itu: pemberitahuan DCU (setelah Mulai Ritase), Scan segel di AVM (setelah order selesai),
+            // dan kartu "Tutorial Selesai" (setelah Selesai Kerja). Kartu lain (PTI selesai, Laporkan Kendala,
+            // "Langkah berikutnya" / Shipments) TIDAK muncul otomatis.
             var cfg = config;
             if (!forceRestart && isOff()) {
                 cfg = {};
                 Object.keys(config).forEach(function (k) { cfg[k] = config[k]; });
-                // Bila ada langkah 'restart' (kartu ucapan selamat), simpan SEMUA langkah: setelah "Mulai"
+                // Bila ada langkah 'restart' (kartu "Tutorial Selesai"), simpan SEMUA langkah: setelah "Mulai"
                 // tutorial otomatis menyala lagi dan lanjut ke langkah berikutnya.
                 var keepAll = (config.steps || []).some(function (st) { return st && st.restart; });
                 cfg.steps = keepAll ? config.steps : (config.steps || []).filter(function (st) { return st && st.notice; });

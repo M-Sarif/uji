@@ -2,29 +2,29 @@
 /* Dipakai oleh roles/amt/views/start_work.php, end_work.php, checkin.php, dan checkout.php.
  * Butuh variabel $mode = 'start' | 'end' | 'checkin' | 'checkout'.
  *
- * Mode 'end' (End Work) dan 'checkout' (Check-Out) memakai TAMPILAN BARU ($isV2, kelas .wk-v2):
+ * Mode 'end' (Selesai Kerja) dan 'checkout' (Selesai Ritase) memakai TAMPILAN BARU ($isV2, kelas .wk-v2):
  *   - foto yang sudah diambil tampil sebagai pratinjau + tombol merah "Hapus Foto"
- *   - tombol kirim menempel di bawah layar (Check-Out: "Kirim Check-Out", End Work: "Akhiri Pekerjaan")
- *   - End Work: dialog konfirmasi "Ya / Batal" sebelum benar-benar dikirim
- *   - Check-Out: pop up sukses "Check-Out Berhasil" + tombol "OK"; Riwayat Check-In di belakangnya langsung kosong
+ *   - tombol kirim menempel di bawah layar (Selesai Ritase: "Kirim Selesai Ritase", Selesai Kerja: "Akhiri Pekerjaan")
+ *   - Selesai Kerja: dialog konfirmasi "Ya / Batal" sebelum benar-benar dikirim
+ *   - Selesai Ritase: pop up sukses "Selesai Ritase Berhasil" + tombol "OK"; Riwayat Ritase di belakangnya langsung kosong
  * Mode 'start' dan 'checkin' tidak berubah. */
 work_styles();
 
 $isEnd     = ($mode === 'end');
 $isOut     = ($mode === 'checkout');
 $isCheckin = ($mode === 'checkin');
-$needAct   = !$isEnd;                       // Start Work, Check-In & Check-Out: aktivitas wajib dipilih
-$label     = $isOut ? 'Check-Out' : ($isCheckin ? 'Check-In' : ($isEnd ? 'End Work' : 'Start Work'));
+$needAct   = !$isEnd;                       // Mulai Kerja, Mulai Ritase & Selesai Ritase: aktivitas wajib dipilih
+$label     = $isOut ? 'Selesai Ritase' : ($isCheckin ? 'Mulai Ritase' : ($isEnd ? 'Selesai Kerja' : 'Mulai Kerja'));
 $screenKey = $isOut ? 'checkout' : ($isCheckin ? 'checkin' : ($isEnd ? 'end_work' : 'start_work'));
 $postAct   = $isOut ? 'submit_checkout' : ($isCheckin ? 'submit_checkin' : ($isEnd ? 'submit_end_work' : 'submit_start_work'));
 $actList   = ($isCheckin || $isOut) ? CHECKIN_ACTIVITIES : WORK_ACTIVITIES;
-$isV2      = ($isEnd || $isOut);              // tampilan baru: End Work & Check-Out
-$photoName = $isOut ? 'Foto Check-Out' : ($isEnd ? 'Foto End Work' : 'Foto Verifikasi');
-$hasCheckin = !$isOut || (bool) work_checkins();   // Check-Out butuh minimal satu Check-In
-$btnLabel  = $isOut ? ($hasCheckin ? 'Kirim Check-Out' : 'Lakukan Check-In Terlebih Dahulu')
+$isV2      = ($isEnd || $isOut);              // tampilan baru: Selesai Kerja & Selesai Ritase
+$photoName = $isOut ? 'Foto Selesai Ritase' : ($isEnd ? 'Foto Selesai Kerja' : 'Foto Verifikasi');
+$hasCheckin = !$isOut || (bool) work_checkins();   // Selesai Ritase butuh minimal satu Mulai Ritase
+$btnLabel  = $isOut ? ($hasCheckin ? 'Kirim Selesai Ritase' : 'Tekan Mulai Ritase Terlebih Dahulu')
            : ($isEnd ? 'Akhiri Pekerjaan' : 'Kirim');
 $w         = work_data();
-$activity  = $w['activity'] ?? '';        // End Work: mengikuti pilihan saat Start Work
+$activity  = $w['activity'] ?? '';        // Selesai Kerja: mengikuti pilihan saat Mulai Kerja
 ?>
 <link rel="stylesheet" href="<?= AMT_URL ?>/css/camera.css?v=<?= (int) @filemtime(AMT_ASSET_DIR . '/css/camera.css') ?>">
 <form method="post" action="?screen=<?= $screenKey ?>" id="wk-form" class="wk-wrap<?= $isV2 ? ' wk-v2 wk-v2-' . $mode : '' ?>"
@@ -35,8 +35,8 @@ $activity  = $w['activity'] ?? '';        // End Work: mengikuti pilihan saat St
   <input type="hidden" name="lat" id="wk-lat" value="">
   <input type="hidden" name="lng" id="wk-lng" value="">
 
-  <?php if ($isEnd): ?><div class="wk-v2-card"><?php endif; /* End Work: judul, lokasi, aktivitas, foto = satu kartu */ ?>
-  <p class="wk-title"><?= $isOut ? 'Form Check-Out' : 'Form Verifikasi ' . ($isCheckin ? 'Check-In' : ($isEnd ? 'End Work' : 'Work Start')) ?></p>
+  <?php if ($isEnd): ?><div class="wk-v2-card"><?php endif; /* Selesai Kerja: judul, lokasi, aktivitas, foto = satu kartu */ ?>
+  <p class="wk-title"><?= $isOut ? 'Form Selesai Ritase' : 'Form Verifikasi ' . ($isCheckin ? 'Mulai Ritase' : ($isEnd ? 'Selesai Kerja' : 'Mulai Kerja')) ?></p>
 
   <!-- Lokasi: peta Google Maps + status jangkauan -->
   <div id="wk-loc" data-inrange="0">
@@ -52,7 +52,7 @@ $activity  = $w['activity'] ?? '';        // End Work: mengikuti pilihan saat St
   <div class="wk-coord" id="wk-coord"></div>
   </div>
 
-  <?php if ($isOut): ?><div class="wk-v2-card"><?php endif; /* Check-Out: Aktivitas + Foto = kartu putih */ ?>
+  <?php if ($isOut): ?><div class="wk-v2-card"><?php endif; /* Selesai Ritase: Aktivitas + Foto = kartu putih */ ?>
   <!-- Aktivitas -->
   <div id="wk-act-box">
   <span class="wk-label">Aktivitas<?php if ($needAct): ?><span style="color:#dc2626">*</span><?php endif; ?></span>
@@ -65,9 +65,9 @@ $activity  = $w['activity'] ?? '';        // End Work: mengikuti pilihan saat St
     </select>
   <?php else: ?>
     <select id="wk-akt" class="wk-select" disabled>
-      <option><?= htmlspecialchars($activity !== '' ? ($isV2 ? mb_strtoupper($activity, 'UTF-8') : $activity) : '-') ?></option>
+      <option><?= htmlspecialchars($activity !== '' ? ($isV2 ? (function_exists('mb_strtoupper') ? mb_strtoupper($activity, 'UTF-8') : strtoupper($activity)) : $activity) : '-') ?></option>
     </select>
-    <?php if (!$isV2): ?><div class="wk-hint">Mengikuti aktivitas yang dipilih saat Start Work.</div><?php endif; ?>
+    <?php if (!$isV2): ?><div class="wk-hint">Mengikuti aktivitas yang dipilih saat Mulai Kerja.</div><?php endif; ?>
   <?php endif; ?>
   </div>
 
@@ -115,12 +115,13 @@ $activity  = $w['activity'] ?? '';        // End Work: mengikuti pilihan saat St
   </div>
   <?php if ($isV2): ?></div><!-- /.wk-v2-card --><?php endif; ?>
 
-  <?php if ($isV2): ?><div class="wk-bar"><?php endif; ?>
-  <button type="submit" class="wk-submit<?= $isEnd ? ' wk-submit-end' : '' ?>" id="wk-submit" disabled>
+  <!-- Bar tombol Kirim: dipasang tepat di dasar layar (dipindah ke dalam .app-container oleh skrip di bawah) untuk SEMUA mode -->
+  <div class="wk-bar<?= $isV2 ? ' wk-bar-v2' : '' ?>" id="wk-bar">
+  <button type="submit" form="wk-form" class="wk-submit<?= $isEnd ? ' wk-submit-end' : '' ?>" id="wk-submit" disabled>
     <?php if (!$isEnd): ?><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></svg><?php endif; ?>
     <span id="wk-submit-label"><?= htmlspecialchars($btnLabel) ?></span>
   </button>
-  <?php if ($isV2): ?></div><?php endif; ?>
+  </div><!-- /#wk-bar -->
 
 </form>
 
@@ -132,15 +133,15 @@ $activity  = $w['activity'] ?? '';        // End Work: mengikuti pilihan saat St
     </div>
     <h3 class="wk-modal-title" id="wk-success-title"></h3>
     <p class="wk-modal-body" id="wk-success-body"></p>
-    <a class="wk-modal-btn" id="wk-success-go" href="index.php?screen=<?= htmlspecialchars(amt_home_screen(), ENT_QUOTES) ?>"><?= $isOut ? 'OK' : 'Lanjutkan ke Homepage' ?></a>
+    <a class="wk-modal-btn" id="wk-success-go" href="index.php?screen=<?= htmlspecialchars(amt_home_screen(), ENT_QUOTES) ?>"><?= $isOut ? 'OK' : 'Lanjutkan ke Beranda' ?></a>
   </div>
 </div>
 
 <?php if ($isEnd): ?>
-<!-- Dialog konfirmasi End Work (muncul setelah "Akhiri Pekerjaan" diketuk; dipindah ke dalam .app-container oleh skrip di bawah) -->
+<!-- Dialog konfirmasi Selesai Kerja (muncul setelah "Akhiri Pekerjaan" diketuk; dipindah ke dalam .app-container oleh skrip di bawah) -->
 <div class="wk-modal wk-confirm" id="ew-confirm" role="dialog" aria-modal="true" aria-labelledby="ew-confirm-title" hidden>
   <div class="wk-confirm-card">
-    <h3 id="ew-confirm-title">End Work</h3>
+    <h3 id="ew-confirm-title">Selesai Kerja</h3>
     <p>Apakah Anda yakin ingin mengakhiri pekerjaan hari ini?</p>
     <button type="button" class="wk-confirm-yes" id="ew-yes">Ya</button>
     <button type="button" class="wk-confirm-no" id="ew-no">Batal</button>
@@ -152,10 +153,10 @@ $activity  = $w['activity'] ?? '';        // End Work: mengikuti pilihan saat St
 <script>
 (function () {
   var needActivity = <?= $needAct ? 'true' : 'false' ?>;
-  var isV2     = <?= $isV2 ? 'true' : 'false' ?>;       // tampilan baru (End Work & Check-Out)
+  var isV2     = <?= $isV2 ? 'true' : 'false' ?>;       // tampilan baru (Selesai Kerja & Selesai Ritase)
   var isEnd    = <?= $isEnd ? 'true' : 'false' ?>;
   var isOut    = <?= $isOut ? 'true' : 'false' ?>;
-  var hasCheckin = <?= $hasCheckin ? 'true' : 'false' ?>;   // Check-Out hanya bila masih ada Check-In
+  var hasCheckin = <?= $hasCheckin ? 'true' : 'false' ?>;   // Selesai Ritase hanya bila masih ada Mulai Ritase
   var sel    = document.getElementById('wk-akt');
   var photo  = document.getElementById('wk-photo');
   var photoData = document.getElementById('wk-photo-data');
@@ -163,6 +164,39 @@ $activity  = $w['activity'] ?? '';        // End Work: mengikuti pilihan saat St
   var submit = document.getElementById('wk-submit');
 
   var form = document.getElementById('wk-form');
+
+  // ---- Tombol Kirim selalu di DASAR layar ----
+  // Bar tombol dipindah ke .app-container (bingkai layar HP) dan dipasang absolute di bawah, jadi tetap berada
+  // di dasar layar walau isi halaman pendek, dan tidak ikut ter-scroll. Form diberi ruang kosong di bawah setinggi
+  // bar supaya isi terakhir tidak tertutup; tombol bantuan "?" otomatis naik ke atas bar (lihat work.css).
+  // Pada tab "Riwayat Ritase" (halaman Mulai Ritase) bar ikut disembunyikan. Tanpa JS bar tetap menempel (sticky).
+  var bar     = document.getElementById('wk-bar');
+  var barHost = document.querySelector('.app-container');
+  var tabPane = form.closest('.ci-pane');
+  function updateDock() {
+    if (!bar || !bar.classList.contains('is-docked')) { return; }
+    var show = !bar.hidden;
+    document.body.classList.toggle('wk-docked', show);
+    if (!show) { return; }
+    form.style.paddingBottom = (bar.offsetHeight + 16) + 'px';
+    var top = bar.getBoundingClientRect().top;
+    document.documentElement.style.setProperty('--wk-fab-bottom', Math.max(0, Math.round(window.innerHeight - top + 12)) + 'px');
+  }
+  if (bar && barHost) {
+    barHost.appendChild(bar);
+    bar.classList.add('is-docked');
+    bar.hidden = !!(tabPane && tabPane.hidden);
+    if (tabPane && window.MutationObserver) {
+      new MutationObserver(function () { bar.hidden = tabPane.hidden; updateDock(); })
+        .observe(tabPane, { attributes: true, attributeFilter: ['hidden'] });
+    }
+    window.addEventListener('resize', updateDock);
+    window.addEventListener('orientationchange', updateDock);
+    window.addEventListener('pageshow', updateDock);
+    updateDock();
+    setTimeout(updateDock, 300);      // ukur ulang setelah font/gaya selesai dimuat
+  }
+
   var inRange = false;
   // Tombol Kirim aktif bila lokasi, aktivitas, dan foto sudah lengkap.
   // Status tiap bagian juga ditulis ke atribut data-* pada form; tutorial AMT
@@ -223,16 +257,16 @@ $activity  = $w['activity'] ?? '';        // End Work: mengikuti pilihan saat St
     });
   }
 
-  // ---- Kirim: tanpa pindah halaman; hasil sukses tampil sebagai pop up, lalu "Lanjutkan ke Homepage" ----
+  // ---- Kirim: tanpa pindah halaman; hasil sukses tampil sebagai pop up, lalu "Lanjutkan ke Beranda" ----
   var okModal = document.getElementById('wk-success');
   var appHost = document.querySelector('.app-container');
   if (okModal && appHost) { appHost.appendChild(okModal); } else if (okModal) { okModal.classList.add('is-fixed'); }
-  var confirmEl = document.getElementById('ew-confirm');       // hanya ada di End Work
+  var confirmEl = document.getElementById('ew-confirm');       // hanya ada di Selesai Kerja
   if (confirmEl && appHost) { appHost.appendChild(confirmEl); } else if (confirmEl) { confirmEl.classList.add('is-fixed'); }
   var submitLabel = document.getElementById('wk-submit-label');
   var baseLabel = submitLabel.textContent;
   var sending = false;
-  var confirmed = false;     // End Work: sudah menjawab "Ya" pada dialog konfirmasi
+  var confirmed = false;     // Selesai Kerja: sudah menjawab "Ya" pada dialog konfirmasi
 
   function showSuccess(d) {
     document.getElementById('wk-success-title').textContent = d.title || 'Berhasil';
@@ -240,12 +274,12 @@ $activity  = $w['activity'] ?? '';        // End Work: mengikuti pilihan saat St
     var go = document.getElementById('wk-success-go');
     if (d.next) { go.setAttribute('href', d.next); }
     if (d.button) { go.textContent = d.button; }
-    // Check-Out: halaman di belakang pop up langsung ikut berubah (Riwayat Check-In kosong, tombol terkunci)
+    // Selesai Ritase: halaman di belakang pop up langsung ikut berubah (Riwayat Ritase kosong, tombol terkunci)
     if (isOut) {
       var hb = document.getElementById('co-hist-body');
-      if (hb) { hb.innerHTML = '<div class="co-hist-empty">Belum ada riwayat check-in hari ini</div>'; }
+      if (hb) { hb.innerHTML = '<div class="co-hist-empty">Belum ada riwayat ritase hari ini</div>'; }
       hasCheckin = false;
-      submitLabel.textContent = 'Lakukan Check-In Terlebih Dahulu';
+      submitLabel.textContent = 'Tekan Mulai Ritase Terlebih Dahulu';
       refresh();
     } else {
       submitLabel.textContent = baseLabel;
@@ -255,7 +289,7 @@ $activity  = $w['activity'] ?? '';        // End Work: mengikuti pilihan saat St
     document.dispatchEvent(new CustomEvent('amt:state'));
   }
 
-  // End Work: ketuk "Akhiri Pekerjaan" -> dialog konfirmasi; "Ya" baru benar-benar mengirim, "Batal" menutup dialog.
+  // Selesai Kerja: ketuk "Akhiri Pekerjaan" -> dialog konfirmasi; "Ya" baru benar-benar mengirim, "Batal" menutup dialog.
   function openConfirm()  { if (confirmEl) { confirmEl.hidden = false; document.getElementById('ew-yes').focus(); document.dispatchEvent(new CustomEvent('amt:state')); } }
   function closeConfirm() { if (confirmEl) { confirmEl.hidden = true; document.dispatchEvent(new CustomEvent('amt:state')); } }
   if (confirmEl) {
@@ -272,7 +306,7 @@ $activity  = $w['activity'] ?? '';        // End Work: mengikuti pilihan saat St
     if (!window.fetch || !window.FormData) { return; }   // peramban lama: kirim biasa (server mengalihkan ke beranda)
     e.preventDefault();
     if (sending || submit.disabled) { return; }
-    if (isEnd && !confirmed) { openConfirm(); return; }  // End Work: tanya dulu
+    if (isEnd && !confirmed) { openConfirm(); return; }  // Selesai Kerja: tanya dulu
     sending = true;
     submit.disabled = true;
     submitLabel.textContent = 'Mengirim…';

@@ -1,7 +1,7 @@
 /* ============================================================
    OneFIS - AMT - checkin.css
-   Halaman Check-In (roles/amt/views/checkin.php): tab Verifikasi /
-   Riwayat Check-In, kartu riwayat, pop up Lihat Foto.
+   Halaman Mulai Ritase (roles/amt/views/checkin.php): tab Verifikasi /
+   Riwayat Ritase, kartu riwayat, pop up Lihat Foto.
    Form-nya memakai gaya work.css (.wk-*); di sini hanya
    penyesuaian yang dibatasi di dalam .ci-page.
    File ini HANYA berisi CSS.
@@ -57,7 +57,7 @@
   background: #fff; color: #2563eb; font-size: 12px; font-weight: 600; cursor: pointer;
 }
 
-/* ---- Tampilan Form Verifikasi Check-In (disamakan dengan desain) ---- */
+/* ---- Tampilan Form Verifikasi Mulai Ritase (disamakan dengan desain) ---- */
 .ci-page { padding-bottom: 8px; }
 .ci-page .ci-tabs {
   margin: 12px 16px 0; padding: 3px; gap: 3px;
@@ -87,8 +87,4 @@
 .ci-page .wk-photo { border-radius: 14px; border-color: #d1d5db; padding: 20px 12px 16px; margin-bottom: 16px; }
 .ci-page .wk-photo b { font-size: 13px; margin-top: 8px; color: #0f172a; }
 .ci-page .wk-photo p { font-size: 11px; margin: 4px 0 10px; }
-.ci-page .wk-submit {
-  position: sticky; bottom: 8px; height: 46px; border-radius: 10px; font-size: 14px;
-  box-shadow: 0 6px 16px -6px rgba(37,99,235,.55);
-}
-.ci-page .wk-submit:disabled { box-shadow: none; }
+/* Tombol Kirim: gayanya ada di work.css (.wk-bar), karena bar-nya dipasang di dasar layar di luar .ci-page */

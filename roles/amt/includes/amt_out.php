@@ -1,29 +1,29 @@
 <?php
 /**
- * Check-Out peran AMT + arahan sesudahnya (Start / End -> End Work).
+ * Selesai Ritase peran AMT + arahan sesudahnya (Mulai / Selesai Kerja -> Selesai Kerja).
  * Letak: roles/amt/includes/amt_out.php
  *
  * Scan segel bekas TIDAK dilakukan di aplikasi: AMT melakukannya di AVM di depot.
  * Aplikasi hanya MENGARAHKAN lewat tutorial supaya AMT scan segel di AVM lebih dulu,
- * baru melakukan Check-Out.
+ * baru melakukan Selesai Ritase.
  *
  * Alur satu ritase penutup:
  *   1. Order diselesaikan (pop up "Menyelesaikan Order" -> Kirim) -> beranda AMT.
  *   2. Beranda: tutorial "Scan segel di AVM dulu" (tombol Mengerti / link Lewati; kalau tidak
- *      diklik hilang sendiri setelah 20 detik). Menu Check-Out masih terkunci selama kartu tampil.
- *   3. Kartu tertutup -> 0,3 detik kemudian menu Check-Out menyala; 1 detik kemudian tutorial
- *      menyorot menu Check-Out. Failsafe: menyala sendiri 30 detik setelah order selesai.
- *   4. Layar Check-Out: Riwayat Check-In + form (lokasi di depot, aktivitas, foto Check-Out, Kirim Check-Out);
- *      logikanya sama seperti Check-In. Foto yang sudah diambil tampil sebagai pratinjau + "Hapus Foto";
- *      tombol kirim menempel di bawah layar (terkunci "Lakukan Check-In Terlebih Dahulu" bila tak ada Check-In).
- *   5. Check-Out berhasil -> pop up "Check-Out Berhasil" (tombol OK) -> Riwayat Check-In dikosongkan
+ *      diklik hilang sendiri setelah 20 detik). Menu Selesai Ritase masih terkunci selama kartu tampil.
+ *   3. Kartu tertutup -> 0,3 detik kemudian menu Selesai Ritase menyala; 1 detik kemudian tutorial
+ *      menyorot menu Selesai Ritase. Failsafe: menyala sendiri 30 detik setelah order selesai.
+ *   4. Layar Selesai Ritase: Riwayat Ritase + form (lokasi di depot, aktivitas, foto Selesai Ritase, Kirim Selesai Ritase);
+ *      logikanya sama seperti Mulai Ritase. Foto yang sudah diambil tampil sebagai pratinjau + "Hapus Foto";
+ *      tombol kirim menempel di bawah layar (terkunci "Tekan Mulai Ritase Terlebih Dahulu" bila tak ada Mulai Ritase).
+ *   5. Selesai Ritase berhasil -> pop up "Selesai Ritase Berhasil" (tombol OK) -> Riwayat Ritase dikosongkan
  *      -> beranda menampilkan TUTORIAL yang mengarahkan
- *      AMT mengakhiri kerja: menu Start / End -> End Work -> form End Work -> selesai.
+ *      AMT mengakhiri kerja: menu Mulai / Selesai Kerja -> Selesai Kerja -> form Selesai Kerja -> selesai.
  *      (Hanya tutorial; aplikasi tidak menanyakan apa pun ke pengguna.)
  *
  * State:
- *   $_SESSION['amt_out'] = ['seal_seen_at' => float, 'unlocked' => bool, 'after_at' => unix (Check-Out terakhir; memicu tutorial End Work)]
- *   $_SESSION['work']['checkouts'][] = riwayat Check-Out (waktu, aktivitas, foto)
+ *   $_SESSION['amt_out'] = ['seal_seen_at' => float, 'unlocked' => bool, 'after_at' => unix (Selesai Ritase terakhir; memicu tutorial Selesai Kerja)]
+ *   $_SESSION['work']['checkouts'][] = riwayat Selesai Ritase (waktu, aktivitas, foto)
  *
  * Dimuat dari roles/amt/module.php (setelah amt_rating.php).
  */
@@ -32,8 +32,8 @@ const AMT_OUT_SCREEN = 'checkout';
 
 const AMT_OUT_SEAL_SHOW_DELAY  = 1000;   // tutorial muncul 1 detik setelah beranda dibuka
 const AMT_OUT_SEAL_VISIBLE_FOR = 20000;  // hilang sendiri setelah 20 detik kalau "Mengerti" tidak diklik
-const AMT_OUT_UNLOCK_DELAY     = 300;    // menu Check-Out menyala 0,3 detik setelah tutorial hilang
-const AMT_OUT_HINT_DELAY       = 1000;   // petunjuk "ketuk Check-Out" muncul 1 detik setelah menu menyala
+const AMT_OUT_UNLOCK_DELAY     = 300;    // menu Selesai Ritase menyala 0,3 detik setelah tutorial hilang
+const AMT_OUT_HINT_DELAY       = 1000;   // petunjuk "ketuk Selesai Ritase" muncul 1 detik setelah menu menyala
 const AMT_OUT_FAILSAFE_SECONDS = 30;     // menu menyala sendiri 30 detik setelah order selesai (harus > 20 detik)
 
 /* ------------------------------------------------------------
@@ -57,7 +57,7 @@ function amt_out_finished_at(): int
     return (is_array($f) && $f) ? (int) max($f) : 0;
 }
 
-/** Siap Check-Out: sedang bekerja, sudah Check-In, dan ada order yang sudah diselesaikan. */
+/** Siap Selesai Ritase: sedang bekerja, sudah Mulai Ritase, dan ada order yang sudah diselesaikan. */
 function amt_out_order_done(): bool
 {
     return work_is_running() && amt_last_checkin_at() > 0 && amt_out_finished_at() > 0;
@@ -69,14 +69,14 @@ function amt_out_seal_seen(): bool
     return (float) amt_out_get('seal_seen_at') > 0 || !empty(amt_out_get('unlocked'));
 }
 
-/** Sisa detik sampai menu Check-Out menyala otomatis (failsafe); 0 bila sudah lewat. */
+/** Sisa detik sampai menu Selesai Ritase menyala otomatis (failsafe); 0 bila sudah lewat. */
 function amt_out_failsafe_remaining(): int
 {
     $at = amt_out_finished_at();
     return $at > 0 ? max(0, $at + AMT_OUT_FAILSAFE_SECONDS - time()) : 0;
 }
 
-/** Menu Check-Out aktif? Order selesai DAN tutorial "scan segel di AVM" sudah ditutup. */
+/** Menu Selesai Ritase aktif? Order selesai DAN tutorial "scan segel di AVM" sudah ditutup. */
 function amt_out_unlocked(): bool
 {
     if (!amt_out_order_done()) {
@@ -85,26 +85,26 @@ function amt_out_unlocked(): bool
     return amt_out_seal_seen() || amt_out_failsafe_remaining() === 0;
 }
 
-/** Check-Out baru saja dilakukan dan belum End Work? (memicu tutorial Start / End -> End Work) */
+/** Selesai Ritase baru saja dilakukan dan belum Selesai Kerja? (memicu tutorial Mulai / Selesai Kerja -> Selesai Kerja) */
 function amt_out_after_checkout(): bool
 {
     return work_is_running() && (int) amt_out_get('after_at') > 0;
 }
 
-/** Dipanggil bila AMT Check-In lagi: tutorial arahan End Work tidak berlaku lagi. */
+/** Dipanggil bila AMT Mulai Ritase lagi: tutorial arahan Selesai Kerja tidak berlaku lagi. */
 function amt_out_clear_after(): void
 {
     unset($_SESSION['amt_out']['after_at']);
 }
 
-/** Jumlah Check-Out yang sudah dilakukan (dipakai sebagai kunci tutorial). */
+/** Jumlah Selesai Ritase yang sudah dilakukan (dipakai sebagai kunci tutorial). */
 function amt_out_count(): int
 {
     $c = $_SESSION['work']['checkouts'] ?? [];
     return is_array($c) ? count($c) : 0;
 }
 
-/** Nomor urut dalam kata untuk "Check-In pertama / kedua / ...". */
+/** Nomor urut dalam kata untuk "Mulai Ritase pertama / kedua / ...". */
 function amt_out_ordinal(int $n): string
 {
     $words = [1 => 'pertama', 'kedua', 'ketiga', 'keempat', 'kelima', 'keenam', 'ketujuh', 'kedelapan', 'kesembilan', 'kesepuluh'];
@@ -134,7 +134,7 @@ function amt_out_bootstrap(string $screen): void
 }
 
 /* ------------------------------------------------------------
- * Penjagaan akses layar Check-Out (GET) - dipanggil dari amt_guard_work()
+ * Penjagaan akses layar Selesai Ritase (GET) - dipanggil dari amt_guard_work()
  * ------------------------------------------------------------ */
 function amt_out_guard(string $screen): void
 {
@@ -144,9 +144,9 @@ function amt_out_guard(string $screen): void
 }
 
 /* ------------------------------------------------------------
- * POST "Kirim Check-Out" - pola Post/Redirect/Get
- * Logika sama seperti Check-In (timer berjalan, dalam radius, aktivitas, foto),
- * ditambah: menu Check-Out aktif (order selesai + tutorial segel sudah dibaca).
+ * POST "Kirim Selesai Ritase" - pola Post/Redirect/Get
+ * Logika sama seperti Mulai Ritase (timer berjalan, dalam radius, aktivitas, foto),
+ * ditambah: menu Selesai Ritase aktif (order selesai + tutorial segel sudah dibaca).
  * ------------------------------------------------------------ */
 function amt_out_handle_post(): void
 {
@@ -160,7 +160,7 @@ function amt_out_handle_post(): void
         go_to(AMT_OUT_SCREEN);
     }
 
-    // Foto: hanya gambar yang ukurannya wajar (sama seperti Check-In)
+    // Foto: hanya gambar yang ukurannya wajar (sama seperti Mulai Ritase)
     $photo = (string) ($_POST['photo_data'] ?? '');
     if (!preg_match('#^data:image/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$#', $photo)
         || strlen($photo) > 3000000
@@ -175,7 +175,10 @@ function amt_out_handle_post(): void
         'checkins' => count(work_checkins()),
     ];
 
-    // Ritase selesai: Riwayat Check-In dikosongkan, alur berikutnya mulai dari awal.
+    // Selesai Ritase: Jam Kerja Aktif DIJEDA (lanjut lagi saat Mulai Ritase berikutnya); Jam Kerja tetap berjalan.
+    work_active_pause();
+
+    // Ritase selesai: Riwayat Ritase dikosongkan, alur berikutnya mulai dari awal.
     $_SESSION['work']['checkins'] = [];
     amt_pti_reset();
     amt_spbu_reset();
@@ -185,15 +188,15 @@ function amt_out_handle_post(): void
     $_SESSION['amt_out']['after_at'] = time();   // beranda menampilkan tutorial langkah berikutnya
     amt_tour_bump();
 
-    // Pop up sesuai desain: "Check-Out Berhasil" + tombol "OK" (OK membawa ke beranda, tempat tutorial arahan End Work).
-    amt_work_success('Check-Out Berhasil', 'Anda berhasil melakukan Check-Out. Selamat beristirahat!', 'OK');
+    // Pop up sesuai desain: "Selesai Ritase Berhasil" + tombol "OK" (OK membawa ke beranda, tempat tutorial arahan Selesai Kerja).
+    amt_work_success('Selesai Ritase Berhasil', 'Anda berhasil melakukan Selesai Ritase. Selamat beristirahat!', 'OK');
 }
 
 /* ------------------------------------------------------------
  * Tutorial (dipakai tutorial.php)
  * ------------------------------------------------------------ */
 
-/** Tutorial beranda sesudah order selesai: scan segel di AVM dulu -> menu Check-Out menyala -> buka Check-Out. */
+/** Tutorial beranda sesudah order selesai: scan segel di AVM dulu -> menu Selesai Ritase menyala -> buka Selesai Ritase. */
 function amt_out_tour_pack(): ?array
 {
     if (!amt_out_order_done()) {
@@ -210,21 +213,21 @@ function amt_out_tour_pack(): ?array
                 'target'   => null,
                 'notice'   => true,                                // pemberitahuan: tetap tampil walau tutorial dimatikan
                 'title'    => 'Scan segel di AVM dulu 🔖',
-                'text'     => 'Order sudah selesai. Kembali ke depot, lalu scan segel bekas di mesin AVM terlebih dahulu. Scan segel dilakukan di AVM, bukan di aplikasi ini. Setelah segel discan, barulah Check-Out bisa dilakukan. Menu Check-Out akan menyala setelah kartu ini ditutup.',
+                'text'     => 'Order sudah selesai. Kembali ke depot, lalu scan segel bekas di mesin AVM terlebih dahulu. Scan segel dilakukan di AVM, bukan di aplikasi ini. Setelah segel discan, barulah Selesai Ritase bisa dilakukan. Menu Selesai Ritase akan menyala setelah kartu ini ditutup.',
                 'button'   => 'Mengerti',
                 'autoHide' => AMT_OUT_SEAL_VISIBLE_FOR,            // hilang sendiri setelah 20 detik
-                'announce' => true,                                // menu Check-Out menyala setelah ini
+                'announce' => true,                                // menu Selesai Ritase menyala setelah ini
                 'skip'     => '.amt-home[data-seal-seen="1"]',     // sudah dibaca (halaman dimuat ulang)
                 'done'     => null,
             ],
             [
                 'no'     => 1,
                 'target' => '[data-tour="amt-menu-checkout"]',
-                'when'   => 'a[data-tour="amt-menu-checkout"]',    // baru muncul setelah menu Check-Out menyala
+                'when'   => 'a[data-tour="amt-menu-checkout"]',    // baru muncul setelah menu Selesai Ritase menyala
                 'delay'  => AMT_OUT_HINT_DELAY,
-                'title'  => 'Buka menu “Check-Out”',
-                'text'   => 'Sudah scan segel di AVM? Ketuk menu Check-Out untuk menutup satu ritase pengiriman.',
-                'hint'   => '👆 Ketuk menu “Check-Out” setelah scan segel di AVM',
+                'title'  => 'Buka menu “Selesai Ritase”',
+                'text'   => 'Sudah scan segel di AVM? Ketuk menu Selesai Ritase untuk menutup satu ritase pengiriman.',
+                'hint'   => '👆 Ketuk menu “Selesai Ritase” setelah scan segel di AVM',
                 'done'   => null,
             ],
         ],
@@ -232,9 +235,9 @@ function amt_out_tour_pack(): ?array
 }
 
 /**
- * Tutorial beranda setelah Check-Out: arahkan AMT mengakhiri kerja (Start / End -> End Work).
- * Kartu ini menyorot menu Start / End; langkah "End Work" dan form-nya ditangani tutorial
- * layar Start / End dan End Work (lihat amt_tour_steps_for() di tutorial.php).
+ * Tutorial beranda setelah Selesai Ritase: arahkan AMT mengakhiri kerja (Mulai / Selesai Kerja -> Selesai Kerja).
+ * Kartu ini menyorot menu Mulai / Selesai Kerja; langkah "Selesai Kerja" dan form-nya ditangani tutorial
+ * layar Mulai / Selesai Kerja dan Selesai Kerja (lihat amt_tour_steps_for() di tutorial.php).
  */
 function amt_out_tour_after_pack(): ?array
 {
@@ -247,26 +250,26 @@ function amt_out_tour_after_pack(): ?array
         'startDelay' => 1000,
         'steps'      => [[
             'no'     => null,
-            'label'  => 'Check-Out Berhasil',
+            'label'  => 'Selesai Ritase Berhasil',
             'target' => '[data-tour="amt-menu-start_end"]',
-            'title'  => 'Check-Out berhasil: akhiri kerja',
-            'text'   => 'Satu ritase sudah ditutup. Sekarang akhiri waktu kerja Anda. Buka menu Start / End, lalu ketuk End Work.',
-            'hint'   => '👆 Ketuk menu “Start / End”',
+            'title'  => 'Selesai Ritase berhasil: akhiri kerja',
+            'text'   => 'Satu ritase sudah ditutup. Sekarang akhiri jam kerja Anda. Buka menu Mulai / Selesai Kerja, lalu ketuk Selesai Kerja.',
+            'hint'   => '👆 Ketuk menu “Mulai / Selesai Kerja”',
             'done'   => null,
         ]],
     ];
 }
 
-/** Langkah tutorial layar Check-Out (riwayat, lokasi, aktivitas, foto, kirim, pop up OK). */
+/** Langkah tutorial layar Selesai Ritase (riwayat, lokasi, aktivitas, foto, kirim, pop up OK). */
 function amt_out_tour_form_steps(): array
 {
     return [
-        // 2) Riwayat Check-In (bagian atas layar)
+        // 2) Riwayat Ritase (bagian atas layar)
         [
             'no'        => 2,
             'target'    => '.co-hist',
-            'title'     => 'Riwayat Check-In',
-            'text'      => 'Di atas ada daftar Check-In yang Anda lakukan pada ritase ini. Daftar ini otomatis kosong setelah Check-Out berhasil.',
+            'title'     => 'Riwayat Ritase',
+            'text'      => 'Di atas ada daftar Mulai Ritase yang Anda lakukan pada ritase ini. Daftar ini otomatis kosong setelah Selesai Ritase berhasil.',
             'button'    => 'Mengerti',
             'done'      => null,
         ],
@@ -296,18 +299,18 @@ function amt_out_tour_form_steps(): array
             'done'      => '#wk-form[data-act="1"]',
             'ok'        => '✅ Aktivitas sudah dipilih',
         ],
-        // 5) Foto Check-Out: ketuk kartu -> "Foto" -> "Simpan Foto" (3 aksi, nomor sama); sesudahnya foto tampil + "Hapus Foto"
+        // 5) Foto Selesai Ritase: ketuk kartu -> "Foto" -> "Simpan Foto" (3 aksi, nomor sama); sesudahnya foto tampil + "Hapus Foto"
         ...amt_tour_photo_steps(5, true),
         // 6) Kirim (tombol menempel di bawah layar)
         [
             'no'     => 6,
             'target' => '#wk-submit',
-            'title'  => 'Kirim Check-Out',
-            'text'   => 'Semua sudah lengkap. Ketuk “Kirim Check-Out” di bagian bawah layar. Riwayat Check-In akan direset setelah Check-Out berhasil.',
-            'hint'   => '👆 Ketuk tombol biru “Kirim Check-Out”',
+            'title'  => 'Kirim Selesai Ritase',
+            'text'   => 'Semua sudah lengkap. Ketuk “Kirim Selesai Ritase” di bagian bawah layar. Riwayat Ritase akan direset setelah Selesai Ritase berhasil.',
+            'hint'   => '👆 Ketuk tombol biru “Kirim Selesai Ritase”',
             'done'   => null,
         ],
-        // Pop up "Check-Out Berhasil": ketuk OK
+        // Pop up "Selesai Ritase Berhasil": ketuk OK
         amt_tour_success_step(6, 'checkout'),
     ];
 }

@@ -1,8 +1,8 @@
 <?php
 /* Dipanggil dari index.php hanya di beranda AMT.
- * Menu (Start/End aktif; Check-In, PTI, Check-Out terkunci saat timer belum
+ * Menu (Mulai / Selesai Kerja aktif; Mulai Ritase, PTI, Selesai Ritase terkunci saat timer belum
  * jalan) sudah dirender oleh roles/amt/views/amt_home.php.
- * File ini hanya menjalankan timer "Waktu Kerja" dari waktu Start Work di server. */
+ * File ini menjalankan dua timer: "Jam Kerja" (sejak Mulai Kerja) dan "Jam Kerja Aktif" (sejak Mulai Ritase, dijeda saat Selesai Ritase). */
 ?>
 <script>
 /* Aktivasi menu PTI di beranda tanpa muat ulang:
@@ -48,9 +48,9 @@
 })();
 </script>
 <script>
-/* Aktivasi menu Check-Out di beranda tanpa muat ulang:
+/* Aktivasi menu Selesai Ritase di beranda tanpa muat ulang:
  *  - tutorial "scan segel di AVM" ditutup (Mengerti / Lewati / hilang sendiri setelah 20 detik)
- *    -> lapor ke server, menu Check-Out menyala sesaat kemudian
+ *    -> lapor ke server, menu Selesai Ritase menyala sesaat kemudian
  *  - failsafe: menyala sendiri setelah sisa waktu habis, walau tutorial tidak sempat ditutup */
 (function () {
   var tile = document.querySelector('[data-amt-out]');
@@ -91,16 +91,42 @@
 })();
 </script>
 <script>
+/* Dua jam di beranda AMT:
+ *  - Jam Kerja        : berjalan sejak "Mulai Kerja" sampai "Selesai Kerja" (lalu kembali 00:00:00).
+ *  - Jam Kerja Aktif  : berjalan sejak "Mulai Ritase"; DIJEDA saat "Selesai Ritase" dan MELANJUTKAN
+ *                       dari angka terakhir saat "Mulai Ritase" berikutnya. Kembali 00:00:00 saat "Selesai Kerja".
+ * Waktu dihitung dari jam SERVER (SERVER_NOW), bukan jam HP, supaya angka tetap akurat. */
 (function () {
-  var START = <?= work_started_at() ?>;   // 0 = timer berhenti
-  var timer = document.getElementById('amtWorktime');
-  if (!START || !timer) return;
+  var START      = <?= work_started_at() ?>;        // 0 = kerja belum mulai / sudah selesai
+  var ACT_ACC    = <?= work_active_acc() ?>;        // detik jam aktif yang sudah terkumpul (sesi yang sudah dijeda)
+  var ACT_SINCE  = <?= work_active_since() ?>;      // 0 = Jam Kerja Aktif dijeda / belum mulai
+  var SERVER_NOW = <?= time() ?>;                   // jam server saat halaman dibuat
+  var LOADED_AT  = Date.now();
+
+  var elWork   = document.getElementById('amtWorktime');
+  var elActive = document.getElementById('amtActiveTime');
 
   function pad(n) { return String(n).padStart(2, '0'); }
-  function tick() {
-    var s = Math.max(0, Math.floor(Date.now() / 1000) - START);
-    timer.textContent = pad(Math.floor(s / 3600)) + ':' + pad(Math.floor(s % 3600 / 60)) + ':' + pad(s % 60);
+  function fmt(s) {
+    s = Math.max(0, Math.floor(s));
+    return pad(Math.floor(s / 3600)) + ':' + pad(Math.floor(s % 3600 / 60)) + ':' + pad(s % 60);
   }
+  function nowServer() { return SERVER_NOW + (Date.now() - LOADED_AT) / 1000; }
+
+  function tick() {
+    var now = nowServer();
+    if (elWork) {
+      elWork.textContent = START ? fmt(now - START) : '00:00:00';
+      elWork.classList.toggle('is-on', !!START);
+    }
+    if (elActive) {
+      var sec = START ? ACT_ACC + (ACT_SINCE ? now - ACT_SINCE : 0) : 0;
+      elActive.textContent = fmt(sec);
+      elActive.classList.toggle('is-on', !!(START && ACT_SINCE));
+    }
+  }
+
+  if (!START) { tick(); return; }   // kerja belum mulai: kedua jam 00:00:00, tidak perlu berdetak
   tick();
   setInterval(tick, 1000);
 })();
