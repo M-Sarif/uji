@@ -1,34 +1,4 @@
-/* ============================================================
- * OneFIS - AMT - mesin tutorial terpandu (khusus peran AMT)
- *
- * Ditulis ulang supaya mudah dipahami orang awam:
- *  - BERBASIS KONDISI: mesin selalu menampilkan langkah PERTAMA yang belum
- *    selesai (dibaca dari keadaan halaman), jadi tutorial tidak pernah
- *    "hilang" walau kamera dibatalkan atau form diisi tidak berurutan.
- *  - JEDA SINGKAT: hanya ~0,8 detik sekali saat halaman dibuka (atau sesuai
- *    config.startDelay, mis. 5 detik untuk pemberitahuan DCU). Antar
- *    langkah tidak ada jeda; hanya pesan "sudah benar" 1 detik.
- *  - HALAMAN DIAM: tutorial TIDAK menggulir halaman dan TIDAK menambah
- *    ruang kosong. Yang menyesuaikan diri adalah kartu tutorialnya: ia
- *    menempel di bawah, atau pindah ke atas bila akan menutupi bagian
- *    yang disorot. Bila bagian yang disorot ada di luar layar, kartu
- *    meminta pengguna menggulir sendiri.
- *  - LANGKAH "KETUK + TUNGGU" (needTap): mis. Perbarui Lokasi. Langkah baru
- *    selesai setelah diketuk DAN keadaannya terpenuhi (pin peta tampil),
- *    lalu pesan "sudah benar" ditahan sesuai 'hold' (2 detik) sebelum lanjut.
- *  - AUTO-HIDE (autoHide): kartu bisa tertutup sendiri setelah sekian ms
- *    bila pengguna tidak mengetuk tombolnya; sama seperti mengetuk "Mengerti".
- *  - DAFTAR BERNOMOR (list): kartu boleh memuat tahapan berurutan.
- *  - INGAT LANGKAH (remember): langkah yang sudah dibaca tidak diulang bila
- *    pengguna pindah halaman lalu kembali sebelum alur selesai.
- *  - Tersembunyi otomatis saat kamera / pop up foto (check-in, Lihat Foto surat jalan) terbuka. Popup konfirmasi PTI
- *    justru DISOROT oleh langkah tutorial (lihat tutorial.php, 'when').
- *  - "Lewati" hanya menyembunyikan tutorial halaman ini (sesi ini); tombol
- *    "?" selalu bisa memulai lagi.
- *
- * Data langkah: roles/amt/includes/tutorial.php. Gaya: roles/amt/assets/css/tutorial-amt.css.
- * Dimuat oleh core/layout_bottom.php hanya saat peran = AMT.
- * ============================================================ */
+
 (function (window, document) {
     'use strict';
 
@@ -45,6 +15,11 @@
     // alur selesai (langkah bertanda 'final'). Tidak ikut terhapus oleh siklus baru (resetAll). Tutorial hanya
     // tampil lagi bila pengguna menekan tombol "?" (per halaman).
     var LS_OFF   = 'onefis_amt_tour_v2_off';
+    // Tutorial SUDAH DISELESAIKAN (Selesai Kerja berhasil, langkah bertanda 'final'): sesi berikutnya TIDAK memakai mode
+    // tutorial lagi. Beda dengan LS_OFF hasil "Lewati" (yang menyala lagi pada kunjungan baru), status ini bertahan
+    // walau pengguna kembali ke layar pilih peran. Hanya padam bila tutorial dinyalakan lagi: ikon profil (reset
+    // paksa dari server), tombol "?", atau tombol "Mulai" pada kartu "Tutorial Selesai".
+    var LS_FIN   = 'onefis_amt_tour_v2_finished';
     var LS_FRESH = 'onefis_amt_tour_v2_fresh';   // penanda kunjungan baru ke AMT (dari index)
     var OLD_KEYS = ['onefis_amt_tour_seen_screens', 'onefis_amt_tour_skipped'];
 
@@ -80,6 +55,16 @@
             document.cookie = CK_OFF + '=' + (on ? '1; max-age=31536000' : '; max-age=0') + '; path=/; SameSite=Lax';
         } catch (e) {}
     }
+    // Salinan status "tutorial sudah diselesaikan" di cookie (dibaca server: amt_tour_is_finished() di work.php).
+    var CK_FIN = 'onefis_amt_tour_finished';
+    function writeFinCookie(on) {
+        try {
+            document.cookie = CK_FIN + '=' + (on ? '1; max-age=31536000' : '; max-age=0') + '; path=/; SameSite=Lax';
+        } catch (e) {}
+    }
+    function isFinished() {
+        try { return localStorage.getItem(LS_FIN) === '1'; } catch (e) { return false; }
+    }
     function isOff() {
         try { return localStorage.getItem(LS_OFF) === '1'; } catch (e) { return false; }
     }
@@ -87,9 +72,17 @@
         try { localStorage.setItem(LS_OFF, '1'); } catch (e) {}
         writeOffCookie(true);
     }
+    // Alur tutorial diselesaikan: matikan tutorial DAN ingat bahwa sesi-sesi berikutnya tidak memakainya lagi.
+    function setFinished() {
+        setOff();
+        try { localStorage.setItem(LS_FIN, '1'); } catch (e) {}
+        writeFinCookie(true);
+    }
+    // Menyalakan tutorial lagi: status dimatikan DAN status "sudah selesai" dihapus.
     function clearOff() {
-        try { localStorage.removeItem(LS_OFF); } catch (e) {}
+        try { localStorage.removeItem(LS_OFF); localStorage.removeItem(LS_FIN); } catch (e) {}
         writeOffCookie(false);
+        writeFinCookie(false);
     }
     function isSkipped(key) {
         try { return sessionStorage.getItem(SS_SKIP + key) === '1'; } catch (e) { return false; }
@@ -132,11 +125,13 @@
 
     // Kunjungan baru ke peran AMT (pengguna kembali ke index lalu memilih AMT lagi):
     // status "dimatikan" (hasil Lewati / selesai) dihapus supaya tutorial muncul otomatis lagi.
+    // Token diawali "r" = reset PAKSA dari server (ikon profil diketuk): hapus semua status, termasuk "sudah selesai".
+    // Token biasa: status "dimatikan" dihapus, KECUALI tutorial sudah diselesaikan (mode tutorial tidak dipakai lagi).
     function syncFresh(fresh) {
         if (!fresh) { return; }
         try {
             if (localStorage.getItem(LS_FRESH) !== fresh) {
-                clearOff();
+                if (String(fresh).charAt(0) === 'r' || !isFinished()) { clearOff(); }
                 localStorage.setItem(LS_FRESH, fresh);
             }
         } catch (e) {}
@@ -398,7 +393,7 @@
         // Langkah terakhir bertanda 'final' (mis. pop up sukses Selesai Ritase / Selesai Kerja): pengguna sudah memakai
         // tutorial sampai selesai -> tidak perlu muncul otomatis lagi di layar mana pun.
         var last = this.steps[this.steps.length - 1];
-        if (last && last.final) { setOff(); }
+        if (last && last.final) { setFinished(); }
     };
 
     // Pengguna melakukan langkah aksi ke-i (ketuk target / tekan tombol kartu).
@@ -410,8 +405,14 @@
         // Langkah bertanda 'announce' (mis. "Mengerti" pada pemberitahuan DCU) memberi
         // tahu halaman SEGERA, tanpa menunggu seluruh alur selesai.
         if (this.steps[i].announce) { announce(this.key); }
-        // Langkah bertanda 'restart' (mis. "Mulai" pada kartu ucapan selamat): nyalakan lagi tutorial otomatis.
-        if (this.steps[i].restart) { clearOff(); }
+        // Langkah bertanda 'restart' (kartu ucapan selamat "Tutorial Selesai"): "Mulai" hanya MENUTUP kartu. Pengguna
+        // mengulang proses dari awal TANPA mode tutorial (status dimatikan / selesai tetap dipertahankan).
+        // Untuk menyalakan tutorial lagi: ikon profil atau tombol "?".
+        if (this.steps[i].restart) {
+            if (this.persist) { markDone(this.key); }
+            this.destroy();
+            return;
+        }
         // Langkah terakhir dilakukan -> alur ini selesai. Dicatat SEKARANG
         // (sebelum halaman berpindah) supaya tidak muncul lagi.
         if (i >= this.steps.length - 1) { this.finish(); }
@@ -928,6 +929,7 @@
             syncFresh(config.fresh);
             if (forceRestart) { resetAll(); }
             writeOffCookie(isOff() && !forceRestart);   // cookie selalu sama dengan status tutorial di browser
+            writeFinCookie(isFinished() && !forceRestart);
 
             // Tutorial dimatikan ("Lewati" / sudah dipakai sampai selesai): tampilkan HANYA langkah bertanda 'notice'.
             // Yang bertanda itu: pemberitahuan DCU (setelah Mulai Ritase), Scan segel di AVM (setelah order selesai),

@@ -1,18 +1,11 @@
 <?php
-/* Fitur jam kerja AMT (Mulai Kerja / Selesai Kerja).
- * State di $_SESSION['work'] = [
- *   'started_at' => timestamp, 'ended_at' => timestamp|null,
- *   'activity'   => 'Hadir' dst, 'start_photo' => bool, 'end_photo' => bool ] */
 
 // Cadangan opsional (ikon AMT sebagai data URI). Tidak wajib ada.
 if (is_file(__DIR__ . '/avatar_amt.php')) {
     require_once __DIR__ . '/avatar_amt.php';
 }
 
-// Lokasi folder AMT (AMT_INC_DIR, AMT_VIEW_DIR, AMT_ASSET_DIR, AMT_URL)
-// didefinisikan di roles/amt/module.php. Zona waktu (WIB) diatur di core/bootstrap.php.
 
-// Lokasi tetap untuk verifikasi
 const WORK_LAT = -2.723788;
 const WORK_LNG = 114.261609;
 const WORK_PLACE_NAME = 'Pertamina Fuel Terminal Pulang Pisau'; // nama tempat di Google Maps (pin bawaan)
@@ -86,8 +79,32 @@ function amt_tour_is_off(): bool {
     return ($_COOKIE[AMT_TOUR_OFF_COOKIE] ?? '') === '1';
 }
 
-/** Hapus penanda mode bebas di server (dipanggil saat kembali ke layar pilih peran). */
-function amt_tour_off_forget(): void {
+/* Tutorial SUDAH DISELESAIKAN (Selesai Kerja berhasil)? Cookie ini disalin dari localStorage oleh tutorial-amt.js.
+ * Selama menyala, sesi berikutnya TIDAK memakai mode tutorial lagi: mode bebas bertahan walau pengguna kembali ke
+ * layar pilih peran. Baru padam saat pengguna mengetuk ikon profil di beranda AMT (tour_reset) atau tombol "?". */
+const AMT_TOUR_FIN_COOKIE = 'onefis_amt_tour_finished';
+
+function amt_tour_is_finished(): bool {
+    return ($_COOKIE[AMT_TOUR_FIN_COOKIE] ?? '') === '1';
+}
+
+/** Hapus penanda "tutorial sudah selesai" di server. */
+function amt_tour_finished_forget(): void {
+    unset($_COOKIE[AMT_TOUR_FIN_COOKIE]);
+    if (!headers_sent()) {
+        setcookie(AMT_TOUR_FIN_COOKIE, '', ['expires' => time() - 3600, 'path' => '/', 'samesite' => 'Lax']);
+    }
+}
+
+/**
+ * Hapus penanda mode bebas di server (dipanggil saat kembali ke layar pilih peran).
+ * Bila tutorial sudah DISELESAIKAN, penanda dipertahankan (sesi berikutnya tanpa mode tutorial),
+ * kecuali $force = true (reset lewat ikon profil).
+ */
+function amt_tour_off_forget(bool $force = false): void {
+    if (!$force && amt_tour_is_finished()) {
+        return;
+    }
     unset($_COOKIE[AMT_TOUR_OFF_COOKIE]);
     if (!headers_sent()) {
         setcookie(AMT_TOUR_OFF_COOKIE, '', ['expires' => time() - 3600, 'path' => '/', 'samesite' => 'Lax']);

@@ -1,9 +1,4 @@
 <?php
-/**
- * Layar: ?screen=amt_shipments  (role AMT)  -- "Shipments"
- * Daftar pengiriman AMT + filter status. Tombol "Lihat Detail Order" membuka amt_shipment_detail.
- * data-tour dipakai tutorial AMT (roles/amt/includes/tutorial.php).
- */
 require_once AMT_INC_DIR . '/amt_ship_data.php';
 
 $ships = amt_ship_all();
@@ -22,7 +17,7 @@ $ships = amt_ship_all();
 
     <div class="amts-list" id="amtsList">
         <?php foreach ($ships as $s): $active = $s['status'] === 'sedang'; ?>
-            <article class="amts-card" data-status="<?= amt_e($s['status']) ?>">
+            <article class="amts-card" data-status="<?= amt_e($s['status']) ?>"<?= $active ? ' data-tour="ship-card-active"' : '' ?>>
                 <div class="amts-grid">
                     <div>
                         <div class="amts-label">Shipment Number</div>

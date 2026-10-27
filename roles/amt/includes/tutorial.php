@@ -1,74 +1,5 @@
 <?php
-/* ============================================================
- * OneFIS - AMT - Data tutorial terpandu (guided tour)
- *
- * Mesin tutorial: roles/amt/assets/js/tutorial-amt.js  (khusus AMT)
- * Tampilan       : roles/amt/assets/css/tutorial-amt.css (khusus AMT)
- * Tutorial peran SPBU TIDAK tersentuh oleh file-file ini.
- *
- * CARA KERJA (dirancang untuk orang awam)
- * ---------------------------------------
- * Tutorial BERBASIS KONDISI, bukan berbasis ketukan. Mesin selalu
- * menampilkan langkah PERTAMA yang belum selesai, jadi tutorial tidak
- * pernah "hilang" walau pengguna melompat-lompat, membatalkan kamera,
- * atau mengisi form tidak berurutan.
- *
- * Tiap langkah:
- *   'no'        => nomor langkah pada alur (null = tidak diberi nomor)
- *   'target'    => selector elemen yang harus diketuk (null = kartu di tengah)
- *   'highlight' => (opsional) elemen yang disorot, jika lebih luas dari target
- *   'title'     => judul singkat (kata kerja di depan)
- *   'text'      => penjelasan 1-2 kalimat
- *   'hint'      => kalimat aksi di kotak biru
- *   'done'      => selector; langkah SELESAI bila elemen ini ada di halaman
- *                  (null = langkah aksi: selesai saat target diketuk / tombol ditekan)
- *   'needTap'   => (opsional) true = langkah selesai HANYA bila target sudah
- *                  diketuk DAN selector 'done' terpenuhi (mis. Perbarui Lokasi)
- *   'wait'      => (opsional) teks kotak biru saat target sudah diketuk tetapi
- *                  'done' belum terpenuhi ("menunggu...")
- *   'ok'        => pesan singkat saat langkah baru saja selesai
- *   'minShow'   => (opsional) ms; walau 'done' sudah terpenuhi, langkah tetap disorot minimal selama
- *                  itu (dihitung sejak 'done' terpenuhi), mis. lokasi sudah sesuai dari awal
- *   'condHint'  => (opsional) teks kotak biru selama masa 'minShow' ("lokasi sudah sesuai, pastikan...")
- *   'loadSel' + 'loadHint' => (opsional) teks kotak biru saat selector loadSel ada tetapi 'done' belum
- *                  (mis. lokasi sesuai, pin peta masih dimuat)
- *   'settle'    => (opsional) ms; 'done' baru dianggap terpenuhi bila pengguna sudah
- *                  berhenti mengetik selama itu (untuk kolom teks)
- *   'label'     => (opsional) teks kecil di atas kartu; menimpa nama alur
- *   'when'      => (opsional) selector; kartu BARU muncul bila elemen ini ada
- *                  (mis. menu PTI yang baru menyala). Sebelumnya kartu disembunyikan.
- *   'delay'     => (opsional) jeda (ms) setelah 'when' terpenuhi sebelum kartu muncul
- *   'announce'  => (opsional) true = saat langkah ini selesai halaman langsung diberi
- *                  tahu (event amt:tour-done), tanpa menunggu seluruh alur selesai
- *   'list'      => (opsional) array teks; tampil sebagai daftar bernomor di bawah 'text'
- *   'autoHide'  => (opsional) ms; kartu tertutup sendiri bila tidak diketuk (dianggap
- *                  sama dengan mengetuk tombol kartu, mis. "Mengerti")
- *   'remember'  => (opsional) true = langkah yang sudah dibaca dicatat, jadi tidak
- *                  diulang bila pengguna pindah halaman lalu kembali sebelum alur selesai
- *   'okText'    => (opsional) kalimat di bawah pesan 'ok'
- *   'hold'      => (opsional) lama pesan 'ok' tampil sebelum pindah langkah
- *                  (milidetik; bawaan 1000)
- *   'button'    => (opsional) label tombol di kartu (mis. "Mulai")
- *   'skipLabel' => (opsional) teks tautan "Lewati" di kartu (mis. "Sudah cukup sampai di sini")
- *   'camera'    => (opsional) true = langkah ini dipandu DI DALAM kamera layar penuh (.amtcam). Biasanya kartu
- *                  tutorial disembunyikan saat kamera terbuka; langkah bertanda ini tetap tampil di atas kamera.
- *   'over'      => (opsional) true = kartu + sorotan ditampilkan di atas pop up/kamera (z-index lebih tinggi),
- *                  mis. pop up sukses "Lanjutkan ke Beranda". 'camera' otomatis ikut 'over'.
- *
- * Halaman TIDAK digulir otomatis oleh tutorial. Kartu yang menyesuaikan
- * posisinya (atas / bawah) supaya tidak menutupi bagian yang disorot.
- *
- * Status form dibaca dari atribut data-* pada #wk-form yang diperbarui
- * oleh roles/amt/views/_work_form.php:
- *   data-loc="1"   lokasi sudah sesuai titik kerja
- *   data-pin="1"   lokasi sesuai DAN peta (pin) sudah selesai dimuat
- *   data-act="1"   aktivitas sudah dipilih (Selesai Kerja: selalu 1)
- *   data-photo="1" foto verifikasi sudah tersimpan
- *
- * Dipanggil dari core/layout_bottom.php lewat amt_tour_config($screen).
- * ============================================================ */
 
-// Nama layar untuk label (dipakai bila langkah tidak punya alur bernomor)
 const AMT_TOUR_SCREEN_ORDER = ['amt_home', 'start_end', 'start_work', 'checkin', 'checkout', 'amt_pti', 'amt_pti_form', 'amt_pti_hasil', 'amt_shipments', 'amt_shipment_detail', 'amt_spbu', 'amt_checklist_lo', 'amt_checklist', 'amt_verifikasi', 'amt_verifikasi_qr', 'amt_verifikasi_kode', 'amt_verifikasi_sukses', 'amt_surat_jalan', 'amt_rating', 'amt_kendala', 'end_work'];
 
 const AMT_TOUR_SCREEN_LABELS = [
@@ -482,9 +413,10 @@ function amt_tour_ship_steps(string $screen): array
 {
     if ($screen === 'amt_shipments') {
         return ['journey' => 'kirim', 'steps' => [[
-            'no'     => 1,
-            'label'  => 'Shipments',
-            'target' => '[data-tour="ship-detail-active"]',
+            'no'        => 1,
+            'label'     => 'Shipments',
+            'target'    => '[data-tour="ship-detail-active"]',
+            'highlight' => '[data-tour="ship-card-active"]',   // sorot seluruh kartu pengiriman, bukan hanya tombol
             'title'  => 'Buka detail order',
             'text'   => 'Pengiriman yang sedang berjalan berstatus “Sedang Dikirim”. Ketuk “Lihat Detail Order” pada pengiriman itu untuk melihat rutenya.',
             'hint'   => '👆 Ketuk “Lihat Detail Order” pada pengiriman Sedang Dikirim',
@@ -660,9 +592,10 @@ function amt_tour_pti_done_pack(int $checkins): array
         ]]];
     }
 
-    // Kendala sudah pernah dilaporkan (mis. lewat tombol di panel lalu kembali ke beranda): kartu info kendala
-    // TIDAK diulang, alur langsung lanjut ke Shipments.
-    $kendalaReported = amt_kendala_all() !== [];
+    // [DINONAKTIFKAN SEMENTARA] ikut tutorial "Laporkan Kendala" (belum selesai).
+    // // Kendala sudah pernah dilaporkan (mis. lewat tombol di panel lalu kembali ke beranda): kartu info kendala
+    // // TIDAK diulang, alur langsung lanjut ke Shipments.
+    // $kendalaReported = amt_kendala_all() !== [];
 
     return ['journey' => 'pti', 'subKey' => $subKey, 'startDelay' => AMT_PTI_DONE_START_DELAY, 'steps' => [
         [
@@ -685,6 +618,9 @@ function amt_tour_pti_done_pack(int $checkins): array
             'remember' => true,                           // tidak diulang bila pengguna pindah halaman lalu kembali
             'done'     => null,
         ],
+        // [DINONAKTIFKAN SEMENTARA] Tutorial "Laporkan Kendala" belum selesai -> kartu info kendala di beranda di-comment.
+        // Aktifkan lagi bila tutorial kendala sudah rampung: hapus pembungkus komentar di bawah.
+        /*
         // Informasi (bukan langkah bernomor): panel "Rute Pengiriman" muncul di beranda sebelum AMT tiba di SPBU.
         // Tombol "Laporkan Kendala" tetap disorot; mengetuknya = mencoba (langkah ini dianggap dibaca).
         // Tertutup sendiri setelah 20 detik bila "Mengerti" tidak diketuk. Hanya ditambahkan bila panelnya ada.
@@ -704,6 +640,7 @@ function amt_tour_pti_done_pack(int $checkins): array
             'remember'  => true,                          // tidak diulang bila pengguna pindah halaman lalu kembali
             'done'      => null,
         ]] : []),
+        */
         [
             'no'     => null,
             'label'  => 'Langkah berikutnya',
@@ -1309,6 +1246,7 @@ function amt_tour_rating_steps(): array
 }
 
 /**
+ * [DINONAKTIFKAN SEMENTARA: belum dipanggil dari amt_tour_steps_for(); tutorial kendala belum selesai]
  * Tutorial layar Laporkan Kendala (roles/amt/views/kendala.php, logika: assets/js/amt-kendala.js).
  * Status form dibaca dari atribut data-* pada #kdForm:
  *   data-jenis="1"  jenis kendala dipilih          data-bisa="ya|tidak"  pilihan Estimasi Kendala
@@ -1507,9 +1445,9 @@ function amt_tour_steps_for(string $screen, bool $running, int $checkins = 0): a
                 'label'     => 'Tutorial Selesai',
                 'target'    => null,
                 'notice'    => true,     // tetap tampil walau tutorial dimatikan (Selesai Kerja menutup tutorial)
-                'restart'   => true,     // "Mulai" menyalakan tutorial lagi dari awal
+                'restart'   => true,     // "Mulai" hanya menutup kartu; proses diulang tanpa mode tutorial
                 'title'     => 'Selamat! Tutorial selesai 🎉',
-                'text'      => 'Selamat, Anda telah menyelesaikan sesi tutorial ini. Klik “Mulai” untuk memulai dari awal, atau pilih “Sudah cukup sampai di sini”.',
+                'text'      => 'Selamat, Anda telah menyelesaikan sesi tutorial ini. Klik “Mulai” untuk mengulang proses dari awal TANPA mode tutorial, atau pilih “Sudah cukup sampai di sini”. Untuk menyalakan tutorial lagi kapan saja, ketuk ikon profil di pojok kanan atas.',
                 'button'    => 'Mulai',
                 'skipLabel' => 'Sudah cukup sampai di sini',
                 'done'      => null,
@@ -1540,8 +1478,9 @@ function amt_tour_steps_for(string $screen, bool $running, int $checkins = 0): a
         // Sesudah Selesai Ritase: AMT diarahkan mengakhiri kerja (tanpa tombol "Mengerti", langsung Selesai Kerja)
         if ($running && amt_out_after_checkout()) {
             return ['journey' => 'pulang', 'steps' => [[
-                'no'     => 1,
-                'target' => '[data-tour="btn-end-work"]',
+                'no'        => 1,
+                'target'    => '[data-tour="btn-end-work"]',
+                'highlight' => '[data-tour="card-end-work"]',   // sorot seluruh kartu merah, bukan hanya tombol
                 'title'  => 'Ketuk “Selesai Kerja”',
                 'text'   => 'Ritase sudah ditutup, jadi waktunya mengakhiri jam kerja. Ketuk “Selesai Kerja”, lalu isi form-nya.',
                 'hint'   => '👆 Ketuk tombol “Selesai Kerja”',
@@ -1550,8 +1489,9 @@ function amt_tour_steps_for(string $screen, bool $running, int $checkins = 0): a
         }
         if ($running) {
             return ['journey' => 'pulang', 'steps' => [[
-                'no'     => 1,
-                'target' => '[data-tour="btn-end-work"]',
+                'no'        => 1,
+                'target'    => '[data-tour="btn-end-work"]',
+                'highlight' => '[data-tour="card-end-work"]',   // sorot seluruh kartu merah, bukan hanya tombol
                 'title'  => 'Absen pulang: “Selesai Kerja”',
                 'text'   => 'Saat jam kerja selesai, ketuk “Selesai Kerja”. Kalau belum waktunya pulang, ketuk “Mengerti” saja.',
                 'hint'   => '👆 Ketuk “Selesai Kerja” saat sudah selesai bekerja',
@@ -1560,8 +1500,9 @@ function amt_tour_steps_for(string $screen, bool $running, int $checkins = 0): a
             ]]];
         }
         return ['journey' => 'masuk', 'steps' => [[
-            'no'     => 2,
-            'target' => '[data-tour="btn-start-work"]',
+            'no'        => 2,
+            'target'    => '[data-tour="btn-start-work"]',
+            'highlight' => '[data-tour="card-start-work"]',   // sorot seluruh kartu hijau, bukan hanya tombol
             'title'  => 'Ketuk “Mulai Kerja”',
             'text'   => 'Ini tombol absen masuk. Pastikan Anda sudah berada di area terminal.',
             'hint'   => '👆 Ketuk tombol hijau “Mulai Kerja”',
@@ -1611,9 +1552,12 @@ function amt_tour_steps_for(string $screen, bool $running, int $checkins = 0): a
     }
 
     // ---- Laporkan Kendala ----
+    // [DINONAKTIFKAN SEMENTARA] Tutorial "Laporkan Kendala" belum selesai -> layar ini tidak punya tutorial dulu.
+    // Untuk mengaktifkan lagi: hapus baris return kosong di bawah dan buka komentar blok di bawahnya.
     if ($screen === AMT_KENDALA_SCREEN) {
-        $pack = amt_tour_kendala_steps();
-        return ['journey' => $pack['journey'], 'steps' => $pack['steps'], 'subKey' => $pack['subKey']];
+        return ['journey' => 'kendala', 'steps' => [], 'subKey' => null];
+        // $pack = amt_tour_kendala_steps();
+        // return ['journey' => $pack['journey'], 'steps' => $pack['steps'], 'subKey' => $pack['subKey']];
     }
 
     // ---- Rating Petugas SPBU ----

@@ -1,27 +1,4 @@
 <?php
-/* ============================================================
- * OneFIS - peran AMT - pintu masuk semua kode peran AMT.
- *
- * SELURUH kode peran AMT berada di folder "roles/amt/":
- *   module.php             file ini: daftar layar, hook untuk core, router AMT
- *   includes/work.php      jam kerja (Absensi Kerja), lokasi, avatar
- *   includes/amt_pti_*.php Pre-Trip Inspection (PTI) + aktivasi setelah Mulai Ritase
- *   includes/amt_ship_data.php  Shipments: daftar, Detail Order, "Tiba di Lokasi"
- *   includes/amt_pbk.php   Checklist Pra-Pembongkaran (Daftar LO, 14 langkah, QR)
- *   includes/amt_verif_*.php    Verifikasi Order (Daftar LO, QR, Kode, Berhasil)
- *   includes/amt_sj.php    Foto Surat Jalan (kamera belakang, 1 foto per Nomor LO)
- *   includes/amt_rating.php Rating Petugas SPBU + Selesaikan Order
- *   includes/amt_kendala.php Laporkan Kendala (form + POST submit_kendala)
- *   includes/amt_out.php   Tutorial scan segel di AVM + Selesai Ritase + arahan Mulai / Selesai Kerja -> Selesai Kerja
- *   includes/amt_performance.php  Performance: data contoh, filter tab/periode, grafik SVG (tanpa tutorial)
- *   includes/tutorial.php  tutorial terpandu (guided tour) AMT
- *   includes/work_ui.php   skrip beranda AMT (timer, kunci menu PTI)
- *   views/                 satu file per layar AMT (+ partials/header_home.php)
- *   assets/                css/, js/, img/
- *
- * Mengubah AMT = cukup buka folder ini. Tidak ada kode SPBU di sini.
- * Fungsi-fungsi hook di bawah dipanggil core (lihat core/roles.php).
- * ============================================================ */
 
 define('AMT_APP_ROOT', APP_ROOT);                  // <root> aplikasi
 define('AMT_DIR', __DIR__);
@@ -242,9 +219,26 @@ function amt_tour_fresh(): string
     return (string) $_SESSION['amt_tour_fresh'];
 }
 
-function amt_tour_fresh_bump(): void
+/**
+ * @param bool $hard true = reset PAKSA (ikon profil): token diawali "r". tutorial-amt.js menghapus SEMUA status
+ *                   (dimatikan + sudah selesai). Token biasa tidak menghapus status "sudah selesai".
+ */
+function amt_tour_fresh_bump(bool $hard = false): void
 {
-    $_SESSION['amt_tour_fresh'] = bin2hex(random_bytes(6));
+    $_SESSION['amt_tour_fresh'] = ($hard ? 'r' : 'n') . bin2hex(random_bytes(6));
+}
+
+/**
+ * Ikon profil di beranda AMT diketuk: muat ulang halaman AMT dan kembali ke MODE AWAL (tutorial menyala dari awal).
+ * Sama seperti memilih AMT dari layar pilih peran, tetapi tetap di peran AMT dan juga membatalkan status
+ * "tutorial sudah selesai" / "dimatikan".
+ */
+function amt_tour_hard_reset(): void
+{
+    amt_tour_off_forget(true);      // cookie mode bebas dihapus
+    amt_tour_finished_forget();     // cookie "sudah selesai" dihapus
+    amt_reset_all();                // timer kerja, Mulai Ritase, PTI, dst kembali ke awal (+ epoch berganti)
+    amt_tour_fresh_bump(true);      // browser: hapus status dimatikan / selesai
 }
 
 /** Mulai ulang SEMUA state AMT: timer kerja, Mulai Ritase, PTI, alur DCU, dan tutorial. */
@@ -502,7 +496,7 @@ function amt_accepts_post(string $action): bool
 /** Layar pilih peran dibuka => AMT dimulai dari awal: timer, Mulai Ritase, PTI, tutorial di-restart. */
 function amt_on_role_select_screen(): void
 {
-    amt_tour_off_forget();   // kunjungan baru: tutorial menyala lagi, mode bebas berakhir
+    amt_tour_off_forget();   // kunjungan baru: tutorial menyala lagi, mode bebas berakhir (KECUALI tutorial sudah diselesaikan)
     amt_reset_all();
     amt_tour_fresh_bump();   // kunjungan baru -> tutorial otomatis aktif lagi saat AMT dipilih
 }
@@ -516,6 +510,11 @@ function amt_on_role_change(): void
 /** Penjagaan sebelum ada output: PTI (ack tutorial, akses, simpan jawaban) + Verifikasi Order */
 function amt_bootstrap(string $screen): void
 {
+    // Ikon profil (pojok kanan atas beranda): reset ke mode awal, lalu redirect supaya muat ulang tidak mengulang reset.
+    if ($screen === amt_home_screen() && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET' && isset($_GET['tour_reset'])) {
+        amt_tour_hard_reset();
+        go_to(amt_home_screen());
+    }
     amt_out_bootstrap($screen);   // tutorial "scan segel di AVM" ditutup (POST out_action=seal_ack)
     amt_pti_bootstrap($screen);
     amt_verif_bootstrap($screen);

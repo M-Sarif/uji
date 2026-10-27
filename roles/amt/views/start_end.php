@@ -10,7 +10,7 @@ $arrowOut = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke=
 ?>
 <div class="wk-wrap">
   <!-- START WORK -->
-  <div class="wk-card green">
+  <div class="wk-card green" data-tour="card-start-work">
     <div class="wk-row">
       <div><small>Jam Mulai Kerja</small><strong><?= $hasStart ? work_fmt((int) $w['started_at']) : '-' ?></strong></div>
       <div><small>Foto Verifikasi</small>
@@ -26,7 +26,7 @@ $arrowOut = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke=
   </div>
 
   <!-- END WORK -->
-  <div class="wk-card red">
+  <div class="wk-card red" data-tour="card-end-work">
     <div class="wk-row">
       <div><small>Jam Selesai Kerja</small><strong><?= $hasEnd ? work_fmt((int) $w['ended_at']) : '-' ?></strong></div>
       <div><small>Foto Verifikasi</small>
