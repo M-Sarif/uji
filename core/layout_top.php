@@ -15,10 +15,11 @@
 // CSS bersama (core) -> CSS global peran aktif (mis. gaya tutorial) -> CSS khusus layar.
 // Peran aktif = peran yang dipilih; sebelum memilih dipakai DEFAULT_TOUR_ROLE.
 $cssRole  = current_role() ?? DEFAULT_TOUR_ROLE;
+$isSharedScreen = in_array($screen, ['role_select', 'token_login'], true);   // layar bersama: pilih peran + input token
 $cssHrefs = array_merge(
     [CORE_URL . '/css/base.css', CORE_URL . '/css/components.css'],
     (array) role_call($cssRole, 'global_css'),
-    $screen === 'role_select' ? [CORE_URL . '/css/role.css'] : (array) role_call(screen_owner($screen), 'screen_css', $screen)
+    $isSharedScreen ? [CORE_URL . '/css/role.css', CORE_URL . '/css/auth.css'] : (array) role_call(screen_owner($screen), 'screen_css', $screen)
 );
 foreach ($cssHrefs as $cssHref): ?>
 <link rel="stylesheet" href="<?php echo h($cssHref); ?>?v=<?php echo (int) @filemtime(APP_ROOT . '/' . $cssHref); ?>">
@@ -66,10 +67,10 @@ if (is_array($flashSuccess)) {
     // Header: layar pilih peran tanpa header; peran boleh punya header sendiri untuk
     // berandanya (hook <peran>_header_partial); selain itu tombol back + judul.
     $owner         = screen_owner($screen);
-    $headerPartial = $screen === 'role_select' ? null : role_call($owner, 'header_partial', $screen);
+    $headerPartial = $isSharedScreen ? null : role_call($owner, 'header_partial', $screen);
     ?>
-    <?php if ($screen === 'role_select'): ?>
-        <!-- Layar awal (pilih peran): tanpa header -->
+    <?php if ($isSharedScreen): ?>
+        <!-- Layar awal (pilih peran) & input token: tanpa header -->
     <?php elseif ($headerPartial !== null): ?>
         <?php require $headerPartial; // header beranda milik peran ?>
     <?php else: ?>

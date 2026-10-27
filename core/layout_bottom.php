@@ -21,8 +21,10 @@
 // Mesin tutorial milik peran aktif (SPBU: tutorial.js, AMT: tutorial-amt.js + css-nya).
 // Sebelum memilih peran dipakai DEFAULT_TOUR_ROLE. Data langkah dari hook <peran>_tour_config().
 $tourRole   = current_role() ?? DEFAULT_TOUR_ROLE;
+// Layar input token diperlakukan seperti layar pilih peran oleh mesin tutorial (tanpa tutorial, tanpa tombol "?").
+$tourScreen = $screen === 'token_login' ? 'role_select' : $screen;
 $tourAssets = (array) role_call($tourRole, 'tour_assets');
-$tourCfg    = (array) role_call($tourRole, 'tour_config', $screen);
+$tourCfg    = (array) role_call($tourRole, 'tour_config', $tourScreen);
 ?>
 <?php foreach ($tourAssets['css'] ?? [] as $tourCss): ?>
 <link rel="stylesheet" href="<?php echo h($tourCss); ?>?v=<?php echo (int) @filemtime(APP_ROOT . '/' . $tourCss); ?>">
@@ -48,10 +50,10 @@ $tourCfg    = (array) role_call($tourRole, 'tour_config', $screen);
     var screenOrder  = <?php echo json_encode($tourCfg['screenOrder']); ?>;
     var screenLabels = <?php echo json_encode($tourCfg['screenLabels']); ?>;
     var steps        = <?php echo json_encode($tourSteps); ?>;
-    var idx          = screenOrder.indexOf(<?php echo json_encode($screen); ?>);
+    var idx          = screenOrder.indexOf(<?php echo json_encode($tourScreen); ?>);
 
     window.OneFISTour.init({
-        screen:       <?php echo json_encode($screen); ?>,
+        screen:       <?php echo json_encode($tourScreen); ?>,
         steps:        steps,
         screenOrder:  screenOrder,
         screenLabels: screenLabels,

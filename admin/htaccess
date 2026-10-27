@@ -1,0 +1,10 @@
+# OneFIS - folder admin.
+# Secara bawaan HANYA bisa dibuka dari komputer server itu sendiri (http://localhost/.../admin/).
+# Bila admin perlu membuka dari perangkat lain di jaringan, ganti "Require local" menjadi mis.:
+#     Require ip 192.168.1.0/24
+# (jangan dibuka untuk seluruh internet tanpa HTTPS).
+Options -Indexes
+Require local
+<FilesMatch "\.(inc|log|key|sql|bak)$">
+    Require all denied
+</FilesMatch>

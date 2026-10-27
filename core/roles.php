@@ -68,17 +68,17 @@ function role_call(?string $role, string $hook, ...$args)
     return function_exists($fn) ? $fn(...$args) : null;
 }
 
-/** Semua layar yang valid: role_select + layar milik tiap peran */
+/** Semua layar yang valid: layar bersama (pilih peran + input token) + layar milik tiap peran */
 function app_screens(): array
 {
-    $all = ['role_select'];
+    $all = ['role_select', 'token_login'];
     foreach (role_keys() as $role) {
         $all = array_merge($all, (array) role_call($role, 'screens'));
     }
     return $all;
 }
 
-/** Peran pemilik sebuah layar (null = terbuka untuk semua, yaitu role_select) */
+/** Peran pemilik sebuah layar (null = layar bersama: role_select & token_login) */
 function screen_owner(string $screen): ?string
 {
     foreach (role_keys() as $role) {

@@ -1,0 +1,18 @@
+# OneFIS - aturan Apache (XAMPP) di root aplikasi.
+Options -Indexes
+ServerSignature Off
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    # Folder internal
+    RewriteRule ^(app|database|_unused|\.git)(/|$) - [F,L]
+    # Kode core (kecuali core/assets) dan kode internal tiap peran
+    RewriteRule ^core/(?!assets/) - [F,L]
+    RewriteRule ^roles/[^/]+/(includes|views)(/|$) - [F,L]
+    RewriteRule ^roles/[^/]+/module\.php$ - [F,L]
+</IfModule>
+
+# Berkas sensitif apa pun lokasinya
+<FilesMatch "(^\.|\.(sql|md|log|key|bak|ini|env|sh|dist)$)">
+    Require all denied
+</FilesMatch>

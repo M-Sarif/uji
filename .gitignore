@@ -1,0 +1,6 @@
+# Rahasia server - JANGAN di-commit
+app/config.php
+app/secret.key
+app/logs/
+*.log
+.env

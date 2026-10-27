@@ -1,0 +1,37 @@
+/* ============================================================
+   OneFIS - auth.css
+   Layar input token + elemen login pada layar pilih peran.
+   Letak: core/assets/css/auth.css
+   ============================================================ */
+
+.auth-alert {
+    padding: 0.75rem 0.875rem; border-radius: 0.875rem;
+    background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c;
+    font-size: 0.8125rem; line-height: 1.45;
+}
+
+.role-state { font-style: normal; font-size: 0.6875rem; font-weight: 600; color: #2563eb; }
+
+.token-form { display: flex; flex-direction: column; gap: 0.75rem; }
+.token-label { font-size: 0.8125rem; font-weight: 600; color: #334155; }
+.token-input {
+    width: 100%; padding: 0.875rem 1rem; text-align: center;
+    font-family: ui-monospace, Menlo, Consolas, monospace;
+    font-size: 1.125rem; font-weight: 700; letter-spacing: 0.08em; color: #1e293b;
+    background: #fff; border: 1.5px solid #cbd5e1; border-radius: 1rem;
+}
+.token-input::placeholder { color: #cbd5e1; font-weight: 500; }
+.token-input:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18); }
+
+.btn-token {
+    width: 100%; padding: 0.875rem 1rem; border: 0; border-radius: 1rem;
+    background: #2563eb; color: #fff; font-size: 0.9375rem; font-weight: 700;
+}
+.btn-token:active { transform: scale(0.985); }
+.token-back { align-self: center; padding: 0.5rem; font-size: 0.8125rem; color: #64748b; text-decoration: none; }
+
+.role-logout { display: flex; justify-content: center; }
+.btn-logout {
+    padding: 0.5rem 1.25rem; border-radius: 999px; background: transparent;
+    border: 1.5px solid #fca5a5; color: #b91c1c; font-size: 0.8125rem; font-weight: 600;
+}
