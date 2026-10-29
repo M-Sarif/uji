@@ -1,12 +1,4 @@
 <?php
-/**
- * Dashboard ADMIN: buat token, lihat daftar token, nonaktifkan / aktifkan / hapus.
- *
- * Semua perintah SQL memakai prepared statement. Token asli hanya ditampilkan SEKALI,
- * tepat setelah dibuat (database hanya menyimpan hash-nya).
- *
- * Letak: admin/index.php
- */
 require __DIR__ . '/../app/admin_auth.php';
 admin_boot();
 $admin = admin_require();
@@ -14,7 +6,6 @@ $pdo   = db();
 
 const PER_PAGE = 20;
 
-/** Filter daftar (role / status / pencarian / halaman) - hanya nilai yang diizinkan yang lolos. */
 function token_filters(array $src): array
 {
     $role   = isset($src['role']) && is_string($src['role']) && in_array($src['role'], AUTH_ROLES, true) ? $src['role'] : '';
@@ -24,7 +15,7 @@ function token_filters(array $src): array
     return ['role' => $role, 'status' => $status, 'q' => $q, 'page' => $page];
 }
 
-function token_status(array $t, string $now): array   // [kode, teks, kelas css]
+function token_status(array $t, string $now): array
 {
     if ((int) $t['is_active'] !== 1) {
         return ['nonaktif', 'Nonaktif', 'pill-off'];
@@ -38,9 +29,6 @@ function token_status(array $t, string $now): array   // [kode, teks, kelas css]
     return ['aktif', 'Aktif', 'pill-ok'];
 }
 
-/* ------------------------------------------------------------
- * Aksi (POST)
- * ------------------------------------------------------------ */
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     $back = token_filters($_POST);
     $back = array_filter($back, static fn($v) => $v !== '' && $v !== 1);
@@ -119,7 +107,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             }
             throw $e;
         }
-        $_SESSION['new_tokens'] = $made;   // ditampilkan sekali di bawah, lalu dihapus
+        $_SESSION['new_tokens'] = $made;
         admin_flash_set('ok', count($made) . ' token ' . strtoupper($role) . ' berhasil dibuat. Salin sekarang - token tidak akan ditampilkan lagi.');
         admin_redirect('index.php', $back);
     }
@@ -136,9 +124,6 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     admin_redirect('index.php', $back);
 }
 
-/* ------------------------------------------------------------
- * Data tampilan (GET)
- * ------------------------------------------------------------ */
 $f   = token_filters($_GET);
 $now = date('Y-m-d H:i:s');
 
@@ -206,11 +191,10 @@ $failed24 = (int) $fail->fetchColumn();
 $newTokens = $_SESSION['new_tokens'] ?? [];
 unset($_SESSION['new_tokens']);
 
-/** URL daftar dengan filter yang sama (untuk pagination). */
 function list_url(array $f, int $page): string
 {
     $q = array_filter(array_merge($f, ['page' => $page]), static fn($v) => $v !== '' && $v !== 1);
-    return 'index.php' . ($q ? '?' . http_build_query($q) : '');
+    return admin_url() . ($q ? '?' . http_build_query($q) : '');
 }
 
 admin_header('Kelola Token', $admin, 'tokens');
@@ -246,7 +230,7 @@ admin_header('Kelola Token', $admin, 'tokens');
 
 <section class="card">
     <h2>Buat token baru</h2>
-    <form method="post" action="index.php" class="grid-form" autocomplete="off">
+    <form method="post" action="<?php echo e(admin_url()); ?>" class="grid-form" autocomplete="off">
         <?php echo csrf_field(); ?>
         <input type="hidden" name="action" value="create">
         <fieldset class="field field-role">
@@ -273,7 +257,7 @@ admin_header('Kelola Token', $admin, 'tokens');
 
 <section class="card">
     <h2>Daftar token</h2>
-    <form method="get" action="index.php" class="filters">
+    <form method="get" action="<?php echo e(admin_url()); ?>" class="filters">
         <select name="role" aria-label="Peran">
             <option value="">Semua peran</option>
             <option value="amt"<?php echo $f['role'] === 'amt' ? ' selected' : ''; ?>>AMT</option>
@@ -287,7 +271,7 @@ admin_header('Kelola Token', $admin, 'tokens');
         </select>
         <input type="search" name="q" value="<?php echo e($f['q']); ?>" maxlength="60" placeholder="Cari nama / keterangan">
         <button type="submit" class="btn">Terapkan</button>
-        <?php if ($f['role'] !== '' || $f['status'] !== '' || $f['q'] !== ''): ?><a class="btn btn-ghost" href="index.php">Reset</a><?php endif; ?>
+        <?php if ($f['role'] !== '' || $f['status'] !== '' || $f['q'] !== ''): ?><a class="btn btn-ghost" href="<?php echo e(admin_url()); ?>">Reset</a><?php endif; ?>
     </form>
 
     <div class="table-scroll">
@@ -308,7 +292,7 @@ admin_header('Kelola Token', $admin, 'tokens');
                 <td><?php echo $t['expires_at'] !== null ? e($t['expires_at']) : '-'; ?></td>
                 <td><?php echo $t['last_used_at'] !== null ? e($t['last_used_at']) : '-'; ?></td>
                 <td class="actions">
-                    <form method="post" action="index.php">
+                    <form method="post" action="<?php echo e(admin_url()); ?>">
                         <?php echo csrf_field(); ?>
                         <input type="hidden" name="action" value="toggle">
                         <input type="hidden" name="id" value="<?php echo (int) $t['id']; ?>">
@@ -317,7 +301,7 @@ admin_header('Kelola Token', $admin, 'tokens');
                         <input type="hidden" name="page" value="<?php echo (int) $page; ?>">
                         <button type="submit" class="btn btn-small"><?php echo (int) $t['is_active'] === 1 ? 'Nonaktifkan' : 'Aktifkan'; ?></button>
                     </form>
-                    <form method="post" action="index.php" data-confirm="Hapus token ini secara permanen? Pengguna yang memakainya akan keluar.">
+                    <form method="post" action="<?php echo e(admin_url()); ?>" data-confirm="Hapus token ini secara permanen? Pengguna yang memakainya akan keluar.">
                         <?php echo csrf_field(); ?>
                         <input type="hidden" name="action" value="delete">
                         <input type="hidden" name="id" value="<?php echo (int) $t['id']; ?>">

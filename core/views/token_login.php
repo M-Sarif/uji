@@ -1,10 +1,4 @@
 <?php
-/**
- * Layar input TOKEN. Dibuka setelah pengguna memilih peran (AMT / SPBU) di layar pilih peran.
- * Token dibuat admin (admin/index.php). Form dikirim ke index.php dengan aksi "login_token".
- *
- * Letak: core/views/token_login.php
- */
 $pendingRole = $_SESSION['pending_role'] ?? '';
 $roleLabel   = isset(ROLES[$pendingRole]) ? ROLES[$pendingRole]['label'] : '';
 $authError   = $_SESSION['auth_error'] ?? '';
@@ -35,13 +29,12 @@ unset($_SESSION['auth_error']);
                autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" inputmode="text">
 
         <button type="submit" class="btn-token">Masuk</button>
-        <a class="token-back" href="index.php?screen=role_select">&larr; Ganti peran</a>
+        <a class="token-back" href="home">&larr; Ganti peran</a>
     </form>
 
 </div>
 
 <script>
-/* Format otomatis: huruf besar, tanda hubung tiap 4 karakter (hanya tampilan; server tetap memeriksa ulang). */
 (function () {
     var input = document.getElementById('tokenInput');
     if (!input) { return; }

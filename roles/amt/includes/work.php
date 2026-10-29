@@ -1,11 +1,18 @@
 <?php
+/* Fitur jam kerja AMT (Mulai Kerja / Selesai Kerja).
+ * State di $_SESSION['work'] = [
+ *   'started_at' => timestamp, 'ended_at' => timestamp|null,
+ *   'activity'   => 'Hadir' dst, 'start_photo' => bool, 'end_photo' => bool ] */
 
 // Cadangan opsional (ikon AMT sebagai data URI). Tidak wajib ada.
 if (is_file(__DIR__ . '/avatar_amt.php')) {
     require_once __DIR__ . '/avatar_amt.php';
 }
 
+// Lokasi folder AMT (AMT_INC_DIR, AMT_VIEW_DIR, AMT_ASSET_DIR, AMT_URL)
+// didefinisikan di roles/amt/module.php. Zona waktu (WIB) diatur di core/bootstrap.php.
 
+// Lokasi tetap untuk verifikasi
 const WORK_LAT = -2.723788;
 const WORK_LNG = 114.261609;
 const WORK_PLACE_NAME = 'Pertamina Fuel Terminal Pulang Pisau'; // nama tempat di Google Maps (pin bawaan)

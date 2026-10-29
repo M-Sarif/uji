@@ -1,18 +1,43 @@
-# OneFIS - aturan Apache (XAMPP) di root aplikasi.
 Options -Indexes
 ServerSignature Off
+DirectorySlash Off
 
 <IfModule mod_rewrite.c>
     RewriteEngine On
-    # Folder internal
+
     RewriteRule ^(app|database|_unused|\.git)(/|$) - [F,L]
-    # Kode core (kecuali core/assets) dan kode internal tiap peran
     RewriteRule ^core/(?!assets/) - [F,L]
     RewriteRule ^roles/[^/]+/(includes|views)(/|$) - [F,L]
     RewriteRule ^roles/[^/]+/module\.php$ - [F,L]
+
+    RewriteCond %{REQUEST_METHOD} ^(GET|HEAD)$
+    RewriteCond %{THE_REQUEST} \s/[^\s?]*admin/index\.php
+    RewriteCond %{REQUEST_URI} ^(.*)/admin/index\.php$
+    RewriteRule ^ %1/admin [R=302,L]
+
+    RewriteCond %{REQUEST_METHOD} ^(GET|HEAD)$
+    RewriteCond %{THE_REQUEST} \s/[^\s?]*admin/(login|logs|logout|setup)\.php
+    RewriteCond %{REQUEST_URI} ^(.*)/admin/(login|logs|logout|setup)\.php$
+    RewriteRule ^ %1/admin/%2 [R=302,L]
+
+    RewriteCond %{REQUEST_METHOD} ^(GET|HEAD)$
+    RewriteCond %{THE_REQUEST} \s/[^\s?]*index\.php
+    RewriteCond %{REQUEST_URI} ^(.*/)index\.php$
+    RewriteRule ^ %1 [R=302,L]
+
+    RewriteCond %{REQUEST_URI} ^(.*)/(home|amt|spbu|token|admin)/$
+    RewriteRule ^ %1/%2 [R=302,L]
+    RewriteCond %{REQUEST_URI} ^(.*)/admin/(login|logs|logout|setup)/$
+    RewriteRule ^ %1/admin/%2 [R=302,L]
+
+    RewriteRule ^home$   index.php                    [L,QSA]
+    RewriteRule ^amt$    index.php?screen=amt_home    [L,QSA]
+    RewriteRule ^spbu$   index.php?screen=dashboard   [L,QSA]
+    RewriteRule ^token$  index.php?screen=token_login [L,QSA]
+    RewriteRule ^admin$  admin/index.php              [L,QSA]
+    RewriteRule ^admin/(login|logs|logout|setup)$ admin/$1.php [L,QSA]
 </IfModule>
 
-# Berkas sensitif apa pun lokasinya
 <FilesMatch "(^\.|\.(sql|md|log|key|bak|ini|env|sh|dist)$)">
     Require all denied
 </FilesMatch>

@@ -1,5 +1,74 @@
 <?php
+/* ============================================================
+ * OneFIS - AMT - Data tutorial terpandu (guided tour)
+ *
+ * Mesin tutorial: roles/amt/assets/js/tutorial-amt.js  (khusus AMT)
+ * Tampilan       : roles/amt/assets/css/tutorial-amt.css (khusus AMT)
+ * Tutorial peran SPBU TIDAK tersentuh oleh file-file ini.
+ *
+ * CARA KERJA (dirancang untuk orang awam)
+ * ---------------------------------------
+ * Tutorial BERBASIS KONDISI, bukan berbasis ketukan. Mesin selalu
+ * menampilkan langkah PERTAMA yang belum selesai, jadi tutorial tidak
+ * pernah "hilang" walau pengguna melompat-lompat, membatalkan kamera,
+ * atau mengisi form tidak berurutan.
+ *
+ * Tiap langkah:
+ *   'no'        => nomor langkah pada alur (null = tidak diberi nomor)
+ *   'target'    => selector elemen yang harus diketuk (null = kartu di tengah)
+ *   'highlight' => (opsional) elemen yang disorot, jika lebih luas dari target
+ *   'title'     => judul singkat (kata kerja di depan)
+ *   'text'      => penjelasan 1-2 kalimat
+ *   'hint'      => kalimat aksi di kotak biru
+ *   'done'      => selector; langkah SELESAI bila elemen ini ada di halaman
+ *                  (null = langkah aksi: selesai saat target diketuk / tombol ditekan)
+ *   'needTap'   => (opsional) true = langkah selesai HANYA bila target sudah
+ *                  diketuk DAN selector 'done' terpenuhi (mis. Perbarui Lokasi)
+ *   'wait'      => (opsional) teks kotak biru saat target sudah diketuk tetapi
+ *                  'done' belum terpenuhi ("menunggu...")
+ *   'ok'        => pesan singkat saat langkah baru saja selesai
+ *   'minShow'   => (opsional) ms; walau 'done' sudah terpenuhi, langkah tetap disorot minimal selama
+ *                  itu (dihitung sejak 'done' terpenuhi), mis. lokasi sudah sesuai dari awal
+ *   'condHint'  => (opsional) teks kotak biru selama masa 'minShow' ("lokasi sudah sesuai, pastikan...")
+ *   'loadSel' + 'loadHint' => (opsional) teks kotak biru saat selector loadSel ada tetapi 'done' belum
+ *                  (mis. lokasi sesuai, pin peta masih dimuat)
+ *   'settle'    => (opsional) ms; 'done' baru dianggap terpenuhi bila pengguna sudah
+ *                  berhenti mengetik selama itu (untuk kolom teks)
+ *   'label'     => (opsional) teks kecil di atas kartu; menimpa nama alur
+ *   'when'      => (opsional) selector; kartu BARU muncul bila elemen ini ada
+ *                  (mis. menu PTI yang baru menyala). Sebelumnya kartu disembunyikan.
+ *   'delay'     => (opsional) jeda (ms) setelah 'when' terpenuhi sebelum kartu muncul
+ *   'announce'  => (opsional) true = saat langkah ini selesai halaman langsung diberi
+ *                  tahu (event amt:tour-done), tanpa menunggu seluruh alur selesai
+ *   'list'      => (opsional) array teks; tampil sebagai daftar bernomor di bawah 'text'
+ *   'autoHide'  => (opsional) ms; kartu tertutup sendiri bila tidak diketuk (dianggap
+ *                  sama dengan mengetuk tombol kartu, mis. "Mengerti")
+ *   'remember'  => (opsional) true = langkah yang sudah dibaca dicatat, jadi tidak
+ *                  diulang bila pengguna pindah halaman lalu kembali sebelum alur selesai
+ *   'okText'    => (opsional) kalimat di bawah pesan 'ok'
+ *   'hold'      => (opsional) lama pesan 'ok' tampil sebelum pindah langkah
+ *                  (milidetik; bawaan 1000)
+ *   'button'    => (opsional) label tombol di kartu (mis. "Mulai")
+ *   'skipLabel' => (opsional) teks tautan "Lewati" di kartu (mis. "Sudah cukup sampai di sini")
+ *   'camera'    => (opsional) true = langkah ini dipandu DI DALAM kamera layar penuh (.amtcam). Biasanya kartu
+ *                  tutorial disembunyikan saat kamera terbuka; langkah bertanda ini tetap tampil di atas kamera.
+ *   'over'      => (opsional) true = kartu + sorotan ditampilkan di atas pop up/kamera (z-index lebih tinggi),
+ *                  mis. pop up sukses "Lanjutkan ke Beranda". 'camera' otomatis ikut 'over'.
+ *
+ * Halaman TIDAK digulir otomatis oleh tutorial. Kartu yang menyesuaikan
+ * posisinya (atas / bawah) supaya tidak menutupi bagian yang disorot.
+ *
+ * Status form dibaca dari atribut data-* pada #wk-form yang diperbarui
+ * oleh roles/amt/views/_work_form.php:
+ *   data-loc="1"   lokasi sudah sesuai titik kerja
+ *   data-pin="1"   lokasi sesuai DAN peta (pin) sudah selesai dimuat
+ *   data-act="1"   aktivitas sudah dipilih (Selesai Kerja: selalu 1)
+ *   data-photo="1" foto verifikasi sudah tersimpan
+ *
+ * Dipanggil dari core/layout_bottom.php lewat amt_tour_config($screen).
+ * ============================================================ */
 
+// Nama layar untuk label (dipakai bila langkah tidak punya alur bernomor)
 const AMT_TOUR_SCREEN_ORDER = ['amt_home', 'start_end', 'start_work', 'checkin', 'checkout', 'amt_pti', 'amt_pti_form', 'amt_pti_hasil', 'amt_shipments', 'amt_shipment_detail', 'amt_spbu', 'amt_checklist_lo', 'amt_checklist', 'amt_verifikasi', 'amt_verifikasi_qr', 'amt_verifikasi_kode', 'amt_verifikasi_sukses', 'amt_surat_jalan', 'amt_rating', 'amt_kendala', 'end_work'];
 
 const AMT_TOUR_SCREEN_LABELS = [

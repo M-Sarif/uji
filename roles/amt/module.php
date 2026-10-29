@@ -1,55 +1,48 @@
 <?php
 
-define('AMT_APP_ROOT', APP_ROOT);                  // <root> aplikasi
+define('AMT_APP_ROOT', APP_ROOT);
 define('AMT_DIR', __DIR__);
 define('AMT_INC_DIR', __DIR__ . '/includes');
 define('AMT_VIEW_DIR', __DIR__ . '/views');
 define('AMT_ASSET_DIR', __DIR__ . '/assets');
-const AMT_URL = 'roles/amt/assets';                // dipakai di href/src
+const AMT_URL = 'roles/amt/assets';
 
 require_once AMT_INC_DIR . '/work.php';
-require_once AMT_INC_DIR . '/amt_pti_functions.php'; // PTI + aktivasi setelah Mulai Ritase
-require_once AMT_INC_DIR . '/amt_ship_data.php';      // Shipments: daftar, Detail Order, SPBU
-require_once AMT_INC_DIR . '/amt_pbk.php';            // Checklist Pra-Pembongkaran AMT (Daftar LO, 14 langkah + QR Code)
-require_once AMT_INC_DIR . '/amt_verif_functions.php'; // Verifikasi Order (Daftar LO, QR, Kode, Berhasil)
-require_once AMT_INC_DIR . '/amt_sj.php';             // Foto Surat Jalan (kamera belakang)
-require_once AMT_INC_DIR . '/amt_rating.php';         // Rating Petugas SPBU + Selesaikan Order
-require_once AMT_INC_DIR . '/amt_kendala.php';        // Laporkan Kendala (form, POST, penjagaan akses)
-require_once AMT_INC_DIR . '/amt_out.php';            // Selesai Ritase (scan segel dilakukan di AVM, bukan di aplikasi)
-require_once AMT_INC_DIR . '/amt_performance.php';    // Performance (tab, periode, grafik volume, ringkasan) - tanpa tutorial
-require_once AMT_INC_DIR . '/tutorial.php'; // tutorial terpandu (guided tour) peran AMT
+require_once AMT_INC_DIR . '/amt_pti_functions.php';
+require_once AMT_INC_DIR . '/amt_ship_data.php';
+require_once AMT_INC_DIR . '/amt_pbk.php';
+require_once AMT_INC_DIR . '/amt_verif_functions.php';
+require_once AMT_INC_DIR . '/amt_sj.php';
+require_once AMT_INC_DIR . '/amt_rating.php';
+require_once AMT_INC_DIR . '/amt_kendala.php';
+require_once AMT_INC_DIR . '/amt_out.php';
+require_once AMT_INC_DIR . '/amt_performance.php';
+require_once AMT_INC_DIR . '/tutorial.php';
 
-// Layar milik AMT selain beranda (amt_home)
 const AMT_EXTRA_SCREENS = ['start_end', 'start_work', 'end_work', 'checkin', 'amt_pti', 'amt_pti_form', 'amt_pti_hasil',
     'amt_shipments', 'amt_shipment_detail', 'amt_spbu', 'amt_checklist_lo', 'amt_checklist',
     'amt_verifikasi', 'amt_verifikasi_qr', 'amt_verifikasi_kode', 'amt_verifikasi_sukses',
     'amt_surat_jalan', 'amt_rating', 'checkout', 'amt_performance', 'amt_kendala'];
 
-// Aksi form (POST) milik AMT
 const AMT_POST_ACTIONS = ['submit_start_work', 'submit_end_work', 'submit_checkin', 'submit_spbu_arrive', 'submit_pbk', 'submit_sj', 'submit_rating', 'finish_order', 'submit_checkout', 'submit_kendala'];
 
-/** Beranda AMT (mis. 'amt_home') */
 function amt_home_screen(): string
 {
     return ROLES['amt']['home'] ?? 'dashboard';
 }
 
-/** Gambar kartu AMT di layar pilih peran */
 function amt_card_image(): string
 {
     return AMT_URL . '/img/ilustrasi/empty-delivery-truck.png';
 }
 
-/** Semua layar milik AMT (hook core: amt_screens) */
 function amt_screens(): array
 {
     return array_merge(['amt_home'], AMT_EXTRA_SCREENS);
 }
 
-/** Path file view untuk sebuah layar AMT (hook core: amt_view_file) */
 function amt_view_file(string $screen): string
 {
-    // Layar PTI: nama layar 'amt_pti' / 'amt_pti_form' -> file pti.php / pti_form.php
     $file = ['amt_pti' => 'pti', 'amt_pti_form' => 'pti_form', 'amt_pti_hasil' => 'pti_hasil',
              'amt_shipments' => 'shipments', 'amt_shipment_detail' => 'shipment_detail', 'amt_spbu' => 'spbu',
              'amt_checklist_lo' => 'pra_bongkar_lo', 'amt_checklist' => 'pra_bongkar',
@@ -58,22 +51,20 @@ function amt_view_file(string $screen): string
     return AMT_VIEW_DIR . '/' . $file . '.php';
 }
 
-/** Judul header untuk layar Absensi Kerja */
 function amt_screen_title(string $screen): string
 {
     if ($screen === 'amt_home') {
         return 'Halaman AMT';
     }
-    // Layar SPBU: judul mengikuti kode SPBU pengiriman yang dibuka ("SPBU 65748002")
     if ($screen === 'amt_spbu') {
         $s = amt_ship_current();
         return $s ? 'SPBU ' . $s['spbu'] : 'SPBU';
     }
     if ($screen === 'amt_checklist_lo') {
-        return 'Checklist Pra-Pembongkaran';      // Daftar LO
+        return 'Checklist Pra-Pembongkaran';
     }
     if ($screen === 'amt_checklist') {
-        return 'Checklist Pra Bongkar BBM AMT';   // wizard 14 langkah
+        return 'Checklist Pra Bongkar BBM AMT';
     }
     if ($screen === 'amt_verifikasi_qr') {
         return 'Pindai Kode QR';
@@ -96,33 +87,27 @@ function amt_screen_title(string $screen): string
     return WORK_SCREENS[$screen] ?? '';
 }
 
-/** Tujuan tombol back untuk layar Absensi Kerja */
 function amt_prev_screen(string $screen): ?string
 {
     if ($screen === 'amt_home') {
         return 'role_select';
     }
-    // Tombol back membawa id pengiriman supaya kembali ke pengiriman yang sama
     $id = amt_ship_request_id();
     if ($screen === 'amt_spbu') {
         return 'amt_shipment_detail' . ($id !== '' ? '&id=' . rawurlencode($id) : '');
     }
-    // Daftar LO kembali ke Aktifitas di SPBU; wizard 14 langkah kembali ke Daftar LO
     if ($screen === 'amt_checklist_lo') {
         return 'amt_spbu' . ($id !== '' ? '&id=' . rawurlencode($id) : '');
     }
     if ($screen === 'amt_checklist') {
         return 'amt_checklist_lo' . ($id !== '' ? '&id=' . rawurlencode($id) : '');
     }
-    // Laporkan Kendala: kembali ke Detail Order bila dibuka dari sana, selain itu ke beranda AMT
     if ($screen === 'amt_kendala') {
         return (($_GET['from'] ?? '') === 'detail' && $id !== '') ? 'amt_shipment_detail&id=' . rawurlencode($id) : amt_home_screen();
     }
-    // Surat Jalan kembali ke Aktifitas di SPBU
     if ($screen === 'amt_surat_jalan' || $screen === 'amt_rating') {
         return 'amt_spbu' . ($id !== '' ? '&id=' . rawurlencode($id) : '');
     }
-    // Verifikasi Order: Daftar LO & Berhasil -> kembali ke SPBU; QR / Kode -> kembali ke Daftar LO
     if (in_array($screen, AMT_VERIF_SCREENS, true)) {
         $vid = amt_verif_ship_id();
         $q   = $vid !== '' ? '&id=' . rawurlencode($vid) : '';
@@ -144,27 +129,20 @@ function amt_prev_screen(string $screen): ?string
     ][$screen] ?? null;
 }
 
-/** Apakah menu beranda AMT terkunci? (key = 'checkin' | 'pti' | 'checkout' | ...)
- *  - menu di WORK_LOCKED_MENUS selalu terkunci (belum tersedia)
- *  - menu di WORK_GATED_SCREENS terkunci selama timer belum berjalan */
 function amt_menu_locked(string $key): bool
 {
     if (in_array($key, WORK_LOCKED_MENUS, true)) {
         return true;
     }
-    // Selesai Ritase aktif setelah order selesai + tutorial "scan segel di AVM" ditutup (lihat amt_out_unlocked)
     if ($key === 'checkout') {
         return !amt_out_unlocked();
     }
-    // PTI aktif setelah Mulai Ritase + tutorial DCU dibaca (atau otomatis, lihat amt_pti_unlocked)
     if ($key === 'pti') {
         return !amt_pti_unlocked();
     }
     return in_array($key, WORK_GATED_SCREENS, true) && !work_is_running();
 }
 
-/** Penjagaan akses (GET): menu terkunci saat timer belum jalan,
- *  Mulai Kerja hanya saat timer belum jalan, Selesai Kerja hanya saat jalan. */
 function amt_guard_work(string $screen): void
 {
     if (in_array($screen, WORK_GATED_SCREENS, true) && !work_is_running()) {
@@ -176,20 +154,13 @@ function amt_guard_work(string $screen): void
     if ($screen === 'end_work' && !work_is_running()) {
         go_to('start_end');
     }
-    amt_pbk_guard($screen);   // Daftar LO + Checklist Pra Bongkar: hanya setelah "Tiba di Lokasi"
-    amt_sj_guard($screen);    // Surat Jalan: hanya setelah semua LO terverifikasi
-    amt_rating_guard($screen); // Beri Penilaian: hanya setelah foto surat jalan tersimpan
-    amt_kendala_guard($screen); // Laporkan Kendala: hanya saat jam kerja berjalan + ada pengiriman berjalan
-    amt_out_guard($screen);    // Selesai Ritase: hanya setelah order selesai + tutorial scan segel di AVM ditutup
+    amt_pbk_guard($screen);
+    amt_sj_guard($screen);
+    amt_rating_guard($screen);
+    amt_kendala_guard($screen);
+    amt_out_guard($screen);
 }
 
-/* ------------------------------------------------------------
- * "Epoch" tutorial AMT: penanda siklus. Setiap kali siklus baru dimulai
- * (kembali ke index, Mulai Kerja, Selesai Kerja) epoch berganti; JS
- * (roles/amt/assets/js/tutorial-amt.js) membandingkannya dengan yang tersimpan
- * di browser dan otomatis menghapus catatan "tutorial sudah selesai /
- * dilewati" bila berbeda. Jadi tutorial selalu muncul lagi di siklus baru.
- * ------------------------------------------------------------ */
 function amt_tour_epoch(): string
 {
     if (empty($_SESSION['amt_tour_epoch'])) {
@@ -203,14 +174,6 @@ function amt_tour_bump(): void
     $_SESSION['amt_tour_epoch'] = bin2hex(random_bytes(6));
 }
 
-/* ------------------------------------------------------------
- * "Fresh" tutorial AMT: penanda KUNJUNGAN BARU ke peran AMT. Berganti HANYA saat layar
- * pilih peran (index) dibuka. JS membandingkannya dengan yang tersimpan di browser; bila
- * berbeda, status tutorial "dimatikan" (hasil Lewati / selesai) dihapus, sehingga:
- *   - memilih AMT dari index -> tutorial otomatis muncul lagi;
- *   - setelah Lewati / selesai -> tutorial tidak muncul lagi (kecuali lewat tombol "?").
- * Beda dengan epoch: epoch ikut berganti saat Absensi Kerja, fresh tidak.
- * ------------------------------------------------------------ */
 function amt_tour_fresh(): string
 {
     if (empty($_SESSION['amt_tour_fresh'])) {
@@ -219,52 +182,35 @@ function amt_tour_fresh(): string
     return (string) $_SESSION['amt_tour_fresh'];
 }
 
-/**
- * @param bool $hard true = reset PAKSA (ikon profil): token diawali "r". tutorial-amt.js menghapus SEMUA status
- *                   (dimatikan + sudah selesai). Token biasa tidak menghapus status "sudah selesai".
- */
 function amt_tour_fresh_bump(bool $hard = false): void
 {
     $_SESSION['amt_tour_fresh'] = ($hard ? 'r' : 'n') . bin2hex(random_bytes(6));
 }
 
-/**
- * Ikon profil di beranda AMT diketuk: muat ulang halaman AMT dan kembali ke MODE AWAL (tutorial menyala dari awal).
- * Sama seperti memilih AMT dari layar pilih peran, tetapi tetap di peran AMT dan juga membatalkan status
- * "tutorial sudah selesai" / "dimatikan".
- */
 function amt_tour_hard_reset(): void
 {
-    amt_tour_off_forget(true);      // cookie mode bebas dihapus
-    amt_tour_finished_forget();     // cookie "sudah selesai" dihapus
-    amt_reset_all();                // timer kerja, Mulai Ritase, PTI, dst kembali ke awal (+ epoch berganti)
-    amt_tour_fresh_bump(true);      // browser: hapus status dimatikan / selesai
+    amt_tour_off_forget(true);
+    amt_tour_finished_forget();
+    amt_reset_all();
+    amt_tour_fresh_bump(true);
 }
 
-/** Mulai ulang SEMUA state AMT: timer kerja, Mulai Ritase, PTI, alur DCU, dan tutorial. */
 function amt_reset_all(): void
 {
     unset($_SESSION['work'], $_SESSION['flash_success']);
     amt_pti_reset();
-    amt_spbu_reset();   // status "Tiba di Lokasi" ikut direset
-    amt_verif_reset();  // Verifikasi Order ikut direset
-    amt_out_reset();    // Selesai Ritase ikut direset
-    amt_kendala_reset(); // laporan kendala ikut direset
+    amt_spbu_reset();
+    amt_verif_reset();
+    amt_out_reset();
+    amt_kendala_reset();
     amt_tour_bump();
 }
 
-/** Permintaan dari JS (fetch) yang meminta jawaban JSON, bukan redirect? */
 function amt_wants_json(): bool
 {
     return stripos((string) ($_SERVER['HTTP_ACCEPT'] ?? ''), 'application/json') !== false;
 }
 
-/**
- * Form kerja (Absensi Kerja, Mulai Ritase, Selesai Ritase) berhasil dikirim.
- *  - Lewat JS (fetch): jawab JSON -> form menampilkan pop up sukses + tombol "Lanjutkan ke Beranda"
- *    (atau teks tombol lain lewat $button, mis. "OK" pada Selesai Ritase).
- *  - Tanpa JS: simpan notifikasi (toast) lalu redirect ke beranda seperti biasa.
- */
 function amt_work_success(string $title, string $body, ?string $button = null): void
 {
     if (amt_wants_json()) {
@@ -274,8 +220,8 @@ function amt_work_success(string $title, string $body, ?string $button = null): 
             'ok'     => true,
             'title'  => $title,
             'body'   => $body,
-            'button' => $button,      // teks tombol pop up (null = bawaan "Lanjutkan ke Beranda"); Selesai Ritase: "OK"
-            'next'   => 'index.php?screen=' . rawurlencode(amt_home_screen()),
+            'button' => $button,
+            'next'   => app_screen_url(amt_home_screen()),
         ], JSON_UNESCAPED_UNICODE);
         exit;
     }
@@ -283,12 +229,10 @@ function amt_work_success(string $title, string $body, ?string $button = null): 
     go_to(amt_home_screen());
 }
 
-/** Proses form Mulai Kerja / Selesai Kerja (pola Post/Redirect/Get) */
 function amt_handle_post(string $action): void
 {
     switch ($action) {
         case 'submit_start_work':
-            // Aktivitas + foto wajib, lalu timer berjalan
             $akt = (string) ($_POST['aktivitas'] ?? '');
             if (work_is_running()
                 || !work_post_in_range()
@@ -297,11 +241,11 @@ function amt_handle_post(string $action): void
             ) {
                 go_to('start_work');
             }
-            amt_pti_reset(); // shift baru: PTI & tutorial mulai dari awal
+            amt_pti_reset();
             amt_spbu_reset();
             amt_verif_reset();
             amt_out_reset();
-            amt_kendala_reset(); // laporan kendala shift lalu dibersihkan, supaya tutorial "Laporkan Kendala" tampil lagi
+            amt_kendala_reset();
             amt_tour_bump();
             $_SESSION['work'] = [
                 'started_at'  => time(),
@@ -309,14 +253,13 @@ function amt_handle_post(string $action): void
                 'activity'    => $akt,
                 'start_photo' => true,
                 'end_photo'   => false,
-                'active_acc'   => 0,   // Jam Kerja Aktif: belum berjalan sampai "Mulai Ritase"
+                'active_acc'   => 0,
                 'active_since' => 0,
             ];
             amt_work_success('Mulai Kerja Berhasil!', 'Anda dapat menekan Mulai Ritase sekarang.');
             break;
 
         case 'submit_end_work':
-            // Aktivitas mengikuti Mulai Kerja (tidak bisa diubah)
             if (!work_is_running() || !work_post_in_range() || ($_POST['photo'] ?? '') !== '1') {
                 go_to('end_work');
             }
@@ -326,14 +269,13 @@ function amt_handle_post(string $action): void
             amt_out_reset();
             amt_kendala_reset();
             amt_tour_bump();
-            work_active_stop();   // Jam Kerja Aktif berhenti; kedua jam kembali ke 00:00:00
+            work_active_stop();
             $_SESSION['work']['ended_at'] = time();
             $_SESSION['work']['end_photo'] = true;
             amt_work_success('Selesai Kerja Berhasil!', 'Jam kerja Anda sudah berakhir. Terima kasih atas kerja keras Anda hari ini.');
             break;
 
         case 'submit_checkin':
-            // Mulai Ritase hanya boleh saat timer berjalan; aktivitas + foto wajib
             $akt = (string) ($_POST['aktivitas'] ?? '');
             if (!work_is_running()
                 || !work_post_in_range()
@@ -342,22 +284,20 @@ function amt_handle_post(string $action): void
             ) {
                 go_to('checkin');
             }
-            // Foto disimpan (dataURL) supaya bisa dilihat lagi lewat "Lihat Foto"
-            // di tab Riwayat Ritase. Hanya gambar yang ukurannya wajar.
             $photo = (string) ($_POST['photo_data'] ?? '');
             if (!preg_match('#^data:image/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$#', $photo)
                 || strlen($photo) > 3000000
             ) {
                 $photo = '';
             }
-            amt_out_clear_after();      // Mulai Ritase lagi: arahan Selesai Kerja sesudah Selesai Ritase tidak berlaku lagi
+            amt_out_clear_after();
             $_SESSION['work']['checkins'][] = [
                 'at'       => time(),
                 'activity' => $akt,
                 'photo'    => $photo,
             ];
-            work_active_resume();       // Jam Kerja Aktif berjalan (melanjutkan dari angka terakhir bila sebelumnya dijeda)
-            amt_flow_checkin_success(); // mulai alur: tutorial DCU -> PTI aktif
+            work_active_resume();
+            amt_flow_checkin_success();
             $nCheckin = count($_SESSION['work']['checkins']);
             amt_work_success(
                 'Berhasil Mulai Ritase ' . ucfirst(amt_out_ordinal($nCheckin)),
@@ -366,8 +306,6 @@ function amt_handle_post(string $action): void
             break;
 
         case 'submit_spbu_arrive':
-            // "Ya, pengiriman telah tiba": hanya untuk pengiriman yang sedang berjalan,
-            // saat timer kerja berjalan (atau mode bebas / tutorial dimatikan), dan posisi berada dalam radius SPBU.
             if (!amt_work_ok()) {
                 go_to(amt_home_screen());
             }
@@ -383,7 +321,7 @@ function amt_handle_post(string $action): void
                 || !is_numeric($_POST['lat']) || !is_numeric($_POST['lng'])
                 || !amt_spbu_in_range($s, (float) $_POST['lat'], (float) $_POST['lng'])
             ) {
-                go_to('amt_spbu', $back);   // lokasi belum sesuai: tidak dicatat
+                go_to('amt_spbu', $back);
             }
             amt_spbu_mark_arrived($s, (float) $_POST['lat'], (float) $_POST['lng']);
             $_SESSION['flash_success'] = [
@@ -394,42 +332,36 @@ function amt_handle_post(string $action): void
             break;
 
         case 'submit_pbk':
-            amt_pbk_handle_post();   // lihat roles/amt/includes/amt_pbk.php
+            amt_pbk_handle_post();
             break;
 
         case 'submit_sj':
-            amt_sj_handle_post();    // lihat roles/amt/includes/amt_sj.php
+            amt_sj_handle_post();
             break;
 
         case 'submit_rating':
-            amt_rating_handle_post(); // lihat roles/amt/includes/amt_rating.php
+            amt_rating_handle_post();
             break;
 
         case 'finish_order':
-            amt_order_finish_post();  // pop up "Menyelesaikan Order" -> beranda AMT
+            amt_order_finish_post();
             break;
 
         case 'submit_checkout':
-            amt_out_handle_post();    // lihat roles/amt/includes/amt_out.php
+            amt_out_handle_post();
             break;
 
         case 'submit_kendala':
-            amt_kendala_handle_post(); // lihat roles/amt/includes/amt_kendala.php
+            amt_kendala_handle_post();
             break;
     }
 }
 
-/**
- * Header layar AMT (selain beranda): judul DI TENGAH + tombol back berupa panah tipis "←",
- * seperti aplikasi asli. Untuk mengembalikan gaya lama (judul di kiri) pada layar tertentu,
- * kembalikan class kosong untuk layar itu di sini. Gayanya: assets/css/amt-header.css.
- */
 function amt_header_style(string $screen): array
 {
     return ['class' => ' centered amt-centered', 'arrow' => true, 'spacer' => true];
 }
 
-/** Beranda AMT memakai header sendiri (logo, lonceng, tombol ganti peran) */
 function amt_header_partial(string $screen): ?string
 {
     return $screen === amt_home_screen() ? AMT_VIEW_DIR . '/partials/header_home.php' : null;
@@ -440,7 +372,6 @@ function amt_content_class(string $screen): string
     return $screen === 'amt_home' ? ' content-amt' : '';
 }
 
-/** CSS layar AMT. Beranda AMT juga memakai role.css (core). */
 function amt_screen_css(string $screen): array
 {
     $map = [
@@ -463,19 +394,16 @@ function amt_screen_css(string $screen): array
     return $map[$screen] ?? [];
 }
 
-/** CSS global AMT di <head> (gaya header layar AMT) */
 function amt_global_css(): array
 {
     return [AMT_URL . '/css/amt-header.css'];
 }
 
-/** Mesin + gaya tutorial AMT (terpisah dari tutorial SPBU) */
 function amt_tour_assets(): array
 {
     return ['engine' => AMT_URL . '/js/tutorial-amt.js', 'css' => [AMT_URL . '/css/tutorial-amt.css']];
 }
 
-/** Skrip beranda AMT (menu Mulai / Selesai Kerja, kunci menu, timer) - dipanggil setelah view dirender */
 function amt_after_view(string $screen): void
 {
     if ($screen === amt_home_screen()) {
@@ -483,50 +411,39 @@ function amt_after_view(string $screen): void
     }
 }
 
-/* ------------------------------------------------------------
- * Hook alur untuk core (core/roles.php)
- * ------------------------------------------------------------ */
-
-/** Aksi POST milik AMT: aksi form + 'pti_action' (form PTI & ack tutorial, dikirim tanpa field 'action') */
 function amt_accepts_post(string $action): bool
 {
     return in_array($action, AMT_POST_ACTIONS, true) || isset($_POST['pti_action']) || isset($_POST['out_action']);
 }
 
-/** Layar pilih peran dibuka => AMT dimulai dari awal: timer, Mulai Ritase, PTI, tutorial di-restart. */
 function amt_on_role_select_screen(): void
 {
-    amt_tour_off_forget();   // kunjungan baru: tutorial menyala lagi, mode bebas berakhir (KECUALI tutorial sudah diselesaikan)
+    amt_tour_off_forget();
     amt_reset_all();
-    amt_tour_fresh_bump();   // kunjungan baru -> tutorial otomatis aktif lagi saat AMT dipilih
+    amt_tour_fresh_bump();
 }
 
-/** Pengguna pindah ke peran lain: jam kerja AMT dihapus supaya state tidak bocor antar peran. */
 function amt_on_role_change(): void
 {
     unset($_SESSION['work'], $_SESSION['amt_out']);
 }
 
-/** Penjagaan sebelum ada output: PTI (ack tutorial, akses, simpan jawaban) + Verifikasi Order */
 function amt_bootstrap(string $screen): void
 {
-    // Ikon profil (pojok kanan atas beranda): reset ke mode awal, lalu redirect supaya muat ulang tidak mengulang reset.
     if ($screen === amt_home_screen() && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET' && isset($_GET['tour_reset'])) {
         amt_tour_hard_reset();
         go_to(amt_home_screen());
     }
-    amt_out_bootstrap($screen);   // tutorial "scan segel di AVM" ditutup (POST out_action=seal_ack)
+    amt_out_bootstrap($screen);
     amt_pti_bootstrap($screen);
     amt_verif_bootstrap($screen);
 }
 
-/** Penjagaan akses layar (GET) */
 function amt_guard(string $screen): void
 {
     amt_guard_work($screen);
 }
 
-/** Beranda AMT dibuka: tidak ada progres alur AMT yang di-reset, tapi tutorial dianggap "baru". */
 function amt_on_home(string $screen): bool
 {
     return $screen === amt_home_screen();

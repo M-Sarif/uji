@@ -1,4 +1,34 @@
-
+/* ============================================================
+ * OneFIS - AMT - mesin tutorial terpandu (khusus peran AMT)
+ *
+ * Ditulis ulang supaya mudah dipahami orang awam:
+ *  - BERBASIS KONDISI: mesin selalu menampilkan langkah PERTAMA yang belum
+ *    selesai (dibaca dari keadaan halaman), jadi tutorial tidak pernah
+ *    "hilang" walau kamera dibatalkan atau form diisi tidak berurutan.
+ *  - JEDA SINGKAT: hanya ~0,8 detik sekali saat halaman dibuka (atau sesuai
+ *    config.startDelay, mis. 5 detik untuk pemberitahuan DCU). Antar
+ *    langkah tidak ada jeda; hanya pesan "sudah benar" 1 detik.
+ *  - HALAMAN DIAM: tutorial TIDAK menggulir halaman dan TIDAK menambah
+ *    ruang kosong. Yang menyesuaikan diri adalah kartu tutorialnya: ia
+ *    menempel di bawah, atau pindah ke atas bila akan menutupi bagian
+ *    yang disorot. Bila bagian yang disorot ada di luar layar, kartu
+ *    meminta pengguna menggulir sendiri.
+ *  - LANGKAH "KETUK + TUNGGU" (needTap): mis. Perbarui Lokasi. Langkah baru
+ *    selesai setelah diketuk DAN keadaannya terpenuhi (pin peta tampil),
+ *    lalu pesan "sudah benar" ditahan sesuai 'hold' (2 detik) sebelum lanjut.
+ *  - AUTO-HIDE (autoHide): kartu bisa tertutup sendiri setelah sekian ms
+ *    bila pengguna tidak mengetuk tombolnya; sama seperti mengetuk "Mengerti".
+ *  - DAFTAR BERNOMOR (list): kartu boleh memuat tahapan berurutan.
+ *  - INGAT LANGKAH (remember): langkah yang sudah dibaca tidak diulang bila
+ *    pengguna pindah halaman lalu kembali sebelum alur selesai.
+ *  - Tersembunyi otomatis saat kamera / pop up foto (check-in, Lihat Foto surat jalan) terbuka. Popup konfirmasi PTI
+ *    justru DISOROT oleh langkah tutorial (lihat tutorial.php, 'when').
+ *  - "Lewati" hanya menyembunyikan tutorial halaman ini (sesi ini); tombol
+ *    "?" selalu bisa memulai lagi.
+ *
+ * Data langkah: roles/amt/includes/tutorial.php. Gaya: roles/amt/assets/css/tutorial-amt.css.
+ * Dimuat oleh core/layout_bottom.php hanya saat peran = AMT.
+ * ============================================================ */
 (function (window, document) {
     'use strict';
 

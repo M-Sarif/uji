@@ -1,7 +1,4 @@
 <?php
-/**
- * Halaman login ADMIN.   Letak: admin/login.php
- */
 require __DIR__ . '/../app/admin_auth.php';
 admin_boot();
 
@@ -39,7 +36,7 @@ admin_header('Masuk');
     <h1>Masuk Admin</h1>
     <p class="muted">Khusus pengelola OneFIS.</p>
     <?php if ($error !== ''): ?><div class="alert alert-err" role="alert"><?php echo e($error); ?></div><?php endif; ?>
-    <form method="post" action="login.php" autocomplete="off">
+    <form method="post" action="<?php echo e(admin_url('login')); ?>" autocomplete="off">
         <?php echo csrf_field(); ?>
         <label class="field"><span>Username</span>
             <input type="text" name="username" maxlength="50" required autofocus autocomplete="username">

@@ -1,4 +1,9 @@
 <?php
+/**
+ * Layar: ?screen=amt_shipments  (role AMT)  -- "Shipments"
+ * Daftar pengiriman AMT + filter status. Tombol "Lihat Detail Order" membuka amt_shipment_detail.
+ * data-tour dipakai tutorial AMT (roles/amt/includes/tutorial.php).
+ */
 require_once AMT_INC_DIR . '/amt_ship_data.php';
 
 $ships = amt_ship_all();

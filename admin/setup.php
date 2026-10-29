@@ -1,15 +1,11 @@
 <?php
-/**
- * Pembuatan akun admin PERTAMA. Halaman ini hanya bisa dipakai selama tabel admins masih kosong;
- * setelah satu admin dibuat, halaman ini menolak semua permintaan.   Letak: admin/setup.php
- */
 require __DIR__ . '/../app/admin_auth.php';
 admin_boot();
 
 if (admin_exists()) {
     http_response_code(404);
     admin_header('Tidak ditemukan');
-    echo '<section class="card card-narrow"><h1>Setup sudah selesai</h1><p class="muted">Akun admin sudah dibuat. <a href="login.php">Masuk</a></p></section>';
+    echo '<section class="card card-narrow"><h1>Setup sudah selesai</h1><p class="muted">Akun admin sudah dibuat. <a href="' . e(admin_url('login')) . '">Masuk</a></p></section>';
     admin_footer();
     exit;
 }
@@ -32,7 +28,6 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     } elseif (!hash_equals($pass1, $pass2)) {
         $error = 'Konfirmasi password tidak sama.';
     } else {
-        // INSERT ... WHERE NOT EXISTS: hanya berhasil bila belum ada admin (aman dari dua permintaan bersamaan).
         $st = db()->prepare(
             'INSERT INTO admins (username, password_hash, created_at)
              SELECT :u, :h, :t FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM admins)'
@@ -52,7 +47,7 @@ admin_header('Setup Admin');
     <h1>Buat Akun Admin</h1>
     <p class="muted">Dilakukan sekali saja. Setelah akun dibuat, halaman ini otomatis tertutup.</p>
     <?php if ($error !== ''): ?><div class="alert alert-err" role="alert"><?php echo e($error); ?></div><?php endif; ?>
-    <form method="post" action="setup.php" autocomplete="off">
+    <form method="post" action="<?php echo e(admin_url('setup')); ?>" autocomplete="off">
         <?php echo csrf_field(); ?>
         <label class="field"><span>Username</span>
             <input type="text" name="username" value="<?php echo e($username); ?>" maxlength="50" required autofocus autocomplete="username">
