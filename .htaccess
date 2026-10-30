@@ -1,6 +1,8 @@
 Options -Indexes
 ServerSignature Off
-DirectorySlash Off
+<If "%{REQUEST_URI} =~ m#/admin$#">
+    DirectorySlash Off
+</If>
 
 <IfModule mod_rewrite.c>
     RewriteEngine On

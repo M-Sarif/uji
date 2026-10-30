@@ -1,22 +1,11 @@
 <?php
-/**
- * OneFIS - autentikasi pengguna lewat TOKEN (peran AMT / SPBU).
- *
- *   - Token dibuat admin (admin/index.php) dan terikat ke SATU peran.
- *   - Di database hanya tersimpan HMAC-SHA256 dari token (bukan token aslinya), jadi bocornya
- *     isi database tidak membocorkan token yang masih berlaku.
- *   - Token asli hanya tampil sekali saat dibuat.
- *   - Tiap permintaan, sesi dicek ulang ke database: token yang dinonaktifkan / dihapus /
- *     kedaluwarsa langsung mengeluarkan penggunanya.
- *
- * Letak: app/auth.php
- */
 
-const TOKEN_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';   // 32 karakter, tanpa I O 0 1 yang membingungkan
-const TOKEN_LENGTH   = 16;                                    // 32^16 = 80 bit
+const TOKEN_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const TOKEN_MIN_LENGTH = 6;
+const TOKEN_MAX_LENGTH = 32;
+const TOKEN_LENGTH   = 16;
 const AUTH_ROLES     = ['amt', 'spbu'];
 
-/** Kunci rahasia (pepper) untuk hash token. Dibuat otomatis sekali di app/secret.key. */
 function token_pepper(): string
 {
     static $pepper = null;
@@ -37,10 +26,9 @@ function token_pepper(): string
     return $pepper;
 }
 
-/** Token mentah (diketik pengguna, boleh huruf kecil / tanda hubung / spasi) -> bentuk baku. */
 function token_normalize(string $raw): string
 {
-    return (string) preg_replace('/[^' . TOKEN_ALPHABET . ']/', '', strtoupper($raw));
+    return (string) preg_replace('/[^A-Z0-9]/', '', strtoupper($raw));
 }
 
 function token_generate(): string
@@ -53,10 +41,58 @@ function token_generate(): string
     return $out;
 }
 
-/** "ABCD1234EFGH5678" -> "ABCD-1234-EFGH-5678" */
 function token_format(string $normalized): string
 {
-    return implode('-', str_split($normalized, 4));
+    return strlen($normalized) === TOKEN_LENGTH ? implode('-', str_split($normalized, 4)) : $normalized;
+}
+
+function token_enc_key(): string
+{
+    return hash_hmac('sha256', 'onefis-token-copy-v1', token_pepper(), true);
+}
+
+function token_encrypt(string $plain): ?string
+{
+    if (!function_exists('openssl_encrypt')) {
+        return null;
+    }
+    $iv  = random_bytes(12);
+    $tag = '';
+    $ct  = openssl_encrypt($plain, 'aes-256-gcm', token_enc_key(), OPENSSL_RAW_DATA, $iv, $tag);
+    return $ct === false ? null : base64_encode($iv . $tag . $ct);
+}
+
+function token_decrypt(string $blob): ?string
+{
+    $raw = base64_decode($blob, true);
+    if ($raw === false || strlen($raw) < 29 || !function_exists('openssl_decrypt')) {
+        return null;
+    }
+    $plain = openssl_decrypt(substr($raw, 28), 'aes-256-gcm', token_enc_key(), OPENSSL_RAW_DATA, substr($raw, 0, 12), substr($raw, 12, 16));
+    return $plain === false ? null : $plain;
+}
+
+function token_copy_ready(PDO $pdo): bool
+{
+    static $ready = null;
+    if ($ready !== null) {
+        return $ready;
+    }
+    if (!function_exists('openssl_encrypt') || !in_array('aes-256-gcm', openssl_get_cipher_methods(), true)) {
+        return $ready = false;
+    }
+    try {
+        $pdo->query('SELECT token_enc FROM access_tokens LIMIT 1')->fetchAll();
+        return $ready = true;
+    } catch (Throwable $e) {
+    }
+    try {
+        $pdo->exec('ALTER TABLE access_tokens ADD COLUMN token_enc VARCHAR(255) NULL');
+        return $ready = true;
+    } catch (Throwable $e) {
+        error_log('Kolom token_enc tidak bisa dibuat: ' . $e->getMessage());
+        return $ready = false;
+    }
 }
 
 function token_hash(string $normalized): string
@@ -64,20 +100,13 @@ function token_hash(string $normalized): string
     return hash_hmac('sha256', $normalized, token_pepper());
 }
 
-/**
- * Coba masuk dengan token untuk peran tertentu.
- * Satu pernyataan UPDATE atomik sekaligus memeriksa: token cocok, peran cocok, aktif, belum
- * kedaluwarsa, dan kuota pemakaian belum habis -> tidak ada celah balapan antar permintaan.
- *
- * @return int|null id token bila berhasil, null bila ditolak (alasan sengaja tidak dibedakan)
- */
 function auth_try_token(string $role, string $rawToken): ?int
 {
     if (!in_array($role, AUTH_ROLES, true)) {
         return null;
     }
     $normalized = token_normalize($rawToken);
-    if (strlen($normalized) !== TOKEN_LENGTH) {
+    if (strlen($normalized) < TOKEN_MIN_LENGTH || strlen($normalized) > TOKEN_MAX_LENGTH) {
         return null;
     }
     $hash = token_hash($normalized);
@@ -114,7 +143,6 @@ function auth_try_token(string $role, string $rawToken): ?int
     }
 }
 
-/** Tandai sesi sebagai sudah login (token valid). Id sesi diganti untuk mencegah session fixation. */
 function auth_start_session(int $tokenId, string $role): void
 {
     session_regenerate_id(true);
@@ -124,25 +152,18 @@ function auth_start_session(int $tokenId, string $role): void
     unset($_SESSION['pending_role']);
 }
 
-/** Keluar: seluruh data sesi (state AMT/SPBU juga) dihapus. */
 function auth_logout(): void
 {
     $_SESSION = [];
     session_regenerate_id(true);
 }
 
-/** Peran yang sudah terbukti lewat token (null = belum login). */
 function auth_role(): ?string
 {
     $a = $_SESSION['auth'] ?? null;
     return (is_array($a) && isset($a['role']) && in_array($a['role'], AUTH_ROLES, true)) ? $a['role'] : null;
 }
 
-/**
- * Dipanggil index.php di setiap permintaan, sebelum peran dipakai.
- *  1. Peran di sesi tanpa bukti token -> dibuang (tidak ada jalan masuk selain lewat token).
- *  2. Token di sesi dicek ulang ke database (masih aktif? belum kedaluwarsa? perannya sama?).
- */
 function auth_enforce(): void
 {
     $auth = $_SESSION['auth'] ?? null;

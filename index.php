@@ -31,6 +31,14 @@ auth_enforce();                   // peran tanpa bukti token dibuang; token dice
 $validScreens = app_screens();
 
 // Layar awal = pilihan peran (SPBU / AMT), bukan langsung tampilan aplikasi.
+if (!isset($_GET['screen'])) {
+    $prettySegment = strtolower(basename((string) parse_url((string) ($_SERVER['REQUEST_URI'] ?? ''), PHP_URL_PATH)));
+    $prettyScreens = ['home' => 'role_select', 'amt' => 'amt_home', 'spbu' => 'dashboard', 'token' => 'token_login'];
+    if (isset($prettyScreens[$prettySegment])) {
+        $_GET['screen'] = $prettyScreens[$prettySegment];
+    }
+}
+
 $screen = $_GET['screen'] ?? 'role_select';
 if (!is_string($screen) || !in_array($screen, $validScreens, true)) {
     $screen = 'role_select';

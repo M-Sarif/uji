@@ -14,6 +14,10 @@ $photoName = $isOut ? 'Foto Selesai Ritase' : ($isEnd ? 'Foto Selesai Kerja' : '
 $hasCheckin = !$isOut || (bool) work_checkins();
 $btnLabel  = $isOut ? ($hasCheckin ? 'Kirim Selesai Ritase' : 'Tekan Mulai Ritase Terlebih Dahulu')
            : ($isEnd ? 'Akhiri Pekerjaan' : 'Kirim');
+$needConfirm = !$isOut && !$isCheckin;
+$confirmText = $isEnd
+    ? ['title' => 'Selesai Kerja', 'text' => 'Apakah Anda yakin ingin mengakhiri pekerjaan hari ini?']
+    : ['title' => 'Mulai Kerja', 'text' => 'Apakah Anda yakin ingin absen kehadiran?'];
 $w         = work_data();
 $activity  = $w['activity'] ?? '';
 ?>
@@ -116,15 +120,15 @@ $activity  = $w['activity'] ?? '';
     </div>
     <h3 class="wk-modal-title" id="wk-success-title"></h3>
     <p class="wk-modal-body" id="wk-success-body"></p>
-    <a class="wk-modal-btn" id="wk-success-go" href="<?= htmlspecialchars(app_screen_url(amt_home_screen()), ENT_QUOTES) ?>"><?= $isOut ? 'OK' : 'Lanjutkan ke Beranda' ?></a>
+    <a class="wk-modal-btn" id="wk-success-go" href="<?= htmlspecialchars(app_screen_url(amt_home_screen()), ENT_QUOTES) ?>"><?= $isOut ? 'OK' : 'Lanjutkan ke Homepage' ?></a>
   </div>
 </div>
 
-<?php if ($isEnd): ?>
-<div class="wk-modal wk-confirm" id="ew-confirm" role="dialog" aria-modal="true" aria-labelledby="ew-confirm-title" hidden>
+<?php if ($needConfirm): ?>
+<div class="wk-modal wk-confirm" id="ew-confirm" role="alertdialog" aria-modal="true" aria-labelledby="ew-confirm-title" aria-describedby="ew-confirm-text" hidden>
   <div class="wk-confirm-card">
-    <h3 id="ew-confirm-title">Selesai Kerja</h3>
-    <p>Apakah Anda yakin ingin mengakhiri pekerjaan hari ini?</p>
+    <h3 id="ew-confirm-title"><?= htmlspecialchars($confirmText['title']) ?></h3>
+    <p id="ew-confirm-text"><?= htmlspecialchars($confirmText['text']) ?></p>
     <button type="button" class="wk-confirm-yes" id="ew-yes">Ya</button>
     <button type="button" class="wk-confirm-no" id="ew-no">Batal</button>
   </div>
@@ -138,6 +142,7 @@ $activity  = $w['activity'] ?? '';
   var isV2     = <?= $isV2 ? 'true' : 'false' ?>;
   var isEnd    = <?= $isEnd ? 'true' : 'false' ?>;
   var isOut    = <?= $isOut ? 'true' : 'false' ?>;
+  var needConfirm = <?= $needConfirm ? 'true' : 'false' ?>;
   var hasCheckin = <?= $hasCheckin ? 'true' : 'false' ?>;
   var sel    = document.getElementById('wk-akt');
   var photo  = document.getElementById('wk-photo');
@@ -255,8 +260,27 @@ $activity  = $w['activity'] ?? '';
     document.dispatchEvent(new CustomEvent('amt:state'));
   }
 
-  function openConfirm()  { if (confirmEl) { confirmEl.hidden = false; document.getElementById('ew-yes').focus(); document.dispatchEvent(new CustomEvent('amt:state')); } }
-  function closeConfirm() { if (confirmEl) { confirmEl.hidden = true; document.dispatchEvent(new CustomEvent('amt:state')); } }
+  function onConfirmKey(e) {
+    if (e.key === 'Escape') { closeConfirm(); return; }
+    if (e.key === 'Tab') {
+      var yesB = document.getElementById('ew-yes'), noB = document.getElementById('ew-no');
+      if (e.shiftKey && document.activeElement === noB) { e.preventDefault(); yesB.focus(); }
+      else if (!e.shiftKey && document.activeElement === yesB) { e.preventDefault(); noB.focus(); }
+    }
+  }
+  function openConfirm() {
+    if (!confirmEl) { return; }
+    confirmEl.hidden = false;
+    document.addEventListener('keydown', onConfirmKey);
+    document.getElementById('ew-no').focus();
+    document.dispatchEvent(new CustomEvent('amt:state'));
+  }
+  function closeConfirm() {
+    if (!confirmEl) { return; }
+    confirmEl.hidden = true;
+    document.removeEventListener('keydown', onConfirmKey);
+    document.dispatchEvent(new CustomEvent('amt:state'));
+  }
   if (confirmEl) {
     document.getElementById('ew-yes').addEventListener('click', function () {
       confirmed = true;
@@ -271,7 +295,8 @@ $activity  = $w['activity'] ?? '';
     if (!window.fetch || !window.FormData) { return; }
     e.preventDefault();
     if (sending || submit.disabled) { return; }
-    if (isEnd && !confirmed) { openConfirm(); return; }
+    if (needConfirm && !confirmed) { openConfirm(); return; }
+    confirmed = false;
     sending = true;
     submit.disabled = true;
     submitLabel.textContent = 'Mengirim…';

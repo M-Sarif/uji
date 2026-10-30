@@ -1,4 +1,3 @@
-/* OneFIS Admin - gaya halaman admin (tanpa inline style, sesuai CSP).  Letak: admin/assets/admin.css */
 *,*::before,*::after{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
 body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;font-size:.9375rem;line-height:1.5;color:#1e293b;background:#f1f5f9}
@@ -69,3 +68,6 @@ input:focus,select:focus{outline:2px solid #93c5fd;border-color:#2563eb}
 
 .pager{display:flex;align-items:center;justify-content:space-between;gap:.75rem;margin-top:.875rem;flex-wrap:wrap}
 textarea.copy-helper{position:fixed;left:-9999px;top:0}
+.token-cell{white-space:nowrap}
+.token-cell code{margin-right:.5rem}
+.token-cell .btn{vertical-align:middle}

@@ -3,6 +3,7 @@ require __DIR__ . '/../app/admin_auth.php';
 admin_boot();
 $admin = admin_require();
 $pdo   = db();
+$copyReady = token_copy_ready($pdo);
 
 const PER_PAGE = 20;
 
@@ -13,6 +14,36 @@ function token_filters(array $src): array
     $q      = isset($src['q']) && is_string($src['q']) ? trim(str_cut($src['q'], 60)) : '';
     $page   = isset($src['page']) && is_string($src['page']) && ctype_digit($src['page']) ? max(1, min(100000, (int) $src['page'])) : 1;
     return ['role' => $role, 'status' => $status, 'q' => $q, 'page' => $page];
+}
+
+function token_reveal_response(PDO $pdo, bool $copyReady): void
+{
+    header('Content-Type: application/json; charset=UTF-8');
+    header('Cache-Control: no-store');
+    $fail = static function (int $code, string $msg): void {
+        http_response_code($code);
+        echo json_encode(['error' => $msg]);
+        exit;
+    };
+    if (!csrf_verify()) {
+        $fail(403, 'Sesi tidak valid. Muat ulang halaman lalu coba lagi.');
+    }
+    if (!$copyReady) {
+        $fail(409, 'Fitur salin token belum aktif di database.');
+    }
+    $id = ctype_digit(post_str('id', 10)) ? (int) post_str('id', 10) : 0;
+    if ($id < 1) {
+        $fail(400, 'Permintaan tidak valid.');
+    }
+    $st = $pdo->prepare('SELECT token_enc FROM access_tokens WHERE id = :id');
+    $st->execute([':id' => $id]);
+    $enc   = $st->fetchColumn();
+    $plain = is_string($enc) && $enc !== '' ? token_decrypt($enc) : null;
+    if ($plain === null) {
+        $fail(404, 'Token ini dibuat sebelum fitur salin ada, jadi tidak bisa disalin. Buat token baru bila perlu.');
+    }
+    echo json_encode(['token' => token_format($plain)]);
+    exit;
 }
 
 function token_status(array $t, string $now): array
@@ -30,6 +61,9 @@ function token_status(array $t, string $now): array
 }
 
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
+    if (post_str('action', 20) === 'reveal') {
+        token_reveal_response($pdo, $copyReady);
+    }
     $back = token_filters($_POST);
     $back = array_filter($back, static fn($v) => $v !== '' && $v !== 1);
 
@@ -61,6 +95,27 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         }
         $maxUses = $maxU === '' ? 0 : min((int) $maxU, 1000000);
 
+        $customRaw  = post_str('custom_token', 40);
+        $customNorm = '';
+        if ($customRaw !== '') {
+            if ($count !== 1) {
+                $errors[] = 'Token kustom hanya bisa dipakai bila Jumlah token = 1.';
+            } elseif (!preg_match('/^[A-Za-z0-9 -]+$/', $customRaw)) {
+                $errors[] = 'Token kustom hanya boleh berisi huruf, angka, spasi, atau tanda hubung.';
+            } else {
+                $customNorm = token_normalize($customRaw);
+                if (strlen($customNorm) < TOKEN_MIN_LENGTH || strlen($customNorm) > TOKEN_MAX_LENGTH) {
+                    $errors[] = 'Token kustom harus ' . TOKEN_MIN_LENGTH . '-' . TOKEN_MAX_LENGTH . ' karakter huruf/angka (spasi dan tanda hubung tidak dihitung).';
+                } else {
+                    $dup = $pdo->prepare('SELECT COUNT(*) FROM access_tokens WHERE token_hash = :h');
+                    $dup->execute([':h' => token_hash($customNorm)]);
+                    if ((int) $dup->fetchColumn() > 0) {
+                        $errors[] = 'Token kustom itu sudah dipakai. Pilih token lain.';
+                    }
+                }
+            }
+        }
+
         $expiresAt = null;
         if ($expIn !== '') {
             $dt = DateTime::createFromFormat('!Y-m-d\TH:i', $expIn);
@@ -80,15 +135,18 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         }
 
         $ins = $pdo->prepare(
-            'INSERT INTO access_tokens (token_hash, token_hint, role, label, is_active, max_uses, used_count, expires_at, created_by, created_at)
-             VALUES (:hash, :hint, :role, :label, 1, :max, 0, :exp, :by, :at)'
+            $copyReady
+                ? 'INSERT INTO access_tokens (token_hash, token_hint, token_enc, role, label, is_active, max_uses, used_count, expires_at, created_by, created_at)
+                   VALUES (:hash, :hint, :enc, :role, :label, 1, :max, 0, :exp, :by, :at)'
+                : 'INSERT INTO access_tokens (token_hash, token_hint, role, label, is_active, max_uses, used_count, expires_at, created_by, created_at)
+                   VALUES (:hash, :hint, :role, :label, 1, :max, 0, :exp, :by, :at)'
         );
         $made = [];
         $pdo->beginTransaction();
         try {
             for ($i = 1; $i <= $count; $i++) {
-                $plain = token_generate();
-                $ins->execute([
+                $plain  = $customNorm !== '' ? $customNorm : token_generate();
+                $params = [
                     ':hash'  => token_hash($plain),
                     ':hint'  => substr($plain, -4),
                     ':role'  => $role,
@@ -97,7 +155,11 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                     ':exp'   => $expiresAt,
                     ':by'    => $admin['id'],
                     ':at'    => date('Y-m-d H:i:s'),
-                ]);
+                ];
+                if ($copyReady) {
+                    $params[':enc'] = token_encrypt($plain);
+                }
+                $ins->execute($params);
                 $made[] = ['token' => token_format($plain), 'label' => $count > 1 ? str_cut($label, 94) . ' #' . $i : $label, 'role' => $role];
             }
             $pdo->commit();
@@ -108,7 +170,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             throw $e;
         }
         $_SESSION['new_tokens'] = $made;
-        admin_flash_set('ok', count($made) . ' token ' . strtoupper($role) . ' berhasil dibuat. Salin sekarang - token tidak akan ditampilkan lagi.');
+        admin_flash_set('ok', count($made) . ' token ' . ($customNorm !== '' ? 'kustom ' : '') . strtoupper($role) . ' berhasil dibuat. '
+            . ($copyReady ? 'Token bisa disalin lagi kapan saja lewat tombol Salin di Daftar token.' : 'Salin sekarang - token tidak akan ditampilkan lagi.'));
         admin_redirect('index.php', $back);
     }
 
@@ -163,7 +226,7 @@ $page   = min($f['page'], $pages);
 $offset = ($page - 1) * PER_PAGE;
 
 $st = $pdo->prepare(
-    'SELECT id, token_hint, role, label, is_active, max_uses, used_count, expires_at, last_used_at, created_at
+    'SELECT id, token_hint, ' . ($copyReady ? '(token_enc IS NOT NULL)' : '0') . ' AS can_copy, role, label, is_active, max_uses, used_count, expires_at, last_used_at, created_at
        FROM access_tokens' . $whereSql . ' ORDER BY id DESC LIMIT :lim OFFSET :off'
 );
 foreach ($params as $k => $v) {
@@ -211,7 +274,7 @@ admin_header('Kelola Token', $admin, 'tokens');
 <?php if ($newTokens): ?>
 <section class="card card-new">
     <h2>Token baru (tampil sekali)</h2>
-    <p class="muted">Berikan ke pemilik yang sesuai. Setelah halaman ini ditutup, token tidak bisa dilihat lagi - hanya bisa dibuat ulang.</p>
+    <p class="muted"><?php echo $copyReady ? 'Berikan ke pemilik yang sesuai. Token ini juga bisa disalin lagi dari Daftar token lewat tombol Salin.' : 'Berikan ke pemilik yang sesuai. Setelah halaman ini ditutup, token tidak bisa dilihat lagi - hanya bisa dibuat ulang.'; ?></p>
     <ul class="newlist">
     <?php foreach ($newTokens as $n): ?>
         <li>
@@ -241,6 +304,9 @@ admin_header('Kelola Token', $admin, 'tokens');
         <label class="field"><span>Nama / keterangan pemilik</span>
             <input type="text" name="label" maxlength="100" required placeholder="mis. AMT Budi - MT KT 1234 AB">
         </label>
+        <label class="field"><span>Token kustom <small>(opsional, <?php echo (int) TOKEN_MIN_LENGTH; ?>-<?php echo (int) TOKEN_MAX_LENGTH; ?> huruf/angka)</small></span>
+            <input type="text" name="custom_token" maxlength="40" placeholder="kosong = dibuat acak" autocapitalize="characters" spellcheck="false">
+        </label>
         <label class="field"><span>Jumlah token</span>
             <input type="number" name="count" value="1" min="1" max="50" required>
         </label>
@@ -252,6 +318,7 @@ admin_header('Kelola Token', $admin, 'tokens');
         </label>
         <div class="field field-submit"><button type="submit" class="btn btn-primary">Buat Token</button></div>
     </form>
+    <p class="muted small">Token kustom hanya untuk Jumlah token = 1. Huruf besar/kecil dianggap sama, spasi dan tanda hubung diabaikan. Token kustom yang pendek lebih mudah ditebak, sebaiknya 8 karakter atau lebih.</p>
     <p class="muted small">Satu "pemakaian" = satu kali berhasil masuk. Sesi yang sudah masuk tetap berjalan sampai token dinonaktifkan, dihapus, atau kedaluwarsa.</p>
 </section>
 
@@ -275,7 +342,7 @@ admin_header('Kelola Token', $admin, 'tokens');
     </form>
 
     <div class="table-scroll">
-    <table class="tbl">
+    <table class="tbl" data-reveal-url="<?php echo e(admin_url()); ?>">
         <thead><tr><th>#</th><th>Peran</th><th>Pemilik</th><th>Token</th><th>Status</th><th>Dipakai</th><th>Kedaluwarsa</th><th>Terakhir dipakai</th><th>Aksi</th></tr></thead>
         <tbody>
         <?php if (!$tokens): ?>
@@ -286,7 +353,14 @@ admin_header('Kelola Token', $admin, 'tokens');
                 <td><?php echo (int) $t['id']; ?></td>
                 <td><span class="pill pill-role"><?php echo e(strtoupper($t['role'])); ?></span></td>
                 <td><?php echo e($t['label']); ?></td>
-                <td><code>••••-••••-••••-<?php echo e($t['token_hint']); ?></code></td>
+                <td class="token-cell">
+                    <code>••••-••••-••••-<?php echo e($t['token_hint']); ?></code>
+                    <?php if ((int) $t['can_copy'] === 1): ?>
+                        <button type="button" class="btn btn-small" data-reveal="<?php echo (int) $t['id']; ?>">Salin</button>
+                    <?php else: ?>
+                        <span class="muted small" title="Dibuat sebelum fitur salin ada">tidak bisa disalin</span>
+                    <?php endif; ?>
+                </td>
                 <td><span class="pill <?php echo e($sClass); ?>"><?php echo e($sText); ?></span></td>
                 <td><?php echo (int) $t['used_count']; ?> / <?php echo (int) $t['max_uses'] === 0 ? '&infin;' : (int) $t['max_uses']; ?></td>
                 <td><?php echo $t['expires_at'] !== null ? e($t['expires_at']) : '-'; ?></td>

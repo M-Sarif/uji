@@ -1,74 +1,5 @@
 <?php
-/* ============================================================
- * OneFIS - AMT - Data tutorial terpandu (guided tour)
- *
- * Mesin tutorial: roles/amt/assets/js/tutorial-amt.js  (khusus AMT)
- * Tampilan       : roles/amt/assets/css/tutorial-amt.css (khusus AMT)
- * Tutorial peran SPBU TIDAK tersentuh oleh file-file ini.
- *
- * CARA KERJA (dirancang untuk orang awam)
- * ---------------------------------------
- * Tutorial BERBASIS KONDISI, bukan berbasis ketukan. Mesin selalu
- * menampilkan langkah PERTAMA yang belum selesai, jadi tutorial tidak
- * pernah "hilang" walau pengguna melompat-lompat, membatalkan kamera,
- * atau mengisi form tidak berurutan.
- *
- * Tiap langkah:
- *   'no'        => nomor langkah pada alur (null = tidak diberi nomor)
- *   'target'    => selector elemen yang harus diketuk (null = kartu di tengah)
- *   'highlight' => (opsional) elemen yang disorot, jika lebih luas dari target
- *   'title'     => judul singkat (kata kerja di depan)
- *   'text'      => penjelasan 1-2 kalimat
- *   'hint'      => kalimat aksi di kotak biru
- *   'done'      => selector; langkah SELESAI bila elemen ini ada di halaman
- *                  (null = langkah aksi: selesai saat target diketuk / tombol ditekan)
- *   'needTap'   => (opsional) true = langkah selesai HANYA bila target sudah
- *                  diketuk DAN selector 'done' terpenuhi (mis. Perbarui Lokasi)
- *   'wait'      => (opsional) teks kotak biru saat target sudah diketuk tetapi
- *                  'done' belum terpenuhi ("menunggu...")
- *   'ok'        => pesan singkat saat langkah baru saja selesai
- *   'minShow'   => (opsional) ms; walau 'done' sudah terpenuhi, langkah tetap disorot minimal selama
- *                  itu (dihitung sejak 'done' terpenuhi), mis. lokasi sudah sesuai dari awal
- *   'condHint'  => (opsional) teks kotak biru selama masa 'minShow' ("lokasi sudah sesuai, pastikan...")
- *   'loadSel' + 'loadHint' => (opsional) teks kotak biru saat selector loadSel ada tetapi 'done' belum
- *                  (mis. lokasi sesuai, pin peta masih dimuat)
- *   'settle'    => (opsional) ms; 'done' baru dianggap terpenuhi bila pengguna sudah
- *                  berhenti mengetik selama itu (untuk kolom teks)
- *   'label'     => (opsional) teks kecil di atas kartu; menimpa nama alur
- *   'when'      => (opsional) selector; kartu BARU muncul bila elemen ini ada
- *                  (mis. menu PTI yang baru menyala). Sebelumnya kartu disembunyikan.
- *   'delay'     => (opsional) jeda (ms) setelah 'when' terpenuhi sebelum kartu muncul
- *   'announce'  => (opsional) true = saat langkah ini selesai halaman langsung diberi
- *                  tahu (event amt:tour-done), tanpa menunggu seluruh alur selesai
- *   'list'      => (opsional) array teks; tampil sebagai daftar bernomor di bawah 'text'
- *   'autoHide'  => (opsional) ms; kartu tertutup sendiri bila tidak diketuk (dianggap
- *                  sama dengan mengetuk tombol kartu, mis. "Mengerti")
- *   'remember'  => (opsional) true = langkah yang sudah dibaca dicatat, jadi tidak
- *                  diulang bila pengguna pindah halaman lalu kembali sebelum alur selesai
- *   'okText'    => (opsional) kalimat di bawah pesan 'ok'
- *   'hold'      => (opsional) lama pesan 'ok' tampil sebelum pindah langkah
- *                  (milidetik; bawaan 1000)
- *   'button'    => (opsional) label tombol di kartu (mis. "Mulai")
- *   'skipLabel' => (opsional) teks tautan "Lewati" di kartu (mis. "Sudah cukup sampai di sini")
- *   'camera'    => (opsional) true = langkah ini dipandu DI DALAM kamera layar penuh (.amtcam). Biasanya kartu
- *                  tutorial disembunyikan saat kamera terbuka; langkah bertanda ini tetap tampil di atas kamera.
- *   'over'      => (opsional) true = kartu + sorotan ditampilkan di atas pop up/kamera (z-index lebih tinggi),
- *                  mis. pop up sukses "Lanjutkan ke Beranda". 'camera' otomatis ikut 'over'.
- *
- * Halaman TIDAK digulir otomatis oleh tutorial. Kartu yang menyesuaikan
- * posisinya (atas / bawah) supaya tidak menutupi bagian yang disorot.
- *
- * Status form dibaca dari atribut data-* pada #wk-form yang diperbarui
- * oleh roles/amt/views/_work_form.php:
- *   data-loc="1"   lokasi sudah sesuai titik kerja
- *   data-pin="1"   lokasi sesuai DAN peta (pin) sudah selesai dimuat
- *   data-act="1"   aktivitas sudah dipilih (Selesai Kerja: selalu 1)
- *   data-photo="1" foto verifikasi sudah tersimpan
- *
- * Dipanggil dari core/layout_bottom.php lewat amt_tour_config($screen).
- * ============================================================ */
 
-// Nama layar untuk label (dipakai bila langkah tidak punya alur bernomor)
 const AMT_TOUR_SCREEN_ORDER = ['amt_home', 'start_end', 'start_work', 'checkin', 'checkout', 'amt_pti', 'amt_pti_form', 'amt_pti_hasil', 'amt_shipments', 'amt_shipment_detail', 'amt_spbu', 'amt_checklist_lo', 'amt_checklist', 'amt_verifikasi', 'amt_verifikasi_qr', 'amt_verifikasi_kode', 'amt_verifikasi_sukses', 'amt_surat_jalan', 'amt_rating', 'amt_kendala', 'end_work'];
 
 const AMT_TOUR_SCREEN_LABELS = [
@@ -95,57 +26,26 @@ const AMT_TOUR_SCREEN_LABELS = [
     'end_work'   => 'Selesai Kerja',
 ];
 
-// Alur tutorial; 'total' = jumlah langkah bernomor pada alur itu
 const AMT_TOUR_JOURNEYS = [
-    'masuk'   => ['label' => 'Absen Masuk',  'total' => 6],
+    'masuk'   => ['label' => 'Absen Masuk',  'total' => 7],
     'checkin' => ['label' => 'Mulai Ritase',     'total' => 5],
-    // Absen pulang: 1 ketuk Selesai Kerja (Mulai / Selesai Kerja), 2 total jam kerja, 3 lokasi, 4 foto Selesai Kerja,
-    // 5 ketuk "Akhiri Pekerjaan", 6 konfirmasi "Ya" pada dialog (pop up sukses memakai nomor 6 juga)
     'pulang'  => ['label' => 'Absen Pulang', 'total' => 6],
-    'dcu'     => ['label' => 'Mulai Ritase Berhasil', 'total' => 1],   // pemberitahuan DCU (tanpa nomor langkah)
-    // Inspeksi PTI: 1 buka menu, 2-3 ringkasan, 4-5 jawab item, 6 catatan, 7 kirim, 8 konfirmasi
+    'dcu'     => ['label' => 'Mulai Ritase Berhasil', 'total' => 1],
     'pti'     => ['label' => 'Inspeksi PTI', 'total' => 8],
-    // Pengiriman: 1 buka Detail Order, 2 buka kartu SPBU, 3 ketuk Tiba di Lokasi,
-    // 4 cek lokasi, 5 konfirmasi tiba (menu Shipments di Beranda = kartu tersendiri)
     'kirim'   => ['label' => 'Pengiriman', 'total' => 5],
-    // Checklist Pra-Pembongkaran: 1 pilih LO, 2 Mulai Checklist, 3 jawab soal, 4 buat QR Code (soal 7),
-    // 5 ketuk Kirim, 6 konfirmasi "Ya, Kirim"
     'checklist' => ['label' => 'Checklist Pra-Pembongkaran', 'total' => 6],
-    // Verifikasi Order: 1 pilih LO, 2 pilih metode, 3 konfirmasi ke Petugas SPBU + pindai QR / ketik kode, 4 hasil
     'verifikasi' => ['label' => 'Verifikasi Order', 'total' => 4],
-    // Foto Surat Jalan: 1 buka kartu Foto Surat Jalan, 2 ambil foto tiap LO, 3 Simpan Foto
     'suratjalan' => ['label' => 'Foto Surat Jalan', 'total' => 3],
-    // Rating Petugas SPBU: 1 buka kartu Rating, 2 nama petugas, 3 bintang (5 penilaian),
-    // 4 Kirim, 5 ketuk Selesai di Aktifitas di SPBU, 6 konfirmasi “Kirim” pada pop up Menyelesaikan Order
     'rating' => ['label' => 'Rating Petugas SPBU', 'total' => 6],
-    // Selesai Ritase: 1 buka menu Selesai Ritase (setelah scan segel di AVM), 2 Riwayat Ritase, 3 lokasi, 4 aktivitas,
-    // 5 foto Selesai Ritase, 6 kirim (pop up "Selesai Ritase Berhasil" -> OK memakai nomor 6 juga)
     'checkout' => ['label' => 'Selesai Ritase', 'total' => 6],
-    // Laporkan Kendala: 1 jenis kendala, 2 estimasi kendala, 3 estimasi waktu (hanya bila "Ya, Bisa Diprediksi"),
-    // 4 foto bukti, 5 justifikasi, 6 kirim laporan
     'kendala' => ['label' => 'Laporkan Kendala', 'total' => 6],
 ];
 
-// Jeda (ms) sebelum tutorial DCU muncul di beranda setelah Mulai Ritase berhasil
-// (nilainya diatur di roles/amt/includes/amt_pti_data.php)
 const AMT_TOUR_DCU_DELAY_MS = AMT_DCU_SHOW_DELAY;
 
-/**
- * Langkah foto selfie (dipakai Mulai Kerja, Mulai Ritase, Selesai Kerja, dan Selesai Ritase). Tiga aksi berurutan, semuanya
- * bernomor sama ($no) supaya bilah kemajuan tidak melompat:
- *   A) ketuk kartu selfie           -> selesai saat kamera terbuka (atau foto sudah tersimpan)
- *   B) ketuk "Foto" di kamera       -> selesai saat hasil foto tampil (mode tinjau)
- *   C) ketuk "Simpan Foto"          -> selesai saat foto tersimpan (data-photo="1"); "Ambil Ulang" memunculkan B lagi
- * B dan C tampil DI ATAS kamera layar penuh ('camera' => true; lihat tutorial-amt.js).
- *
- * @param bool $preview true = tampilan baru (Selesai Kerja & Selesai Ritase): foto yang tersimpan tampil sebagai
- *                      pratinjau dengan tombol merah "Hapus Foto". Bila foto dihapus, tutorial otomatis
- *                      kembali ke langkah A (data-photo kembali 0).
- * @return array<int,array>
- */
 function amt_tour_photo_steps(int $no, bool $preview = false): array
 {
-    $shot = '.amtcam.is-open .amtcam-shot:not([hidden])';   // hasil foto sedang ditinjau
+    $shot = '.amtcam.is-open .amtcam-shot:not([hidden])';
     return [
         [
             'no'        => $no,
@@ -180,57 +80,38 @@ function amt_tour_photo_steps(int $no, bool $preview = false): array
     ];
 }
 
-/**
- * Langkah sesudah "Kirim": pop up sukses ("Lanjutkan ke Beranda"), lihat roles/amt/views/_work_form.php.
- * Kartu baru muncul setelah pop up tampil ('when'), dan tampil di atasnya ('over').
- *
- * @param string $mode 'start' | 'checkin' | 'end' | 'checkout'
- */
 function amt_tour_success_step(int $no, string $mode): array
 {
     $text = [
-        'start'    => 'Absen masuk berhasil dan Jam Kerja sudah berjalan. Ketuk “Lanjutkan ke Beranda” untuk kembali ke beranda.',
-        'checkin'  => 'Mulai Ritase sudah tercatat. Ketuk “Lanjutkan ke Beranda”. Berikutnya lakukan DCU, lalu menu PTI akan menyala.',
-        'end'      => 'Jam kerja Anda sudah berakhir. Ketuk “Lanjutkan ke Beranda” untuk kembali ke beranda.',
+        'start'    => 'Absen masuk berhasil dan Jam Kerja sudah berjalan. Ketuk “Lanjutkan ke Homepage” untuk kembali ke beranda.',
+        'checkin'  => 'Mulai Ritase sudah tercatat. Ketuk “Lanjutkan ke Homepage”. Berikutnya lakukan DCU, lalu menu PTI akan menyala.',
+        'end'      => 'Jam kerja Anda sudah berakhir. Ketuk “Lanjutkan ke Homepage” untuk kembali ke beranda.',
         'checkout' => 'Selesai Ritase berhasil dan Riwayat Ritase sudah direset. Ketuk “OK”, lalu akhiri kerja lewat menu Mulai / Selesai Kerja.',
-    ][$mode] ?? 'Ketuk “Lanjutkan ke Beranda” untuk kembali ke beranda.';
-    // Selesai Ritase: tombol pop up bertuliskan "OK" (bukan "Lanjutkan ke Beranda")
+    ][$mode] ?? 'Ketuk “Lanjutkan ke Homepage” untuk kembali ke beranda.';
     $isOk = ($mode === 'checkout');
     return [
         'no'        => $no,
-        // HANYA Selesai Kerja yang menutup tutorial (alur selesai -> tidak muncul otomatis lagi, hanya lewat "?").
-        // Selesai Ritase BUKAN akhir alur: sesudahnya tutorial otomatis lanjut ke Mulai / Selesai Kerja -> Selesai Kerja.
-        // (Dulu 'checkout' ikut 'final' sehingga tutorial dimatikan di sini dan arahan Selesai Kerja tak pernah muncul.)
-        // Lihat Tour.finish() di tutorial-amt.js.
         'final'     => $mode === 'end',
         'over'      => true,
         'target'    => '#wk-success-go',
         'highlight' => '.wk-modal-card',
         'when'      => '#wk-success:not([hidden])',
-        'title'     => $isOk ? 'Ketuk “OK”' : 'Ketuk “Lanjutkan ke Beranda”',
+        'title'     => $isOk ? 'Ketuk “OK”' : 'Ketuk “Lanjutkan ke Homepage”',
         'text'      => $text,
-        'hint'      => $isOk ? '👆 Ketuk tombol hijau “OK”' : '👆 Ketuk tombol hijau “Lanjutkan ke Beranda”',
+        'hint'      => $isOk ? '👆 Ketuk tombol hijau “OK”' : '👆 Ketuk tombol hijau “Lanjutkan ke Homepage”',
         'done'      => null,
     ];
 }
 
-/**
- * Langkah-langkah form (lokasi, aktivitas, foto, kirim).
- * Dipakai bersama oleh Mulai Kerja, Mulai Ritase, dan Selesai Kerja supaya
- * bahasanya konsisten.
- *
- * @param string $mode 'start' | 'checkin' | 'end'
- */
 function amt_tour_form_steps(string $mode): array
 {
     $isCheckin = ($mode === 'checkin');
     $isEnd     = ($mode === 'end');
 
     $what = $isCheckin ? 'Mulai Ritase' : ($isEnd ? 'absen pulang' : 'absen masuk');
-    $n    = $isCheckin ? 2 : 3;   // nomor langkah pertama di form (Selesai Kerja: 2 dipakai kartu "Total Jam Kerja")
+    $n    = $isCheckin ? 2 : 3;
     $steps = [];
 
-    // Selesai Kerja (tampilan baru): kartu "Total Jam Kerja Hari Ini" di bagian atas layar
     if ($isEnd) {
         $steps[] = [
             'no'     => 2,
@@ -242,7 +123,6 @@ function amt_tour_form_steps(string $mode): array
         ];
     }
 
-    // Mulai Ritase punya dua tab: pastikan pengguna ada di tab "Verifikasi"
     if ($isCheckin) {
         $steps[] = [
             'no'     => null,
@@ -254,7 +134,6 @@ function amt_tour_form_steps(string $mode): array
         ];
     }
 
-    // 1) Lokasi
     $steps[] = [
         'no'        => $n,
         'target'    => '#wk-refresh',
@@ -263,14 +142,13 @@ function amt_tour_form_steps(string $mode): array
         'text'      => 'Pin di peta harus ada di area kerja. Bila pin sudah tepat, tutorial lanjut sendiri. Bila belum, ketuk “Perbarui Lokasi”, lalu tunggu sampai pin muncul.',
         'hint'      => '👆 Ketuk “Perbarui Lokasi”',
         'wait'      => '⏳ Menunggu lokasi sesuai… perhatikan pin di peta',
-        'done'      => '#wk-form[data-pin="1"]',   // tanpa needTap: lokasi sudah sesuai = lanjut sendiri
-        'minShow'   => 3000,                       // tetap disorot minimal 3 detik, tidak langsung dilewati
+        'done'      => '#wk-form[data-pin="1"]',
+        'minShow'   => 3000,
         'loadSel'   => '#wk-loc[data-inrange="1"]',
         'loadHint'  => '⏳ Memeriksa lokasi… tunggu pin muncul di peta',
         'condHint'  => '✅ Lokasi sudah sesuai. Pastikan pin tepat di area kerja.',
     ];
 
-    // 2) Aktivitas (tidak ada di Selesai Kerja: mengikuti pilihan saat Mulai Kerja)
     if (!$isEnd) {
         $n++;
         $steps[] = [
@@ -287,11 +165,9 @@ function amt_tour_form_steps(string $mode): array
         ];
     }
 
-    // 3) Foto selfie: ketuk kartu -> "Foto" -> "Simpan Foto"
     $n++;
     foreach (amt_tour_photo_steps($n, $isEnd) as $ps) { $steps[] = $ps; }
 
-    // 4) Kirim (Selesai Kerja: tombol "Akhiri Pekerjaan" di bawah layar, lalu dialog konfirmasi "Ya")
     $n++;
     $steps[] = [
         'no'     => $n,
@@ -301,53 +177,40 @@ function amt_tour_form_steps(string $mode): array
             ? 'Semua sudah lengkap. Ketuk “Kirim”. Mulai Ritase Anda akan tercatat di tab “Riwayat Ritase”.'
             : ($isEnd
                 ? 'Semua sudah lengkap. Ketuk tombol “Akhiri Pekerjaan” di bagian bawah layar. Anda akan ditanya sekali lagi sebelum jam kerja benar-benar berakhir.'
-                : 'Semua sudah lengkap. Ketuk “Kirim” untuk mulai bekerja. Jam Kerja langsung berjalan.'),
+                : 'Semua sudah lengkap. Ketuk “Kirim”. Anda akan ditanya sekali lagi sebelum Jam Kerja benar-benar berjalan.'),
         'hint'   => $isEnd ? '👆 Ketuk tombol biru “Akhiri Pekerjaan”' : '👆 Ketuk tombol biru “Kirim”',
         'done'   => null,
     ];
 
-    // Selesai Kerja: dialog "Apakah Anda yakin ingin mengakhiri pekerjaan hari ini?" -> ketuk "Ya"
-    if ($isEnd) {
+    if (!$isCheckin) {
         $n++;
+        $confirmAsk  = $isEnd ? 'Apakah Anda yakin ingin mengakhiri pekerjaan hari ini?' : 'Apakah Anda yakin ingin absen kehadiran?';
+        $confirmDone = $isEnd ? 'memang sudah selesai bekerja' : 'memang ingin absen masuk';
         $steps[] = [
             'no'        => $n,
-            'over'      => true,                          // tampil di atas dialog
+            'over'      => true,
             'target'    => '#ew-yes',
             'highlight' => '.wk-confirm-card',
-            'when'      => '#ew-confirm:not([hidden])',   // baru muncul setelah dialog terbuka
+            'when'      => '#ew-confirm:not([hidden])',
             'title'     => 'Ketuk “Ya”',
-            'text'      => 'Muncul pertanyaan “Apakah Anda yakin ingin mengakhiri pekerjaan hari ini?”. Ketuk “Ya” bila Anda memang sudah selesai bekerja. Ketuk “Batal” bila belum.',
+            'text'      => 'Muncul pertanyaan “' . $confirmAsk . '”. Ketuk “Ya” bila Anda ' . $confirmDone . '. Ketuk “Batal” bila belum.',
             'hint'      => '👆 Ketuk tombol biru “Ya”',
             'done'      => null,
         ];
     }
 
-    // 5) Pop up sukses: Lanjutkan ke Beranda
     $steps[] = amt_tour_success_step($n, $mode);
 
     return $steps;
 }
 
-/**
- * Langkah tutorial PTI (Pre-Trip Inspection).
- * Alur: beranda (buka menu PTI) -> ringkasan (Isi Inspeksi) -> form 11 langkah.
- *
- * @param string $screen 'amt_pti' | 'amt_pti_form'
- * @return array{steps:array, journey:string, subKey:?string}
- */
 function amt_tour_pti_steps(string $screen): array
 {
-    // ---- Ringkasan PTI ----
     if ($screen === 'amt_pti') {
         if (amt_pti_shipment() === null) {
-            return ['journey' => 'pti', 'steps' => [], 'subKey' => null];   // belum ada shipment
+            return ['journey' => 'pti', 'steps' => [], 'subKey' => null];
         }
         if (amt_pti_is_done()) {
-            // Halaman awal PTI setelah inspeksi terkirim. Hanya 2 kartu:
-            //  1) menyorot KOTAK KARTU PTI (status "Sudah Inspeksi"); tertutup sendiri setelah 5 detik
-            //     (atau ketuk "Mengerti"),
-            //  2) menyorot panah kembali (←) supaya AMT kembali ke Beranda; di sana tutorial segel menyusul.
-            // 'remember' = kartu 1 tidak diulang bila halaman dimuat ulang sebelum AMT menekan ←.
             return ['journey' => 'pti', 'subKey' => 'amt_pti_done', 'steps' => [
                 [
                     'no'       => null,
@@ -356,7 +219,7 @@ function amt_tour_pti_steps(string $screen): array
                     'title'    => 'Inspeksi selesai ✅',
                     'text'     => 'Hasil inspeksi sudah terkirim dan status PTI sekarang “Sudah Inspeksi”. Anda bisa melihat hasilnya lewat “Lihat Hasil Inspeksi”, atau mengisi ulang lewat “Isi Inspeksi Lagi”.',
                     'button'   => 'Mengerti',
-                    'autoHide' => AMT_PTI_DONE_PAGE_VISIBLE_FOR,   // hilang sendiri setelah 5 detik
+                    'autoHide' => AMT_PTI_DONE_PAGE_VISIBLE_FOR,
                     'remember' => true,
                     'done'     => null,
                 ],
@@ -392,10 +255,9 @@ function amt_tour_pti_steps(string $screen): array
         ]];
     }
 
-    // ---- Form inspeksi (11 langkah) ----
     $step = isset($_GET['step']) ? (int) $_GET['step'] : 1;
     $step = max(1, min(AMT_PTI_TOTAL, $step));
-    $next = '#ptiForm .pti-next:not(.is-locked)';   // tombol lanjut aktif = semua item / catatan sudah diisi
+    $next = '#ptiForm .pti-next:not(.is-locked)';
 
     if ($step === 1) {
         return ['journey' => 'pti', 'subKey' => 'amt_pti_form_1', 'steps' => [
@@ -420,7 +282,6 @@ function amt_tour_pti_steps(string $screen): array
     }
 
     if ($step < AMT_PTI_TOTAL) {
-        // Langkah 2-10: pengingat singkat, cukup tampil sekali
         return ['journey' => 'pti', 'subKey' => 'amt_pti_form_mid', 'steps' => [[
             'no'     => null,
             'label'  => 'Form Inspeksi · Bagian ' . $step . ' dari ' . AMT_PTI_TOTAL,
@@ -432,9 +293,6 @@ function amt_tour_pti_steps(string $screen): array
         ]]];
     }
 
-    // Langkah 11: sorot CATATAN dulu (pengguna harus menulis), baru tombol Kirim.
-    // 'settle' = tunggu pengguna berhenti mengetik sebentar, supaya kartu tidak
-    // berpindah ke "Kirim" di tengah-tengah pengetikan.
     return ['journey' => 'pti', 'subKey' => 'amt_pti_form_11', 'steps' => [
         [
             'no'        => 6,
@@ -456,8 +314,6 @@ function amt_tour_pti_steps(string $screen): array
             'done'   => null,
         ],
         [
-            // Popup konfirmasi (gambar: "Kirim Hasil Inspeksi"). Kartu ini baru muncul saat popup
-            // terbuka; bila AMT mengetuk "Batal", kartu hilang dan muncul lagi saat popup dibuka ulang.
             'no'        => 8,
             'target'    => '#ptiConfirmYes',
             'highlight' => '[data-tour="pti-confirm"]',
@@ -470,14 +326,6 @@ function amt_tour_pti_steps(string $screen): array
     ]];
 }
 
-/**
- * Tutorial Shipments (AMT).
- *  - amt_shipments        : arahkan ke "Lihat Detail Order" pada pengiriman berstatus Sedang Dikirim.
- *  - amt_shipment_detail  : arahkan ke kartu abu-abu SPBU (data SPBU + produk yang dibawa).
- * Pengiriman yang sudah selesai tidak diberi tutorial (hanya untuk dilihat).
- *
- * @return array{steps:array, journey:string}
- */
 function amt_tour_ship_steps(string $screen): array
 {
     if ($screen === 'amt_shipments') {
@@ -485,7 +333,7 @@ function amt_tour_ship_steps(string $screen): array
             'no'        => 1,
             'label'     => 'Shipments',
             'target'    => '[data-tour="ship-detail-active"]',
-            'highlight' => '[data-tour="ship-card-active"]',   // sorot seluruh kartu pengiriman, bukan hanya tombol
+            'highlight' => '[data-tour="ship-card-active"]',
             'title'  => 'Buka detail order',
             'text'   => 'Pengiriman yang sedang berjalan berstatus “Sedang Dikirim”. Ketuk “Lihat Detail Order” pada pengiriman itu untuk melihat rutenya.',
             'hint'   => '👆 Ketuk “Lihat Detail Order” pada pengiriman Sedang Dikirim',
@@ -493,7 +341,6 @@ function amt_tour_ship_steps(string $screen): array
         ]]];
     }
 
-    // amt_shipment_detail: tutorial hanya untuk pengiriman yang sedang berjalan
     $s = amt_ship_current();
     if ($s === null || $s['status'] !== 'sedang') {
         return ['journey' => 'kirim', 'steps' => []];
@@ -509,18 +356,6 @@ function amt_tour_ship_steps(string $screen): array
     ]]];
 }
 
-/**
- * Tutorial layar "Aktifitas di SPBU" (amt_spbu) untuk pengiriman yang sedang berjalan.
- *
- * Sebelum tiba (berbasis keadaan, jadi tidak "hilang" bila popup ditutup lalu dibuka lagi):
- *   3) ketuk kartu "Tiba di Lokasi"            -> selesai saat popup terbuka (#arrSheet.is-open)
- *   4) "Perbarui Lokasi", tunggu pin sesuai    -> selesai saat data-pin="1", lalu ditahan 2 detik
- *   5) ketuk "Ya, pengiriman telah tiba"       -> halaman memproses lalu kembali ke layar ini
- * Sesudah tiba: satu kartu pemberitahuan di tengah (langkah berikutnya: Isi Checklist).
- * Pengiriman yang sudah selesai tidak diberi tutorial.
- *
- * @return array{steps:array, journey:string, subKey:?string}
- */
 function amt_tour_spbu_steps(): array
 {
     $s = amt_ship_current();
@@ -529,11 +364,9 @@ function amt_tour_spbu_steps(): array
     }
 
     if (amt_spbu_arrived($s)) {
-        // Checklist sudah terkirim -> tutorial berpindah ke Verifikasi Order
         if (amt_pbk_done($s['id'])) {
             return amt_tour_verif_spbu_pack($s);
         }
-        // Langsung arahkan ke kartu aktif "Isi Checklist" (membuka Daftar LO)
         $steps = [[
             'no'     => null,
             'label'  => 'Isi Checklist',
@@ -566,8 +399,8 @@ function amt_tour_spbu_steps(): array
             'hint'      => '👆 Ketuk “Perbarui Lokasi”',
             'wait'      => '⏳ Menunggu lokasi sesuai… perhatikan pin di peta',
             'when'      => '#arrSheet.is-open',
-            'done'      => '#arrSheet[data-pin="1"]',   // tanpa needTap: lokasi sudah sesuai = lanjut sendiri
-            'minShow'   => 3000,                        // tetap disorot minimal 3 detik, tidak langsung dilewati
+            'done'      => '#arrSheet[data-pin="1"]',
+            'minShow'   => 3000,
             'loadSel'   => '#arrSheet[data-loc="1"]',
             'loadHint'  => '⏳ Memeriksa lokasi… tunggu pin muncul di peta',
             'condHint'  => '✅ Lokasi sudah sesuai. Pastikan pin tepat di SPBU tujuan.',
@@ -585,10 +418,6 @@ function amt_tour_spbu_steps(): array
     ]];
 }
 
-/**
- * Tutorial layar "Hasil Inspeksi" (baca saja): jelaskan GO / NO GO, lalu arahkan kembali
- * ke halaman PTI (←). 'remember' pada langkah pertama supaya tidak diulang.
- */
 function amt_tour_pti_hasil_steps(): array
 {
     $nogo = (amt_pti_submitted()['result'] ?? 'GO') === 'NO GO';
@@ -627,25 +456,8 @@ function amt_tour_pti_hasil_steps(): array
     ]];
 }
 
-/**
- * Tutorial di BERANDA setelah hasil inspeksi PTI dikirim (popup "Ya, Kirim").
- *
- *  1) Kartu tahapan berikutnya; tertutup sendiri setelah AMT_PTI_DONE_VISIBLE_FOR (20 detik)
- *     bila tidak diketuk "Mengerti".
- *  2) Info "Laporkan Kendala": muncul AMT_ROUTE_INFO_DELAY (3 detik) setelah kartu 1 tertutup; dilewati bila kendala sudah dilaporkan.
- *  3) AMT_PTI_DONE_SHIPMENT_DELAY setelah kartu sebelumnya selesai: sorotan ke ikon Shipments.
- *
- * Hasil NO GO: mobil tangki belum layak jalan, jadi AMT tidak diarahkan ke segel / SPBU;
- * hanya pemberitahuan untuk melapor ke pengawas.
- *
- * @return array{steps:array, journey:string, subKey:string}
- */
 function amt_tour_pti_done_pack(int $checkins): array
 {
-    // CATATAN: tidak ada langkah 'notice' di sini. Saat tutorial dimatikan ("Lewati") HANYA pemberitahuan
-    // DCU (Mulai Ritase berhasil), Scan segel di AVM (amt_out.php), dan kartu "Tutorial Selesai" (setelah
-    // Selesai Kerja) yang tetap tampil; kartu PTI selesai, info Laporkan Kendala, dan sorotan Shipments
-    // ("Langkah berikutnya") hanya muncul selama tutorial menyala.
     $subKey = 'amt_home_ptidone_' . $checkins;
     $result = amt_pti_state()['result'] ?? null;
 
@@ -660,11 +472,6 @@ function amt_tour_pti_done_pack(int $checkins): array
             'done'   => null,
         ]]];
     }
-
-    // [DINONAKTIFKAN SEMENTARA] ikut tutorial "Laporkan Kendala" (belum selesai).
-    // // Kendala sudah pernah dilaporkan (mis. lewat tombol di panel lalu kembali ke beranda): kartu info kendala
-    // // TIDAK diulang, alur langsung lanjut ke Shipments.
-    // $kendalaReported = amt_kendala_all() !== [];
 
     return ['journey' => 'pti', 'subKey' => $subKey, 'startDelay' => AMT_PTI_DONE_START_DELAY, 'steps' => [
         [
@@ -683,41 +490,17 @@ function amt_tour_pti_done_pack(int $checkins): array
                 'Menuju SPBU tujuan.',
             ],
             'button'   => 'Mengerti',
-            'autoHide' => AMT_PTI_DONE_VISIBLE_FOR,      // hilang sendiri setelah 20 detik
-            'remember' => true,                           // tidak diulang bila pengguna pindah halaman lalu kembali
+            'autoHide' => AMT_PTI_DONE_VISIBLE_FOR,
+            'remember' => true,
             'done'     => null,
         ],
-        // [DINONAKTIFKAN SEMENTARA] Tutorial "Laporkan Kendala" belum selesai -> kartu info kendala di beranda di-comment.
-        // Aktifkan lagi bila tutorial kendala sudah rampung: hapus pembungkus komentar di bawah.
-        /*
-        // Informasi (bukan langkah bernomor): panel "Rute Pengiriman" muncul di beranda sebelum AMT tiba di SPBU.
-        // Tombol "Laporkan Kendala" tetap disorot; mengetuknya = mencoba (langkah ini dianggap dibaca).
-        // Tertutup sendiri setelah 20 detik bila "Mengerti" tidak diketuk. Hanya ditambahkan bila panelnya ada.
-        ...((amt_home_route_ship() !== null && !$kendalaReported) ? [[
-            'no'        => null,
-            'label'     => 'Informasi',
-            'target'    => '[data-amtr-report]',
-            'highlight' => '[data-amtr-report]',
-            'when'      => '[data-amtr-report]',
-            'optional'  => true,                          // bila tombolnya tak ada di halaman, langkah dilewati (tidak menghalangi Shipments)
-            'delay'     => AMT_ROUTE_INFO_DELAY,          // muncul 3 detik setelah kartu "PTI selesai" tertutup
-            'title'     => 'Shipment sudah dibuat 🚚',
-            'text'      => 'Shipment telah dibuat. Jika ada kendala saat di perjalanan, klik tombol “Laporkan Kendala”.',
-            'hint'      => '👆 Ingin mencoba? Ketuk “Laporkan Kendala”',
-            'button'    => 'Mengerti',
-            'autoHide'  => AMT_ROUTE_INFO_VISIBLE_FOR,    // hilang sendiri setelah 20 detik
-            'remember'  => true,                          // tidak diulang bila pengguna pindah halaman lalu kembali
-            'done'      => null,
-        ]] : []),
-        */
         [
             'no'     => null,
             'label'  => 'Langkah berikutnya',
             'target' => '[data-tour="amt-menu-shipments"]',
             'when'   => '[data-tour="amt-menu-shipments"]',
-            'delay'  => AMT_PTI_DONE_SHIPMENT_DELAY,     // 3 detik setelah info kendala tertutup (Mengerti / selesai lapor kendala)
-            'remember' => true,                          // sudah ditampilkan -> tidak diulang tiap kembali ke beranda
-            // Keterangan: menu ini dipakai SETELAH AMT sampai di SPBU tujuan (bukan sekarang).
+            'delay'  => AMT_PTI_DONE_SHIPMENT_DELAY,
+            'remember' => true,
             'title'  => 'Sudah tiba di SPBU? Buka “Shipments”',
             'text'   => 'Selesaikan dulu tahapan di kartu sebelumnya (segel sampai menuju SPBU). Begitu sudah tiba di SPBU tujuan, ketuk menu Shipments untuk membuka daftar pengiriman.',
             'hint'   => '👆 Sudah tiba di SPBU? Ketuk menu “Shipments”',
@@ -726,14 +509,6 @@ function amt_tour_pti_done_pack(int $checkins): array
     ]];
 }
 
-/**
- * Tutorial "Daftar LO" (Checklist Pra-Pembongkaran), layar amt_checklist_lo.
- * Berbasis keadaan: ada LO berstatus "Draft" -> tutorial mengirim checklist; bila tidak -> tutorial
- * memilih LO lalu "Mulai Checklist". Elemen disorot lewat data-tour yang sudah ada di
- * roles/amt/views/pra_bongkar_lo.php (pbl-list, pbl-start, pbl-send).
- *
- * @return array{steps:array, journey:string, subKey:?string}
- */
 function amt_tour_pbk_lo_steps(): array
 {
     $s = amt_ship_current();
@@ -749,7 +524,6 @@ function amt_tour_pbk_lo_steps(): array
         }
     }
 
-    // ---- Ada LO "Draft": kirim checklist ----
     if ($hasDraft) {
         return ['journey' => 'checklist', 'subKey' => 'amt_pbl_draft', 'steps' => [
             [
@@ -759,7 +533,7 @@ function amt_tour_pbk_lo_steps(): array
                 'text'   => 'LO berstatus “Draft” sudah terisi tetapi BELUM dikirim ke SPBU. Centang LO (produk) yang dibongkar dan ingin dikirim. Tombol “Kirim” baru menyala setelah ada LO Draft yang dicentang.',
                 'hint'   => '👆 Pastikan produk yang dibongkar sudah dicentang',
                 'done'   => '#pblSend:not(:disabled)',
-                'minShow'  => 3000,   // sudah tercentang dari awal pun tetap disorot 3 detik agar diperiksa
+                'minShow'  => 3000,
                 'condHint' => '✅ Sudah tercentang. Pastikan produk yang dibongkar sudah benar.',
             ],
             [
@@ -771,8 +545,6 @@ function amt_tour_pbk_lo_steps(): array
                 'done'   => '#pblModal:not([hidden])',
             ],
             [
-                // Pop up "Kirim Checklist" disorot penuh. Bila AMT mengetuk "Batal", kartu ini hilang dan
-                // kartu "Ketuk Kirim" muncul lagi; kartu ini muncul lagi saat pop up dibuka ulang.
                 'no'        => 6,
                 'target'    => '#pblYes',
                 'highlight' => '#pblModal .pbl-modal__card',
@@ -785,7 +557,6 @@ function amt_tour_pbk_lo_steps(): array
         ]];
     }
 
-    // ---- Belum ada Draft: pilih LO lalu mulai checklist ----
     return ['journey' => 'checklist', 'subKey' => 'amt_pbl_belum', 'steps' => [
         [
             'no'     => 1,
@@ -795,7 +566,7 @@ function amt_tour_pbk_lo_steps(): array
             'text'   => 'Setiap kartu adalah satu LO dengan produknya (lihat kolom “Order”). Centang LO yang produknya akan dibongkar di SPBU ini, atau ketuk “Pilih Semua”. Status “Belum Diisi” berarti checklist LO itu belum dikerjakan.',
             'hint'   => '👆 Pastikan produk yang dibongkar sudah dicentang',
             'done'   => '.pbl-card.is-selected',
-            'minShow'  => 3000,   // sudah tercentang dari awal pun tetap disorot 3 detik agar diperiksa
+            'minShow'  => 3000,
             'condHint' => '✅ Sudah tercentang. Pastikan produk yang dibongkar sudah benar.',
         ],
         [
@@ -810,21 +581,6 @@ function amt_tour_pbk_lo_steps(): array
     ]];
 }
 
-/**
- * Tutorial Checklist Pra-Pembongkaran (14 soal, satu soal per halaman), layar amt_checklist.
- *
- * Mengikuti panduan OneFIS AMT: ada 2 tipe soal yang wajib dijawab.
- *   - Verifikasi Tugas SPBU : tugas Petugas SPBU, AMT memeriksa lalu memilih "Tidak Dilakukan" / "Ya, Dilakukan".
- *   - Tugas AMT             : verifikasi pekerjaan sendiri + foto bukti (opsional).
- * Soal 7 membuat QR Code (Claim Losses; tombol "QR Code" muncul di kanan bawah sesudahnya).
- * Soal 11 dan 14 punya dua bagian (mandiri + "Verifikasi Tugas Role Lawan").
- *
- * Tiap tipe soal dijelaskan SEKALI (kunci tutorial per tipe), jadi 14 soal tidak diulang-ulang.
- * Tombol "?" menampilkan lagi penjelasan tipe soal yang sedang dibuka.
- * Elemen disorot memakai selector yang sudah ada di roles/amt/views/pra_bongkar.php.
- *
- * @return array{steps:array, journey:string, subKey:?string}
- */
 function amt_tour_pbk_steps(): array
 {
     $s = amt_ship_current();
@@ -837,9 +593,8 @@ function amt_tour_pbk_steps(): array
     $step  = isset($_GET['step']) ? (int) $_GET['step'] : 1;
     $step  = max(1, min($total, $step));
     $type  = $defs[$step]['type'];
-    $next  = '#pbkNext:not(.is-locked)';   // tombol lanjut aktif = soal ini sudah lengkap dijawab
+    $next  = '#pbkNext:not(.is-locked)';
 
-    // Kartu penutup tiap soal: ketuk "Selanjutnya" (tombol "Selesai" di soal terakhir)
     $nextCard = [
         'no'     => null,
         'label'  => 'Checklist Pra-Pembongkaran',
@@ -850,7 +605,6 @@ function amt_tour_pbk_steps(): array
         'done'   => null,
     ];
 
-    // ---- Soal terakhir (14): dua bagian, lalu "Selesai" ----
     if ($step === $total) {
         return ['journey' => 'checklist', 'subKey' => 'amt_pbk_last', 'steps' => [
             [
@@ -875,7 +629,6 @@ function amt_tour_pbk_steps(): array
         ]];
     }
 
-    // ---- Soal 7: Generate QR Code ----
     if ($type === 'qr') {
         return ['journey' => 'checklist', 'subKey' => 'amt_pbk_qr', 'steps' => [
             [
@@ -888,8 +641,6 @@ function amt_tour_pbk_steps(): array
                 'done'   => '#pbkForm[data-qr="1"]',
             ],
             [
-                // Pop up QR terbuka otomatis setelah Generate/Regenerate. Selesai bila pop up tertutup
-                // (lewat "Tutup", ketukan di luar kartu, atau tombol Esc).
                 'no'        => null,
                 'label'     => 'QR Code Claim Loss',
                 'target'    => '#pbkQrClose',
@@ -904,7 +655,6 @@ function amt_tour_pbk_steps(): array
         ]];
     }
 
-    // ---- Soal dengan dua bagian (11) ----
     if ($type === 'dual') {
         return ['journey' => 'checklist', 'subKey' => 'amt_pbk_dual', 'steps' => [
             [
@@ -925,7 +675,6 @@ function amt_tour_pbk_steps(): array
         ]];
     }
 
-    // ---- Tugas AMT (tipe "self"): jawab + foto bukti opsional ----
     if ($type === 'self') {
         return ['journey' => 'checklist', 'subKey' => 'amt_pbk_self', 'steps' => [
             [
@@ -942,7 +691,6 @@ function amt_tour_pbk_steps(): array
         ]];
     }
 
-    // ---- Verifikasi Tugas SPBU (tipe "spbu_task"); soal 1 diawali pengantar 14 soal ----
     $steps = [];
     $steps[] = [
         'no'     => 3,
@@ -958,17 +706,9 @@ function amt_tour_pbk_steps(): array
     return ['journey' => 'checklist', 'subKey' => 'amt_pbk_spbu', 'steps' => $steps];
 }
 
-/**
- * Tutorial layar "Aktifitas di SPBU" SESUDAH checklist terkirim: arahkan ke "Verifikasi Order".
- * Kunci tutorial dibedakan dari tahap sebelumnya supaya tidak dianggap "sudah selesai".
- *
- * @return array{steps:array, journey:string, subKey:string}
- */
 function amt_tour_verif_spbu_pack(array $s): array
 {
     if (amt_verif_is_done($s)) {
-        // Semua LO sudah terverifikasi: TIDAK ada kartu pemberitahuan "Verifikasi Order selesai".
-        // Tutorial langsung mengarahkan ke kartu aktif "Foto Surat Jalan" (langkah 1 alur Foto Surat Jalan).
         if (!amt_sj_done($s['id'])) {
             return ['journey' => 'suratjalan', 'subKey' => 'amt_spbu_sj', 'steps' => [[
                 'no'     => 1,
@@ -980,7 +720,6 @@ function amt_tour_verif_spbu_pack(array $s): array
                 'done'   => null,
             ]]];
         }
-        // Foto surat jalan sudah tersimpan -> Rating Petugas SPBU (langkah 1 alur Rating)
         if (!amt_rating_done($s['id'])) {
             return ['journey' => 'rating', 'subKey' => 'amt_spbu_rate', 'steps' => [[
                 'no'     => 1,
@@ -992,7 +731,6 @@ function amt_tour_verif_spbu_pack(array $s): array
                 'done'   => null,
             ]]];
         }
-        // Rating terkirim -> semua langkah hijau: ketuk "Selesai", lalu konfirmasi "Kirim" di pop up
         return amt_tour_finish_pack();
     }
     return ['journey' => 'kirim', 'subKey' => 'amt_spbu_verif', 'steps' => [
@@ -1008,20 +746,6 @@ function amt_tour_verif_spbu_pack(array $s): array
     ]];
 }
 
-/**
- * Tutorial Verifikasi Order (AMT): amt_verifikasi, amt_verifikasi_qr, amt_verifikasi_kode, amt_verifikasi_sukses.
- *
- * Mengikuti panduan OneFIS AMT:
- *   1) pilih LO yang sudah "Sudah Diisi" form bongkarnya (dipilih Petugas SPBU),
- *   2) pilih metode: Pindai Kode QR atau Kode Konfirmasi (seperti OTP); bila satu bermasalah pakai yang lain,
- *   3) konfirmasi langsung ke Petugas SPBU bahwa permintaan verifikasi (notifikasi terbaru) sudah terkirim,
- *      lalu pindai QR / ketik kode,
- *   4) hasil "Order Berhasil Diverifikasi" -> "Oke".
- * Elemen disorot: wrapper data-tour="verif-list" dan "verif-methods" (roles/amt/views/amt_verifikasi.php)
- * serta kelas/ID yang sudah ada di tiga layar lainnya.
- *
- * @return array{steps:array, journey:string, subKey:?string}
- */
 function amt_tour_verif_steps(string $screen): array
 {
     $none = ['journey' => 'verifikasi', 'subKey' => null, 'steps' => []];
@@ -1031,7 +755,6 @@ function amt_tour_verif_steps(string $screen): array
     }
     $sim = AMT_VERIF_SIM_NOTE;
 
-    // ---- Daftar LO + Metode Verifikasi ----
     if ($screen === 'amt_verifikasi') {
         if (amt_verif_is_done($ship)) {
             return $none;
@@ -1045,7 +768,6 @@ function amt_tour_verif_steps(string $screen): array
                 'title'     => 'Pastikan semua LO tercentang',
                 'text'      => 'Hanya LO yang “Form Bongkar”-nya sudah “Sudah Diisi” yang bisa dipilih. Ketuk kartu LO (atau kotak di kanan kartu) untuk mencentang, sampai semua LO tercentang. Bila daftar belum berubah, ketuk “Refresh”.',
                 'hint'      => '👆 Pastikan semua LO tercentang',
-                // selesai bila SEMUA LO yang bisa dipilih sudah tercentang (minimal ada satu)
                 'done'      => '[data-tour="verif-list"]:not(:has(.verif-lo:not(.is-disabled):not(.is-selected))):has(.verif-lo.is-selected)',
             ],
             [
@@ -1061,7 +783,6 @@ function amt_tour_verif_steps(string $screen): array
         ]];
     }
 
-    // ---- Pindai Kode QR ----
     if ($screen === 'amt_verifikasi_qr') {
         return ['journey' => 'verifikasi', 'subKey' => 'amt_verif_qr', 'steps' => [
             [
@@ -1072,14 +793,13 @@ function amt_tour_verif_steps(string $screen): array
                 'text'     => 'Minta Petugas SPBU membuka aplikasinya dan memastikan permintaan verifikasi (notifikasi terbaru) sudah terkirim. Lalu arahkan kamera ke kode QR di HP Petugas SPBU. Waktu pindai 2 menit, lihat hitungan mundur di bawah. Setelah Anda ketuk “Mengerti”, kode QR dipindai otomatis dalam ' . (int) (AMT_VERIF_QR_SCAN_TOUR_MS / 1000) . ' detik.',
                 'hint'     => '👆 Ketuk “Mengerti” bila Petugas SPBU sudah siap',
                 'button'   => 'Mengerti',
-                'announce' => true,   // layar Pindai Kode QR mulai memindai otomatis saat "Mengerti" diketuk (amt_verifikasi_qr.php)
+                'announce' => true,
                 'skip'     => '.vqr.is-expired',
                 'done'     => null,
             ],
         ]];
     }
 
-    // ---- Kode Konfirmasi ----
     if ($screen === 'amt_verifikasi_kode') {
         return ['journey' => 'verifikasi', 'subKey' => 'amt_verif_kode', 'steps' => [
             [
@@ -1091,7 +811,7 @@ function amt_tour_verif_steps(string $screen): array
                 'text'      => 'Minta Petugas SPBU membuka aplikasinya dan memastikan permintaan verifikasi (notifikasi terbaru) sudah terkirim. Petugas SPBU akan menyebutkan kode 6 angka, seperti kode OTP. Kode berlaku 3 menit.',
                 'hint'      => '👆 Ketuk “Mengerti” bila kode sudah Anda terima',
                 'button'    => 'Mengerti',
-                'remember'  => true,    // tidak diulang bila halaman dimuat ulang setelah kode salah
+                'remember'  => true,
                 'skip'      => '#vkodeExpired:not([hidden])',
                 'done'      => null,
             ],
@@ -1111,7 +831,6 @@ function amt_tour_verif_steps(string $screen): array
         ]];
     }
 
-    // ---- Order Berhasil Diverifikasi ----
     if ($screen === 'amt_verifikasi_sukses') {
         $more = !amt_verif_is_done($ship);
         return ['journey' => 'verifikasi', 'subKey' => 'amt_verif_sukses', 'steps' => [
@@ -1141,15 +860,6 @@ function amt_tour_verif_steps(string $screen): array
     return $none;
 }
 
-/**
- * Tutorial "Selesai" di layar Aktifitas di SPBU (setelah Rating terkirim, semua langkah hijau):
- *   5) ketuk tombol "Selesai"              -> selesai saat pop up "Menyelesaikan Order" terbuka (#finSheet.is-open)
- *   6) ketuk "Kirim" di pop up              -> POST finish_order, kembali ke beranda AMT
- * Bila pop up ditutup ("Batal"), langkah 5 tampil lagi.
- * Elemen: #finOpen, #finSheet, .amts-fin__card, #finSend (roles/amt/views/spbu.php).
- *
- * @return array{steps:array, journey:string, subKey:string}
- */
 function amt_tour_finish_pack(): array
 {
     return ['journey' => 'rating', 'subKey' => 'amt_spbu_finish', 'steps' => [
@@ -1176,21 +886,6 @@ function amt_tour_finish_pack(): array
     ]];
 }
 
-/**
- * Tutorial Foto Surat Jalan (AMT): layar amt_surat_jalan (roles/amt/views/surat_jalan.php).
- *
- * Mengikuti panduan OneFIS AMT (bagian 4. Foto Surat Jalan):
- *   Setelah Verifikasi Order, AMT memotret Surat Jalan yang sudah dicap stempel atau ditandatangani pihak SPBU
- *   (tanda sudah diterima). Klik "Foto Surat Jalan", foto surat jalan MASING-MASING LO, lalu klik "Simpan Foto".
- *
- * Langkah (nomor 1 = kartu "Foto Surat Jalan" di layar Aktifitas di SPBU):
- *   2) "Ambil Foto" untuk tiap Nomor LO   -> selesai saat SEMUA LO punya foto (#sjForm[data-complete="1"])
- *   3) "Simpan Foto"                        -> POST submit_sj, kembali ke Aktifitas di SPBU
- *   (langkah "Periksa hasil foto" sudah dihapus: mengganggu dan tidak terlalu penting)
- * Penanda dari assets/js/surat-jalan.js: kelas .has-photo pada .sj-item, atribut data-filled / data-total / data-complete.
- *
- * @return array{steps:array, journey:string, subKey:?string}
- */
 function amt_tour_sj_steps(): array
 {
     $none = ['journey' => 'suratjalan', 'subKey' => null, 'steps' => []];
@@ -1230,22 +925,6 @@ function amt_tour_sj_steps(): array
     ]];
 }
 
-/**
- * Tutorial Rating Petugas SPBU (AMT): layar amt_rating (roles/amt/views/amt_rating.php).
- *
- * Mengikuti panduan OneFIS AMT (bagian 5. Rating Petugas SPBU):
- *   AMT mengisi nama Petugas SPBU, menilai 5 aspek dengan bintang (Safety Petugas Bongkar, Sarfas, Komunikasi,
- *   Operasional, Aspek Layanan), boleh menulis ulasan, lalu Kirim. Setelah itu tombol "Selesai" menyala.
- *
- * Langkah (nomor 1 = kartu "Rating Petugas SPBU" di layar Aktifitas di SPBU; 5-6 lihat amt_tour_finish_pack()):
- *   2) nama Petugas SPBU    -> selesai saat nama terisi (#rtForm[data-named="1"])
- *   3) bintang 5 penilaian  -> (a) penjelasan SATU KALI, selesai saat satu kartu berbintang; (b) "isi semua rating yang
- *                              tersisa", selesai saat semua kartu berbintang (#rtForm[data-allrated="1"])
- *   4) "Kirim"              -> POST submit_rating, kembali ke Aktifitas di SPBU
- * Penanda dari assets/js/amt-rating.js: kelas .is-rated pada .rt-card, atribut data-named / data-rated / data-allrated.
- *
- * @return array{steps:array, journey:string, subKey:?string}
- */
 function amt_tour_rating_steps(): array
 {
     $none = ['journey' => 'rating', 'subKey' => null, 'steps' => []];
@@ -1265,8 +944,6 @@ function amt_tour_rating_steps(): array
             'settle'    => 1500,
             'ok'        => '✅ Nama petugas sudah terisi',
         ],
-        // 3a) Penjelasan bintang: tampil SATU KALI, menyorot kartu pertama yang belum dinilai.
-        //     Selesai begitu SATU kartu sudah berbintang.
         [
             'no'        => 3,
             'label'     => 'Rating Petugas SPBU',
@@ -1284,15 +961,12 @@ function amt_tour_rating_steps(): array
             'hint'      => '👆 Ketuk bintang pada kartu yang menyala',
             'done'      => '.rt-card.is-rated',
         ],
-        // 3b) Pengingat singkat: HANYA tampil sesaat setelah bintang PERTAMA diisi. Begitu kartu kedua diisi,
-        //     tutorial menghilang dan tidak mengganggu sampai SEMUA rating terisi (lalu muncul langkah "Kirim").
-        //     'when' = hanya tampil bila tepat 1 kartu berbintang (#rtForm[data-rated] = jumlah kartu berbintang).
         [
             'no'        => 3,
             'label'     => 'Rating Petugas SPBU',
             'target'    => '#rtSend',
             'when'      => '#rtForm[data-rated="1"]',
-            'nodim'     => true,   // kartu penilaian tidak digelapkan, supaya mudah dilihat & diketuk
+            'nodim'     => true,
             'title'     => 'Lanjutkan mengisi bintang',
             'text'      => 'Bagus! Ketuk bintang pada kartu penilaian lain yang masih kosong sampai kelimanya terisi.',
             'hint'      => '👆 Isi bintang di kartu yang masih kosong',
@@ -1305,7 +979,7 @@ function amt_tour_rating_steps(): array
             'no'     => 4,
             'label'  => 'Rating Petugas SPBU',
             'target' => '#rtSend',
-            'when'   => '#rtForm[data-allrated="1"]',   // tampil hanya setelah SEMUA bintang terisi
+            'when'   => '#rtForm[data-allrated="1"]',
             'title'  => 'Ketuk “Kirim”',
             'text'   => 'Nama dan kelima bintang sudah terisi, jadi tombol “Kirim” menyala. Setelah terkirim, Anda kembali ke Aktifitas di SPBU dan tombol “Selesai” menyala.',
             'hint'   => '👆 Ketuk tombol biru “Kirim”',
@@ -1314,25 +988,11 @@ function amt_tour_rating_steps(): array
     ]];
 }
 
-/**
- * [DINONAKTIFKAN SEMENTARA: belum dipanggil dari amt_tour_steps_for(); tutorial kendala belum selesai]
- * Tutorial layar Laporkan Kendala (roles/amt/views/kendala.php, logika: assets/js/amt-kendala.js).
- * Status form dibaca dari atribut data-* pada #kdForm:
- *   data-jenis="1"  jenis kendala dipilih          data-bisa="ya|tidak"  pilihan Estimasi Kendala
- *   data-est="1"    estimasi waktu diterapkan      data-photo="1"        foto bukti tersimpan
- *   data-note="1"   justifikasi terisi             data-ready="1"        semua isian wajib lengkap
- * Pop up estimasi: #kdModal.is-open. Langkah 3 (estimasi waktu) dianggap selesai juga bila pengguna memilih
- * "Tidak Bisa Diprediksi" (kolom estimasi waktu tidak ada), jadi langkah berikutnya tetap muncul.
- * Foto bukti dipandu DI ATAS kamera layar penuh ('camera' => true), seperti tutorial foto selfie.
- *
- * @return array{journey:string, subKey:?string, steps:array}
- */
 function amt_tour_kendala_steps(): array
 {
-    $shot     = '.amtcam.is-open .amtcam-shot:not([hidden])';       // hasil foto sedang ditinjau
-    $estSkip  = '#kdForm[data-est="1"], #kdForm[data-bisa="tidak"]'; // estimasi waktu terisi / tidak diperlukan
+    $shot     = '.amtcam.is-open .amtcam-shot:not([hidden])';
+    $estSkip  = '#kdForm[data-est="1"], #kdForm[data-bisa="tidak"]';
     return ['journey' => 'kendala', 'subKey' => 'amt_kendala', 'steps' => [
-        // 1) Jenis kendala
         [
             'no'        => 1,
             'target'    => '#kdJenisWrap',
@@ -1342,7 +1002,6 @@ function amt_tour_kendala_steps(): array
             'done'      => '#kdForm[data-jenis="1"]',
             'ok'        => '✅ Jenis kendala sudah dipilih',
         ],
-        // 2) Estimasi kendala (informasi; selesai saat "Mengerti" diketuk)
         [
             'no'        => 2,
             'target'    => '#kdBisa',
@@ -1353,7 +1012,6 @@ function amt_tour_kendala_steps(): array
             'button'    => 'Mengerti',
             'done'      => null,
         ],
-        // 3a) Estimasi waktu: ketuk kolom -> pop up terbuka
         [
             'no'        => 3,
             'target'    => '#kdTime',
@@ -1362,7 +1020,6 @@ function amt_tour_kendala_steps(): array
             'hint'      => '👆 Ketuk kolom estimasi waktu',
             'done'      => '#kdModal.is-open, ' . $estSkip,
         ],
-        // 3b) Pop up pemilih durasi: atur jam & menit, lalu "Terapkan"
         [
             'no'        => 3,
             'over'      => true,
@@ -1375,7 +1032,6 @@ function amt_tour_kendala_steps(): array
             'done'      => $estSkip,
             'ok'        => '✅ Estimasi waktu sudah diisi',
         ],
-        // 4a) Foto bukti: ketuk kartu -> kamera terbuka
         [
             'no'        => 4,
             'target'    => '#kdPhotoBtn',
@@ -1385,7 +1041,6 @@ function amt_tour_kendala_steps(): array
             'hint'      => '👆 Ketuk “Ambil Foto”',
             'done'      => '#kdForm[data-photo="1"], .amtcam.is-open',
         ],
-        // 4b) Di dalam kamera: ketuk "Foto"
         [
             'no'        => 4,
             'camera'    => true,
@@ -1395,7 +1050,6 @@ function amt_tour_kendala_steps(): array
             'hint'      => '👆 Ketuk tombol “Foto”',
             'done'      => $shot . ', #kdForm[data-photo="1"]',
         ],
-        // 4c) Tinjau hasil: ketuk "Simpan Foto"
         [
             'no'        => 4,
             'camera'    => true,
@@ -1406,7 +1060,6 @@ function amt_tour_kendala_steps(): array
             'done'      => '#kdForm[data-photo="1"]',
             'ok'        => '✅ Foto bukti sudah tersimpan',
         ],
-        // 5) Justifikasi
         [
             'no'        => 5,
             'target'    => '#kdNote',
@@ -1418,11 +1071,10 @@ function amt_tour_kendala_steps(): array
             'settle'    => 1500,
             'ok'        => '✅ Justifikasi sudah terisi',
         ],
-        // 6) Kirim
         [
             'no'        => 6,
             'target'    => '#kdSend',
-            'when'      => '#kdForm[data-ready="1"]',   // tampil hanya setelah semua isian wajib lengkap
+            'when'      => '#kdForm[data-ready="1"]',
             'title'     => 'Ketuk “Kirim Laporan Kendala”',
             'text'      => 'Semua isian wajib sudah lengkap, jadi tombol “Kirim Laporan Kendala” menyala. Setelah terkirim, Anda kembali ke beranda dan menunggu konfirmasi dari Terminal.',
             'hint'      => '👆 Ketuk tombol biru “Kirim Laporan Kendala”',
@@ -1431,29 +1083,14 @@ function amt_tour_kendala_steps(): array
     ]];
 }
 
-/**
- * Data langkah untuk satu layar.
- *
- * @param string $screen   nama layar
- * @param bool   $running  true bila timer Jam Kerja sedang berjalan
- * @param int    $checkins jumlah Mulai Ritase yang sudah berhasil (0 = belum ada)
- * @return array{steps:array, journey:string, startDelay?:int, subKey?:?string}
- */
 function amt_tour_steps_for(string $screen, bool $running, int $checkins = 0): array
 {
-    // ---- Beranda AMT ----
     if ($screen === amt_home_screen()) {
-        // Mulai Ritase sudah berhasil -> AMT diberi tahu untuk melakukan DCU (cek
-        // kesehatan) lebih dulu. DCU dilakukan LANGSUNG di lokasi, bukan lewat
-        // aplikasi, jadi tutorial ini hanya pemberitahuan (kartu di tengah).
-        // Muncul AMT_TOUR_DCU_DELAY_MS setelah halaman dibuka.
         if ($running && $checkins > 0) {
-            // Order sudah diselesaikan -> scan segel di AVM dulu (bukan di aplikasi), lalu Selesai Ritase
             $outPack = amt_out_tour_pack();
             if ($outPack !== null) {
                 return $outPack;
             }
-            // Hasil inspeksi PTI baru dikirim -> tahapan berikutnya + arahkan ke Shipments
             if (amt_flow_get('pti_done') && amt_pti_is_done()) {
                 return amt_tour_pti_done_pack($checkins);
             }
@@ -1462,21 +1099,20 @@ function amt_tour_steps_for(string $screen, bool $running, int $checkins = 0): a
                 'no'       => null,
                 'label'    => 'Mulai Ritase Berhasil',
                 'target'   => null,
-                'notice'   => true,                                   // pemberitahuan: tetap tampil walau tutorial dimatikan
+                'notice'   => true,
                 'title'    => 'Lakukan DCU dulu 🩺',
                 'text'     => 'Mulai Ritase berhasil. Sekarang lakukan DCU (cek kesehatan) terlebih dahulu. DCU dilakukan langsung di tempat, bukan lewat aplikasi ini. Menu PTI akan menyala setelah kartu ini ditutup.',
                 'button'   => 'Mengerti',
-                'autoHide' => AMT_DCU_VISIBLE_FOR,                    // tertutup sendiri setelah 7 detik
-                'announce' => true,                                   // PTI mulai menyala 2 detik setelah ini
-                'skip'     => '.amt-home[data-dcu-seen="1"]',         // DCU sudah dibaca (halaman dimuat ulang)
+                'autoHide' => AMT_DCU_VISIBLE_FOR,
+                'announce' => true,
+                'skip'     => '.amt-home[data-dcu-seen="1"]',
                 'done'     => null,
             ]];
-            // Sesudah DCU: arahkan ke menu PTI (kecuali inspeksi sudah selesai)
             if (!amt_pti_is_done()) {
                 $steps[] = [
                     'no'     => 1,
                     'target' => '[data-tour="amt-menu-pti"]',
-                    'when'   => 'a[data-tour="amt-menu-pti"]',       // baru muncul setelah menu PTI menyala
+                    'when'   => 'a[data-tour="amt-menu-pti"]',
                     'delay'  => AMT_PTI_HINT_DELAY,
                     'title'  => 'Buka menu “PTI”',
                     'text'   => 'PTI adalah pemeriksaan mobil tangki sebelum berangkat. Menu PTI sekarang sudah menyala.',
@@ -1491,7 +1127,6 @@ function amt_tour_steps_for(string $screen, bool $running, int $checkins = 0): a
             ];
         }
         if ($running) {
-            // Sesudah Selesai Ritase: tutorial mengarahkan ke Mulai / Selesai Kerja -> Selesai Kerja.
             $afterPack = amt_out_tour_after_pack();
             if ($afterPack !== null) {
                 return $afterPack;
@@ -1505,16 +1140,14 @@ function amt_tour_steps_for(string $screen, bool $running, int $checkins = 0): a
                 'done'   => null,
             ]]];
         }
-        // Sesi kerja sudah berakhir (Selesai Kerja berhasil) = pengguna sudah menyelesaikan seluruh alur tutorial.
-        // Kartu sambutan diganti ucapan selamat: "Mulai" = ulangi dari awal, "Sudah cukup" = tutup.
         $tourFinished = !empty(work_data()['ended_at']);
         $welcome = $tourFinished
             ? [
                 'no'        => null,
                 'label'     => 'Tutorial Selesai',
                 'target'    => null,
-                'notice'    => true,     // tetap tampil walau tutorial dimatikan (Selesai Kerja menutup tutorial)
-                'restart'   => true,     // "Mulai" hanya menutup kartu; proses diulang tanpa mode tutorial
+                'notice'    => true,
+                'restart'   => true,
                 'title'     => 'Selamat! Tutorial selesai 🎉',
                 'text'      => 'Selamat, Anda telah menyelesaikan sesi tutorial ini. Klik “Mulai” untuk mengulang proses dari awal TANPA mode tutorial, atau pilih “Sudah cukup sampai di sini”. Untuk menyalakan tutorial lagi kapan saja, ketuk ikon profil di pojok kanan atas.',
                 'button'    => 'Mulai',
@@ -1542,14 +1175,12 @@ function amt_tour_steps_for(string $screen, bool $running, int $checkins = 0): a
         ]];
     }
 
-    // ---- Absensi Kerja ----
     if ($screen === 'start_end') {
-        // Sesudah Selesai Ritase: AMT diarahkan mengakhiri kerja (tanpa tombol "Mengerti", langsung Selesai Kerja)
         if ($running && amt_out_after_checkout()) {
             return ['journey' => 'pulang', 'steps' => [[
                 'no'        => 1,
                 'target'    => '[data-tour="btn-end-work"]',
-                'highlight' => '[data-tour="card-end-work"]',   // sorot seluruh kartu merah, bukan hanya tombol
+                'highlight' => '[data-tour="card-end-work"]',
                 'title'  => 'Ketuk “Selesai Kerja”',
                 'text'   => 'Ritase sudah ditutup, jadi waktunya mengakhiri jam kerja. Ketuk “Selesai Kerja”, lalu isi form-nya.',
                 'hint'   => '👆 Ketuk tombol “Selesai Kerja”',
@@ -1560,7 +1191,7 @@ function amt_tour_steps_for(string $screen, bool $running, int $checkins = 0): a
             return ['journey' => 'pulang', 'steps' => [[
                 'no'        => 1,
                 'target'    => '[data-tour="btn-end-work"]',
-                'highlight' => '[data-tour="card-end-work"]',   // sorot seluruh kartu merah, bukan hanya tombol
+                'highlight' => '[data-tour="card-end-work"]',
                 'title'  => 'Absen pulang: “Selesai Kerja”',
                 'text'   => 'Saat jam kerja selesai, ketuk “Selesai Kerja”. Kalau belum waktunya pulang, ketuk “Mengerti” saja.',
                 'hint'   => '👆 Ketuk “Selesai Kerja” saat sudah selesai bekerja',
@@ -1571,7 +1202,7 @@ function amt_tour_steps_for(string $screen, bool $running, int $checkins = 0): a
         return ['journey' => 'masuk', 'steps' => [[
             'no'        => 2,
             'target'    => '[data-tour="btn-start-work"]',
-            'highlight' => '[data-tour="card-start-work"]',   // sorot seluruh kartu hijau, bukan hanya tombol
+            'highlight' => '[data-tour="card-start-work"]',
             'title'  => 'Ketuk “Mulai Kerja”',
             'text'   => 'Ini tombol absen masuk. Pastikan Anda sudah berada di area terminal.',
             'hint'   => '👆 Ketuk tombol hijau “Mulai Kerja”',
@@ -1579,7 +1210,6 @@ function amt_tour_steps_for(string $screen, bool $running, int $checkins = 0): a
         ]]];
     }
 
-    // ---- Form ----
     if ($screen === 'start_work') {
         return ['journey' => 'masuk', 'steps' => amt_tour_form_steps('start')];
     }
@@ -1590,63 +1220,49 @@ function amt_tour_steps_for(string $screen, bool $running, int $checkins = 0): a
         return ['journey' => 'pulang', 'steps' => amt_tour_form_steps('end')];
     }
 
-    // ---- Shipments: daftar & Detail Order ----
     if ($screen === 'amt_shipments' || $screen === 'amt_shipment_detail') {
         $pack = amt_tour_ship_steps($screen);
         return ['journey' => $pack['journey'], 'steps' => $pack['steps']];
     }
 
-    // ---- Aktifitas di SPBU (Tiba di Lokasi) ----
     if ($screen === 'amt_spbu') {
         $pack = amt_tour_spbu_steps();
         return ['journey' => $pack['journey'], 'steps' => $pack['steps'], 'subKey' => $pack['subKey']];
     }
 
-    // ---- Checklist Pra-Pembongkaran: Daftar LO + 14 soal ----
     if ($screen === 'amt_checklist_lo' || $screen === 'amt_checklist') {
         $pack = $screen === 'amt_checklist_lo' ? amt_tour_pbk_lo_steps() : amt_tour_pbk_steps();
         return ['journey' => $pack['journey'], 'steps' => $pack['steps'], 'subKey' => $pack['subKey']];
     }
 
-    // ---- Verifikasi Order ----
     if (in_array($screen, AMT_VERIF_SCREENS, true)) {
         $pack = amt_tour_verif_steps($screen);
         return ['journey' => $pack['journey'], 'steps' => $pack['steps'], 'subKey' => $pack['subKey']];
     }
 
-    // ---- Foto Surat Jalan ----
     if ($screen === AMT_SJ_SCREEN) {
         $pack = amt_tour_sj_steps();
         return ['journey' => $pack['journey'], 'steps' => $pack['steps'], 'subKey' => $pack['subKey']];
     }
 
-    // ---- Laporkan Kendala ----
-    // [DINONAKTIFKAN SEMENTARA] Tutorial "Laporkan Kendala" belum selesai -> layar ini tidak punya tutorial dulu.
-    // Untuk mengaktifkan lagi: hapus baris return kosong di bawah dan buka komentar blok di bawahnya.
     if ($screen === AMT_KENDALA_SCREEN) {
         return ['journey' => 'kendala', 'steps' => [], 'subKey' => null];
-        // $pack = amt_tour_kendala_steps();
-        // return ['journey' => $pack['journey'], 'steps' => $pack['steps'], 'subKey' => $pack['subKey']];
     }
 
-    // ---- Rating Petugas SPBU ----
     if ($screen === AMT_RATING_SCREEN) {
         $pack = amt_tour_rating_steps();
         return ['journey' => $pack['journey'], 'steps' => $pack['steps'], 'subKey' => $pack['subKey']];
     }
 
-    // ---- Selesai Ritase: lokasi, aktivitas, foto, kirim ----
     if ($screen === AMT_OUT_SCREEN) {
         return ['journey' => 'checkout', 'steps' => amt_out_tour_form_steps()];
     }
 
-    // ---- Hasil Inspeksi ----
     if ($screen === 'amt_pti_hasil') {
         $pack = amt_tour_pti_hasil_steps();
         return ['journey' => $pack['journey'], 'steps' => $pack['steps'], 'subKey' => $pack['subKey']];
     }
 
-    // ---- PTI ----
     if ($screen === 'amt_pti' || $screen === 'amt_pti_form') {
         $pack = amt_tour_pti_steps($screen);
         return ['journey' => $pack['journey'], 'steps' => $pack['steps'], 'subKey' => $pack['subKey']];
@@ -1655,13 +1271,6 @@ function amt_tour_steps_for(string $screen, bool $running, int $checkins = 0): a
     return ['journey' => 'masuk', 'steps' => []];
 }
 
-/**
- * Konfigurasi tutorial AMT untuk sebuah layar.
- * 'subKey' memisahkan catatan "sudah selesai" untuk keadaan berbeda pada
- * layar yang sama (beranda sebelum / sesudah Mulai Kerja, dst).
- *
- * @return array{steps:array, subKey:?string, journey:?array, startDelay:int, epoch:string, persist:bool, screenOrder:array, screenLabels:array}
- */
 function amt_tour_config(string $screen): array
 {
     $running  = work_is_running();
@@ -1670,16 +1279,13 @@ function amt_tour_config(string $screen): array
     $subKey   = null;
 
     if ($running && $screen === amt_home_screen()) {
-        // Tiap Mulai Ritase berhasil punya catatan sendiri, jadi DCU diingatkan lagi
-        // setelah Mulai Ritase berikutnya (bukan hanya sekali seumur hidup).
-        // Kunci dari paket langkah (mis. tutorial "PTI selesai") diutamakan.
         $subKey = !empty($pack['subKey'])
             ? $pack['subKey']
             : ($checkins > 0 ? 'amt_home_dcu_' . $checkins : 'amt_home_running');
     } elseif ($running && $screen === 'start_end') {
         $subKey = 'start_end_running';
     } elseif (!empty($pack['subKey'])) {
-        $subKey = $pack['subKey'];   // layar PTI menentukan kuncinya sendiri
+        $subKey = $pack['subKey'];
     }
 
     return [
@@ -1689,17 +1295,10 @@ function amt_tour_config(string $screen): array
         'startDelay'   => (int) ($pack['startDelay'] ?? 0),
         'epoch'        => amt_tour_epoch(),
         'fresh'        => amt_tour_fresh(),
-        // Layar form/aksi (termasuk Foto Surat Jalan & Rating): JANGAN catat "selesai" permanen (Kirim bisa
-        // ditolak server lalu halaman dimuat ulang) -> tutorial tampil lagi otomatis setiap dibuka.
-        // Layar SPBU sebelum tiba juga tidak dicatat selesai: bila pengguna keluar lalu kembali
-        // sebelum menekan "Ya, pengiriman telah tiba", tutorial tampil lagi. Kartu "tercatat" (sesudah
-        // tiba) tetap dicatat supaya hanya tampil sekali.
         'persist'      => !in_array($screen, ['start_work', 'checkin', 'checkout', 'end_work', 'start_end', 'amt_surat_jalan', 'amt_rating', 'amt_kendala'], true)
                           && !($screen === 'amt_spbu' && empty($pack['subKey'])),
         'screenOrder'  => AMT_TOUR_SCREEN_ORDER,
         'screenLabels' => AMT_TOUR_SCREEN_LABELS,
-        // Performance tidak punya tutorial: tombol "?" bawaan mesin tutorial disembunyikan, layar ini
-        // memasang tombol "?" sendiri yang hanya membuka pop up informasi (views/performance.php).
         'noFab'        => $screen === 'amt_performance',
     ];
 }

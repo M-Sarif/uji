@@ -256,7 +256,7 @@ function amt_handle_post(string $action): void
                 'active_acc'   => 0,
                 'active_since' => 0,
             ];
-            amt_work_success('Mulai Kerja Berhasil!', 'Anda dapat menekan Mulai Ritase sekarang.');
+            amt_work_success('Berhasil Mulai Kerja!', 'Anda dapat menekan Mulai Ritase sekarang.');
             break;
 
         case 'submit_end_work':
@@ -272,7 +272,7 @@ function amt_handle_post(string $action): void
             work_active_stop();
             $_SESSION['work']['ended_at'] = time();
             $_SESSION['work']['end_photo'] = true;
-            amt_work_success('Selesai Kerja Berhasil!', 'Jam kerja Anda sudah berakhir. Terima kasih atas kerja keras Anda hari ini.');
+            amt_work_success('Berhasil Selesai Kerja!', 'Jam kerja Anda sudah berakhir. Terima kasih atas kerja keras Anda hari ini.');
             break;
 
         case 'submit_checkin':
