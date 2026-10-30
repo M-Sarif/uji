@@ -1,28 +1,11 @@
 <?php
-/**
- * Data Pre-Trip Inspection (PTI) - role AMT
- *
- * 11 langkah, mengikuti form inspeksi asli:
- *   1-10  = checklist per sisi kendaraan (foto acuan + item Layak / Tidak layak)
- *   11    = Pernyataan Tanggung Jawab (hasil GO / NO GO + Catatan wajib)
- *
- * Foto acuan: roles/amt/assets/img/pti/pti1.png ... pti10.png
- * Catatan: pti6.png = APAR & Spill Kit, pti7.png = sisi kiri belakang trailer,
- * sedangkan urutan form-nya kebalikan (langkah 6 = trailer, langkah 7 = APAR),
- * jadi pemetaan foto di bawah menukar keduanya. File tidak perlu diganti nama.
- * Kalau file foto belum ada, halaman menampilkan kotak placeholder.
- */
-
 const AMT_PTI_TOTAL = 11;
 
-/** Langkah terakhir (Pernyataan Tanggung Jawab): tanpa foto & tanpa item radio. */
 const AMT_PTI_STATEMENT_STEP = 11;
 
-/** Isi minimal Catatan pada langkah terakhir (jumlah karakter). */
 const AMT_PTI_NOTE_MIN = 3;
 const AMT_PTI_NOTE_MAX = 500;
 
-/** Nilai jawaban yang dianggap "Tidak layak" -> hasil inspeksi NO GO. */
 const AMT_PTI_FAIL = 'tidak';
 
 function amt_pti_steps()
@@ -78,12 +61,12 @@ function amt_pti_steps()
         ],
         6 => [
             'title' => 'SISI KIRI BELAKANG TRAILER (F)',
-            'image' => $img . 'pti7.png',          // pti7.png = trailer kiri belakang
+            'image' => $img . 'pti7.png',
             'items' => $pneumatic,
         ],
         7 => [
             'title' => 'SISI BELAKANG (G)',
-            'image' => $img . 'pti6.png',          // pti6.png = APAR & Spill Kit
+            'image' => $img . 'pti6.png',
             'items' => [
                 ['key' => 'komponen_lain', 'label' => 'Komponen Lain', 'hint' => 'APAR dan Kotak Spill Kit.'],
             ],
@@ -108,7 +91,7 @@ function amt_pti_steps()
                 ['key' => 'alarm_lampu',   'label' => 'Alarm atau Lampu Peringatan', 'hint' => 'Ada dan tidak menyala.'],
             ],
         ],
-        // Langkah 11 = Pernyataan Tanggung Jawab (dirender khusus di roles/amt/views/pti_form.php)
+
         11 => [
             'title' => 'Pernyataan Tanggung Jawab',
             'image' => null,
@@ -117,7 +100,6 @@ function amt_pti_steps()
     ];
 }
 
-/** Teks pernyataan pada langkah 11 (satu paragraf per baris). */
 function amt_pti_statement_lines()
 {
     return [
@@ -127,34 +109,24 @@ function amt_pti_statement_lines()
     ];
 }
 
-/* ---------- Alur setelah Mulai Ritase (tutorial + aktivasi PTI) ---------- */
-
-/** Nama layar dashboard AMT (tujuan redirect kalau PTI belum aktif). Sesuaikan. */
 const AMT_DASHBOARD_SCREEN = 'amt_home';
 
-/** true = halaman PTI tidak bisa dibuka lewat URL sebelum PTI aktif. */
 const AMT_PTI_GUARD = true;
 
-/**
- * true = buka  ?screen=<dashboard>&amt_flow_demo=1  untuk mensimulasikan Mulai Ritase berhasil
- * (berguna untuk uji alur tanpa handler Mulai Ritase). Set false di produksi.
- */
 const AMT_FLOW_DEMO = false;
 
-/** Timing dalam milidetik. */
-const AMT_DCU_SHOW_DELAY         = 1000; // tutorial DCU muncul 1 detik setelah Mulai Ritase berhasil
-const AMT_DCU_VISIBLE_FOR        = 7000; // hilang sendiri setelah 7 detik kalau tidak diklik
-const AMT_PTI_UNLOCK_DELAY       = 2000; // PTI aktif 2 detik setelah tutorial DCU hilang
-const AMT_PTI_HINT_DELAY         = 1000; // petunjuk "tekan PTI" muncul 1 detik setelah PTI aktif
-const AMT_PTI_FAILSAFE_SECONDS   = 30;  // PTI otomatis aktif 30 detik setelah Mulai Ritase walau tutorial tidak sempat ditutup
-const AMT_PTI_DONE_VISIBLE_FOR   = 20000; // tutorial "PTI selesai" di dashboard hilang sendiri setelah 20 detik
-const AMT_PTI_DONE_PAGE_VISIBLE_FOR = 8000; // kartu tutorial "Inspeksi selesai" di halaman PTI hilang sendiri setelah 5 detik
-const AMT_ROUTE_INFO_VISIBLE_FOR = 20000; // info "Laporkan Kendala" (rute pengiriman di beranda) hilang sendiri setelah 20 detik
-const AMT_ROUTE_INFO_DELAY        = 3000; // info "Laporkan Kendala" muncul 3 detik SETELAH kartu "PTI selesai" tertutup
-const AMT_PTI_DONE_SHIPMENT_DELAY = 3000; // 3 detik setelah info kendala tertutup, tutorial yang menyorot ikon Shipments muncul
-const AMT_PTI_DONE_START_DELAY    = 800;  // jeda saat beranda dibuka sebelum kartu "PTI selesai" muncul
+const AMT_DCU_SHOW_DELAY         = 1000;
+const AMT_DCU_VISIBLE_FOR        = 7000;
+const AMT_PTI_UNLOCK_DELAY       = 2000;
+const AMT_PTI_HINT_DELAY         = 1000;
+const AMT_PTI_FAILSAFE_SECONDS   = 30;
+const AMT_PTI_DONE_VISIBLE_FOR   = 60000;
+const AMT_PTI_DONE_PAGE_VISIBLE_FOR = 8000;
+const AMT_ROUTE_INFO_VISIBLE_FOR = 20000;
+const AMT_ROUTE_INFO_DELAY        = 3000;
+const AMT_PTI_DONE_SHIPMENT_DELAY = 3000;
+const AMT_PTI_DONE_START_DELAY    = 800;
 
-/** Isi tutorial. Teks 'dcu' dari screenshot; teks 'pti' contoh, sesuaikan dengan user guide. */
 function amt_flow_tutorials()
 {
     return [

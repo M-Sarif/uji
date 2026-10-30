@@ -1,5 +1,4 @@
 <?php
-
 const AMT_TOUR_SCREEN_ORDER = ['amt_home', 'start_end', 'start_work', 'checkin', 'checkout', 'amt_pti', 'amt_pti_form', 'amt_pti_hasil', 'amt_shipments', 'amt_shipment_detail', 'amt_spbu', 'amt_checklist_lo', 'amt_checklist', 'amt_verifikasi', 'amt_verifikasi_qr', 'amt_verifikasi_kode', 'amt_verifikasi_sukses', 'amt_surat_jalan', 'amt_rating', 'amt_kendala', 'end_work'];
 
 const AMT_TOUR_SCREEN_LABELS = [
@@ -478,6 +477,7 @@ function amt_tour_pti_done_pack(int $checkins): array
             'no'       => null,
             'label'    => 'PTI Selesai',
             'target'   => null,
+            'notice'   => true,
             'title'    => 'PTI selesai ✅',
             'text'     => 'PTI sudah selesai. Lanjutkan dengan tahapan berikut:',
             'list'     => [
