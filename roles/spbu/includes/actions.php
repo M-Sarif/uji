@@ -313,6 +313,9 @@ function spbu_handle_post(string $action): void
             break;
 
         case 'reset_flow':
+            if ((int) ($_SESSION['activity_done'] ?? 0) >= count(ACTIVITY_STEPS)) {
+                $_SESSION['spbu_active_card_off'] = true;
+            }
             spbu_reset_flow_state();
             go_to('dashboard');
             break;
@@ -321,6 +324,10 @@ function spbu_handle_post(string $action): void
 
 function spbu_handle_get(string $screen): void
 {
+    if ($screen === 'shipments_list') {
+        unset($_SESSION['spbu_active_card_off']);
+    }
+
     if ($screen === 'create_order_product' && isset($_GET['added'])) {
         $_SESSION['order']['produk_added'] = true;
     }
