@@ -1,10 +1,3 @@
-/* ============================================================
-   OneFIS - dashboard.css
-   Khusus halaman Dashboard: menu cepat, kartu ilustrasi, dan
-   CTA "Lihat Detail Order".
-   ============================================================ */
-
-/* ---------- Dashboard ---------- */
 .dashboard-wrap {
     display: flex; flex-direction: column; gap: 1rem;
     padding: 1rem; padding-bottom: 1.25rem;
@@ -50,7 +43,6 @@
 .dashboard-cta:hover { background: #f8fafc; color: #64748b; }
 .dashboard-cta svg { width: 1.0625rem; height: 1.0625rem; }
 
-/* Tombol ganti peran di header dashboard */
 .role-switch {
     display: inline-flex; align-items: center; gap: 0.3125rem;
     padding: 0.3125rem 0.625rem; border-radius: 999px;
@@ -59,3 +51,83 @@
 }
 .role-switch svg { width: 0.875rem; height: 0.875rem; fill: none; stroke: currentColor; stroke-width: 2; }
 .role-switch:active { transform: scale(0.97); }
+
+.active-card { border-radius: 1.5rem; padding: 1.125rem 1rem 1rem; }
+.active-head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.875rem; }
+.active-title { margin: 0; font-size: 1rem; font-weight: 700; color: #0f172a; }
+.active-track {
+    display: inline-flex; align-items: center; gap: 0.3125rem; font-size: 0.75rem; font-weight: 600; color: #2563eb;
+    text-decoration: none;
+}
+.active-tabs { display: flex; padding: 0.25rem; gap: 0.25rem; border-radius: 0.75rem; background: #e2e8f0; }
+.active-tab {
+    flex: 1; padding: 0.5rem 0.25rem; border: 0; border-radius: 0.5rem; background: transparent;
+    font: inherit; font-size: 0.75rem; font-weight: 600; color: #0f172a; cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+.active-tab.is-active { background: #fff; color: #2563eb; box-shadow: 0 1px 3px rgba(15, 23, 42, .1); }
+
+.active-panel {
+    margin-top: 0.875rem; padding: 1rem 0.875rem; border: 1px solid #e2e8f0; border-radius: 1rem; background: #fff;
+}
+.active-panel[hidden] { display: none; }
+
+.active-stages { display: flex; align-items: flex-start; }
+.active-stage {
+    flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 0.25rem;
+    padding: 0; border: 0; background: transparent; color: #cbd5e1; cursor: default;
+    -webkit-tap-highlight-color: transparent;
+}
+.active-stage.is-on { color: #2563eb; cursor: pointer; }
+.active-stage .active-chev { color: #334155; }
+.active-stage:disabled .active-chev { color: #cbd5e1; }
+.active-line { flex: 1; height: 2px; margin-top: 0.6875rem; background: #cbd5e1; }
+.active-line.is-on { background: #2563eb; }
+
+.active-cap { margin: 1rem 0 0.125rem; font-size: 0.75rem; color: #64748b; }
+.active-now { margin: 0 0 0.875rem; font-size: 0.8125rem; font-weight: 700; color: #0f172a; }
+
+.active-log { list-style: none; margin: 0; padding: 0; }
+.active-log-item { position: relative; display: flex; gap: 0.75rem; padding-bottom: 1rem; }
+.active-log-item[hidden] { display: none; }
+.active-log-item::before {
+    content: ""; position: absolute; left: 0.5rem; top: 1.25rem; bottom: 0.125rem; width: 2px; margin-left: -1px; background: #e2e8f0;
+}
+.active-log-item:last-child::before { display: none; }
+.active-dot {
+    position: relative; z-index: 1; flex: 0 0 auto; width: 1rem; height: 1rem; margin-top: 0.125rem; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; background: #cbd5e1; color: transparent;
+}
+.active-log-item.is-latest .active-dot { background: #2563eb; color: #fff; }
+.active-log-body { flex: 1; min-width: 0; }
+.active-log-row { display: flex; align-items: baseline; justify-content: space-between; gap: 0.5rem; }
+.active-log-row strong { font-size: 0.75rem; color: #0f172a; }
+.active-log-row span { font-size: 0.75rem; font-weight: 600; color: #0f172a; white-space: nowrap; }
+.active-log-body p { margin: 0.25rem 0 0; font-size: 0.75rem; line-height: 1.5; color: #475569; }
+
+.active-more {
+    display: flex; align-items: center; justify-content: center; gap: 0.25rem; width: 100%; margin-top: 0.25rem; padding: 0.25rem;
+    border: 0; background: transparent; font: inherit; font-size: 0.75rem; font-weight: 600; color: #2563eb; cursor: pointer;
+}
+.active-more[hidden] { display: none; }
+.active-more svg { transition: transform .15s ease; }
+.active-more.is-open svg { transform: rotate(180deg); }
+
+.active-seq { list-style: none; margin: 0; padding: 0; }
+.active-seq-item { display: flex; gap: 0.75rem; }
+.active-seq-no {
+    flex: 0 0 auto; width: 1.375rem; height: 1.375rem; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    background: #2563eb; color: #fff; font-size: 0.6875rem; font-weight: 700;
+}
+.active-seq-body { flex: 1; min-width: 0; }
+.active-seq-body strong { display: block; font-size: 0.8125rem; color: #0f172a; }
+.active-seq-body p { margin: 0.25rem 0 0; font-size: 0.75rem; color: #64748b; }
+.active-seq-body p b { color: #0f172a; }
+.active-seq-tags { display: flex; flex-wrap: wrap; gap: 0.375rem; margin-top: 0.5rem; }
+
+.dashboard-cta-bar {
+    position: sticky; bottom: 0; z-index: 5; margin: auto -1rem -1.25rem; padding: 0.75rem 1rem 1rem;
+    background: #fff; border-top: 1px solid #f1f5f9;
+}
+.dashboard-cta.is-active { border-color: #2563eb; color: #2563eb; background: #fff; }
+.dashboard-cta.is-active:hover { background: #eff6ff; color: #1d4ed8; }

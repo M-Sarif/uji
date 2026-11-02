@@ -1,59 +1,4 @@
 <?php
-/* ============================================================
- * OneFIS - SPBU - Data tutorial terpandu (guided tour)
- *
- * Mesin tutorial: roles/spbu/assets/js/tutorial.js   (salinan mesin AMT, namespace SPBU)
- * Tampilan       : roles/spbu/assets/css/tutorial.css (salinan gaya AMT, awalan "sptt-")
- * Penyusun konfigurasi per layar: roles/spbu/includes/tour.php
- *
- * Tutorial SPBU SEKARANG memakai pola yang sama persis dengan tutorial AMT
- * (lihat roles/amt/includes/tutorial.php):
- *
- * CARA KERJA (dirancang untuk orang awam)
- * ---------------------------------------
- * Tutorial BERBASIS KONDISI, bukan berbasis ketukan. Mesin selalu menampilkan
- * langkah PERTAMA yang belum selesai (dibaca dari keadaan halaman), jadi tutorial
- * tidak pernah "hilang" walau pengguna melompat-lompat, menutup pop up, atau
- * mengisi form tidak berurutan. Kartu petunjuk menempel di bawah layar (atau pindah
- * ke atas bila menutupi bagian yang disorot), lengkap dengan tombol "Aa" (ukuran huruf),
- * "Kecilkan", "Penjelasan" (lembar baca + suara), "Lewati", dan tombol "?" mengambang.
- *
- * Tiap langkah:
- *   'no'        => nomor langkah pada alur (null = tidak diberi nomor)
- *   'target'    => selector elemen yang harus diketuk (null = kartu di tengah)
- *   'highlight' => (opsional) elemen yang disorot, jika lebih luas dari target
- *   'title'     => judul singkat (kata kerja di depan)
- *   'text'      => penjelasan 1-2 kalimat
- *   'hint'      => kalimat aksi di kotak biru
- *   'done'      => selector; langkah SELESAI bila elemen ini ada di halaman
- *                  (null = langkah aksi: selesai saat target diketuk / tombol ditekan)
- *   'ok'        => pesan singkat saat langkah baru saja selesai
- *   'minShow'   => (opsional) ms; langkah tetap disorot minimal selama itu walau 'done' terpenuhi
- *   'condHint'  => (opsional) teks kotak biru selama masa 'minShow'
- *   'settle'    => (opsional) ms; 'done' baru terpenuhi bila pengguna berhenti mengetik selama itu
- *   'when'      => (opsional) selector; kartu BARU muncul bila elemen ini ada (mis. pop up terbuka)
- *   'optional'  => (opsional) true bersama 'when': bila elemen 'when' tidak ada, langkah dianggap
- *                  SELESAI (dilewati) -- dipakai untuk langkah di dalam pop up
- *   'skip'      => (opsional) selector; langkah dianggap selesai bila elemen ini ada
- *   'nodim'     => (opsional) true = area lain tidak digelapkan
- *   'list'      => (opsional) array teks; tampil sebagai daftar bernomor di bawah 'text'
- *   'remember'  => (opsional) true = langkah yang sudah dibaca tidak diulang
- *   'button'    => (opsional) label tombol di kartu (mis. "Mulai", "Mengerti") -> langkah baca
- *   'skipLabel' / 'restart' / 'notice' / 'final' => sama seperti AMT
- *
- * Halaman TIDAK digulir otomatis oleh tutorial.
- *
- * Status layar dibaca dari atribut data-* / class yang dipasang view SPBU:
- *   #arrivalForm[data-all="1"]      ketiga kartu Tiba di Lokasi sudah dijawab
- *   .subject-card.is-answered       kartu verifikasi yang sudah dijawab
- *   [data-all-done="1"]             grup (Produk / Segel / LO pengukuran / Konfirmasi LO) sudah lengkap
- *   #claimForm[data-ready="1"]      semua kolom form pengukuran terisi
- *   #ratingForm[data-rated="n"]     jumlah kartu bintang yang sudah dinilai
- *   #ratingForm[data-complete="1"]  semua kartu bintang sudah dinilai
- *   .rating-card.is-rated           kartu bintang yang sudah dinilai
- * ============================================================ */
-
-// Layar yang dilalui alur SPBU (untuk label bila langkah tidak punya alur bernomor)
 const SPBU_TOUR_SCREEN_ORDER = [
     'dashboard', 'shipments_list', 'shipment', 'verification',
     'lo_list', 'checklist', 'claim_loss', 'claim_upload', 'claim_scan_qr', 'konfirmasi_lo', 'notifikasi', 'qr_code', 'rating', 'done',
@@ -76,31 +21,27 @@ const SPBU_TOUR_SCREEN_LABELS = [
     'done'           => 'Pengiriman Selesai',
 ];
 
-// Alur tutorial; 'total' = jumlah langkah bernomor pada alur itu
 const SPBU_TOUR_JOURNEYS = [
-    // Pengiriman: 1 buka menu Shipments, 2 buka Detail Order, 3 ketuk "Tiba di Lokasi"
+
     'kirim'      => ['label' => 'Pengiriman', 'total' => 3],
-    // Tiba di Lokasi: 1 verifikasi Mobil Tangki + AMT 1 + AMT 2, 2 ketuk Simpan, 3 kirim verifikasi
+
     'tiba'       => ['label' => 'Tiba di Lokasi', 'total' => 3],
-    // Checklist Pra-Pembongkaran: 1 pilih LO, 2 Mulai Checklist, 3 jawab soal, 4 soal 6 (SPP: Produk + Segel),
-    // 5 soal 7 (form pengukuran), 6 Konfirmasi LO, 7 ketuk Kirim, 8 konfirmasi "Ya, Kirim"
+
     'checklist'  => ['label' => 'Checklist Pra-Pembongkaran', 'total' => 8],
-    // Verifikasi Order: 1 buka kartu Verifikasi Order, 2 terima notifikasi AMT, 3 berikan QR / kode ke AMT, 4 Beri Penilaian
+
     'verifikasi' => ['label' => 'Verifikasi Order', 'total' => 4],
-    // Rating Petugas AMT: 1 bintang AMT 1, 2 Selanjutnya, 3 bintang AMT 2, 4 Kirim
+
     'rating'     => ['label' => 'Rating Petugas AMT', 'total' => 4],
-    // Semua aktifitas selesai (kartu penutup, tanpa nomor langkah)
+
     'selesai'    => ['label' => 'Aktifitas Selesai', 'total' => 1],
 ];
 
-/** LO yang sedang dikerjakan (dicentang di Daftar LO; semua LO bila belum ada yang dicentang) -- sama seperti di views. */
 function spbu_tour_active_lo_ids(): array
 {
     $ids = array_keys(array_filter($_SESSION['lo_checked'] ?? []));
     return !empty($ids) ? $ids : array_keys(LO_LIST);
 }
 
-/** Kartu penutup tiap soal: ketuk "Selanjutnya" (di soal terakhir, menuju layar Konfirmasi LO). */
 function spbu_tour_next_card(bool $last = false): array
 {
     return [
@@ -116,11 +57,6 @@ function spbu_tour_next_card(bool $last = false): array
     ];
 }
 
-/* ------------------------------------------------------------
- * Beranda SPBU (dashboard)
- *   $finished = seluruh aktifitas SPBU baru saja tuntas sebelum kembali ke beranda
- *               -> kartu ucapan selamat (tetap tampil walau tutorial dimatikan)
- * ------------------------------------------------------------ */
 function spbu_tour_dashboard_steps(bool $finished): array
 {
     $welcome = $finished
@@ -128,8 +64,8 @@ function spbu_tour_dashboard_steps(bool $finished): array
             'no'        => null,
             'label'     => 'Tutorial Selesai',
             'target'    => null,
-            'notice'    => true,     // tetap tampil walau tutorial dimatikan (alur selesai menutup tutorial)
-            'restart'   => true,     // "Mulai" menyalakan tutorial lagi dari awal
+            'notice'    => true,
+            'restart'   => true,
             'title'     => 'Selamat! Tutorial selesai 🎉',
             'text'      => 'Selamat, Anda telah menyelesaikan seluruh Aktifitas di SPBU. Klik “Mulai” untuk mengulang dari awal, atau pilih “Sudah cukup sampai di sini”.',
             'button'    => 'Mulai',
@@ -158,12 +94,9 @@ function spbu_tour_dashboard_steps(bool $finished): array
     ]];
 }
 
-/* ------------------------------------------------------------
- * Shipments (daftar)
- * ------------------------------------------------------------ */
 function spbu_tour_shipments_steps(): array
 {
-    // Order sudah selesai seluruhnya: tidak ada yang perlu dipandu
+
     if ((int) ($_SESSION['activity_done'] ?? 0) >= count(ACTIVITY_STEPS)) {
         return ['journey' => 'kirim', 'subKey' => null, 'steps' => []];
     }
@@ -179,17 +112,11 @@ function spbu_tour_shipments_steps(): array
     ]]];
 }
 
-/* ------------------------------------------------------------
- * Detail Order -> tab Aktifitas di SPBU. Satu paket langkah per tahap
- * ($_SESSION['activity_done'] = 0..4); kunci tutorial dibedakan per tahap
- * supaya tutorial tahap lain tidak dianggap "sudah selesai".
- * ------------------------------------------------------------ */
 function spbu_tour_shipment_steps(): array
 {
     $done  = (int) ($_SESSION['activity_done'] ?? 0);
     $total = count(ACTIVITY_STEPS);
 
-    // Sebelum tiba: kartu "Tiba di Lokasi" redup ±5 detik, lalu menyala sendiri
     if ($done === 0) {
         return ['journey' => 'kirim', 'subKey' => 'shipment_0', 'steps' => [
             [
@@ -200,7 +127,7 @@ function spbu_tour_shipment_steps(): array
                 'text'     => 'Mobil tangki sedang menuju SPBU Anda. Kartu “Tiba di Lokasi” masih redup dan akan menyala biru sendiri sekitar 5 detik lagi.',
                 'hint'     => '⏳ Tunggu sebentar sampai kartu menyala biru',
                 'when'     => '#arriveItem',
-                'optional' => true,    // kartu sudah menyala -> langkah ini dilewati
+                'optional' => true,
                 'done'     => '[data-tour="activity-active"]',
             ],
             [
@@ -251,12 +178,11 @@ function spbu_tour_shipment_steps(): array
         ]]];
     }
 
-    // Semua aktifitas selesai
     if ($done >= $total) {
         return ['journey' => 'selesai', 'subKey' => 'shipment_4', 'steps' => [[
             'no'     => null,
             'target' => null,
-            'final'  => true,      // alur tutorial tuntas: tidak perlu muncul otomatis lagi
+            'final'  => true,
             'title'  => 'Semua aktifitas selesai 🎉',
             'text'   => 'Tiba di Lokasi, Isi Checklist, Verifikasi Order, dan Rating Petugas AMT sudah selesai. Serah terima order BBM tuntas. Ketuk tombol ← di kiri atas untuk kembali.',
             'button' => 'Mengerti',
@@ -267,12 +193,9 @@ function spbu_tour_shipment_steps(): array
     return ['journey' => 'kirim', 'subKey' => null, 'steps' => []];
 }
 
-/* ------------------------------------------------------------
- * Tiba di Lokasi (verifikasi Mobil Tangki, AMT 1, AMT 2)
- * ------------------------------------------------------------ */
 function spbu_tour_verification_steps(): array
 {
-    // Verifikasi kedatangan sudah terkirim sebelumnya: tidak dipandu lagi
+
     if ((int) ($_SESSION['activity_done'] ?? 0) >= 1) {
         return ['journey' => 'tiba', 'subKey' => null, 'steps' => []];
     }
@@ -292,33 +215,29 @@ function spbu_tour_verification_steps(): array
             'no'     => 2,
             'label'  => 'Tiba di Lokasi',
             'target' => '#btnSimpan',
-            'title'  => 'Ketuk “Simpan”',
-            'text'   => 'Semua kartu sudah dijawab, jadi tombol “Simpan” menyala. Ketuk untuk membuka konfirmasi pengiriman hasil verifikasi.',
-            'hint'   => '👆 Ketuk tombol biru “Simpan”',
+            'title'  => 'Ketuk “Kirim”',
+            'text'   => 'Semua kartu sudah dijawab, jadi tombol “Kirim” menyala. Ketuk untuk membuka konfirmasi pengiriman checklist.',
+            'hint'   => '👆 Ketuk tombol biru “Kirim”',
             'done'   => '#konfirmasiModal:not([hidden])',
         ],
         [
-            // Pop up konfirmasi disorot penuh. Bila SPBU mengetuk "Tutup", kartu ini hilang dan
-            // kartu "Ketuk Simpan" muncul lagi; kartu ini muncul lagi saat pop up dibuka ulang.
+
             'no'        => 3,
             'label'     => 'Tiba di Lokasi',
             'target'    => '#btnKirim',
             'highlight' => '#konfirmasiModal .modal-sheet',
             'when'      => '#konfirmasiModal:not([hidden])',
-            'title'     => 'Ketuk “Kirim Verifikasi”',
-            'text'      => 'Pastikan jawaban sudah benar, lalu ketuk “Kirim Verifikasi MT dan AMT”. Bila masih ragu, ketuk “Tutup” untuk memeriksa lagi.',
-            'hint'      => '👆 Ketuk tombol biru “Kirim Verifikasi MT dan AMT”',
+            'title'     => 'Ketuk “Ya, Kirim”',
+            'text'      => 'Pastikan data yang diisi sudah benar. Data yang sudah dikirim tidak dapat diubah lagi. Bila masih ragu, ketuk “Batal” untuk memeriksa lagi.',
+            'hint'      => '👆 Ketuk tombol biru “Ya, Kirim”',
             'done'      => null,
         ],
     ]];
 }
 
-/* ------------------------------------------------------------
- * Daftar LO: (A) pilih LO + Mulai Checklist, atau (B) kirim checklist yang sudah "Draft"
- * ------------------------------------------------------------ */
 function spbu_tour_lo_list_steps(): array
 {
-    // Checklist sudah terkirim: tidak dipandu lagi
+
     if ((int) ($_SESSION['activity_done'] ?? 0) >= 2) {
         return ['journey' => 'checklist', 'subKey' => null, 'steps' => []];
     }
@@ -331,7 +250,6 @@ function spbu_tour_lo_list_steps(): array
         }
     }
 
-    // ---- Ada LO "Draft": kirim checklist ----
     if ($hasDraft) {
         return ['journey' => 'checklist', 'subKey' => 'lo_list_kirim', 'steps' => [
             [
@@ -342,7 +260,7 @@ function spbu_tour_lo_list_steps(): array
                 'text'     => 'Checklist LO berstatus “Draft” sudah terisi tetapi BELUM dikirim. Centang LO yang ingin dikirim, atau ketuk “Pilih Semua”. Tombol “Kirim” baru menyala setelah ada LO Draft yang dicentang.',
                 'hint'     => '👆 Pastikan LO yang dikirim sudah dicentang',
                 'done'     => '#btnKirimChecklist:not([disabled])',
-                'minShow'  => 3000,    // sudah tercentang dari awal pun tetap disorot 3 detik agar diperiksa
+                'minShow'  => 3000,
                 'condHint' => '✅ Sudah tercentang. Pastikan LO yang dikirim sudah benar.',
             ],
             [
@@ -355,8 +273,7 @@ function spbu_tour_lo_list_steps(): array
                 'done'   => '#kirimModal:not([hidden])',
             ],
             [
-                // Pop up "Kirim Checklist" disorot penuh. Bila SPBU mengetuk "Batal", kartu ini hilang dan
-                // kartu "Ketuk Kirim" muncul lagi; kartu ini muncul lagi saat pop up dibuka ulang.
+
                 'no'        => 8,
                 'label'     => 'Kirim Checklist',
                 'target'    => '#btnYaKirim',
@@ -370,7 +287,6 @@ function spbu_tour_lo_list_steps(): array
         ]];
     }
 
-    // ---- Belum ada Draft: pilih LO lalu mulai checklist ----
     return ['journey' => 'checklist', 'subKey' => 'lo_list_pilih', 'steps' => [
         [
             'no'       => 1,
@@ -380,7 +296,7 @@ function spbu_tour_lo_list_steps(): array
             'text'     => 'Setiap kartu adalah satu LO (Loading Order) dengan produknya (lihat baris “Order”). Centang LO yang akan dibongkar di SPBU ini, atau ketuk “Pilih Semua”. Status “Belum Diisi” berarti checklist LO itu belum dikerjakan.',
             'hint'     => '👆 Ketuk kotak centang pada LO yang dibongkar',
             'done'     => '.lo-card.selected',
-            'minShow'  => 3000,    // sudah tercentang dari awal pun tetap disorot 3 detik agar diperiksa
+            'minShow'  => 3000,
             'condHint' => '✅ Sudah tercentang. Pastikan LO yang dibongkar sudah benar.',
         ],
         [
@@ -395,42 +311,26 @@ function spbu_tour_lo_list_steps(): array
     ]];
 }
 
-/* ------------------------------------------------------------
- * Checklist Pra-Pembongkaran (14 soal, satu soal per halaman) -- layar 'checklist'
- *
- * Tiap TIPE soal dijelaskan SEKALI (kunci tutorial per tipe), jadi 14 soal tidak diulang-ulang.
- * Tombol "?" menampilkan lagi penjelasan tipe soal yang sedang dibuka.
- *   self_action_photo / photo : tugas Petugas SPBU sendiri (+ foto bukti opsional)
- *   action                    : tugas AMT yang diverifikasi Petugas SPBU
- *   dual_verif                : dua bagian (mandiri + "Verifikasi Tugas Role Lawan")
- *   form_spp (soal 6)         : kesesuaian SPP -> Produk lalu Segel (lewat pop up)
- *   form_ukur (soal 7)        : form pengukuran tiap LO (di layar claim_loss)
- *   test_report (soal 8)      : tidak ada yang dijawab
- * ------------------------------------------------------------ */
 function spbu_tour_checklist_steps(): array
 {
     $none = ['journey' => 'checklist', 'subKey' => null, 'steps' => []];
     if ((int) ($_SESSION['activity_done'] ?? 0) >= 2) {
-        return $none;   // checklist sudah terkirim
+        return $none;
     }
 
     $total = count(CHECKLIST_STEPS);
     $step  = max(1, min($total, (int) ($_SESSION['checklist_step'] ?? 1)));
     $type  = CHECKLIST_STEPS[$step]['type'] ?? '';
-    $next  = '[data-tour="wizard-next"]';   // tombol lanjut ada = soal ini sudah lengkap dijawab
+    $next  = '[data-tour="wizard-next"]';
 
-    // Tombol jawaban (Tidak Dilakukan / Ya). Kartu tutorial selalu diminta menghindari TOMBOL INI
-    // (bukan seluruh kartu soal, yang di soal panjang / dua bagian lebih tinggi dari layar HP),
-    // jadi tombol yang harus diketuk tidak pernah tertutup kartu.
-    $ownGroup   = '.checklist-card .choice-group:not([data-tour="verif-lawan"])';   // jawaban mandiri / satu-satunya
-    $lawanGroup = '[data-tour="verif-lawan"]';                                      // "Verifikasi Tugas Role Lawan"
+    $ownGroup   = '.checklist-card .choice-group:not([data-tour="verif-lawan"])';
+    $lawanGroup = '[data-tour="verif-lawan"]';
 
-    // ---- Soal 6: kesesuaian SPP (Produk lalu Segel) ----
     if ($type === 'form_spp') {
         $modalProduk = '.spp-modal input[name="action"][value="save_spp_produk"]';
         $modalSegel  = '.spp-modal input[name="action"][value="save_spp_segel"]';
         return ['journey' => 'checklist', 'subKey' => 'checklist_spp', 'steps' => [
-            // 1) Produk: ketuk kartu Produk yang belum terisi (berulang untuk produk berikutnya)
+
             [
                 'no'        => 4,
                 'label'     => 'Soal 6 · Produk',
@@ -440,7 +340,7 @@ function spbu_tour_checklist_steps(): array
                 'text'      => 'Periksa kesesuaian SPP: produk, nomor segel (periksa keutuhan segel bawah dan atas), nopol Mobil Tangki, dan nama AMT. Mulai dari Produk: ketuk kartu Produk yang menyala. Bila ada beberapa produk, semuanya wajib diisi satu per satu.',
                 'hint'      => '👆 Ketuk kartu Produk yang menyala',
                 'done'      => '.spp-modal, [data-tour="spp-produk-group"][data-all-done="1"]',
-                'remember'  => true,   // penjelasan lengkap hanya untuk Produk PERTAMA
+                'remember'  => true,
             ],
             [
                 'no'        => 4,
@@ -469,7 +369,7 @@ function spbu_tour_checklist_steps(): array
                 'done'      => null,
                 'remember'  => true,
             ],
-            // Produk ke-2 dst: tidak ada lagi penjelasan pop up, hanya diarahkan mengisi semuanya.
+
             [
                 'no'        => 4,
                 'label'     => 'Soal 6 · Produk',
@@ -480,7 +380,7 @@ function spbu_tour_checklist_steps(): array
                 'hint'      => '👆 Ketuk kartu Produk yang menyala',
                 'done'      => '.spp-modal, [data-tour="spp-produk-group"][data-all-done="1"]',
             ],
-            // 2) Segel: setelah SEMUA produk terisi
+
             [
                 'no'        => 4,
                 'label'     => 'Soal 6 · Segel',
@@ -490,7 +390,7 @@ function spbu_tour_checklist_steps(): array
                 'text'      => 'Semua Produk sudah terverifikasi. Sekarang periksa Segel: ketuk salah satu nomor Segel yang dibongkar di SPBU saat ini. Semua nomor Segel yang masih “Belum Dibongkar” wajib diisi satu per satu.',
                 'hint'      => '👆 Ketuk nomor Segel yang menyala',
                 'done'      => '.spp-modal, [data-tour="spp-segel-group"][data-all-done="1"]',
-                'remember'  => true,   // penjelasan lengkap hanya untuk Segel PERTAMA
+                'remember'  => true,
             ],
             [
                 'no'        => 4,
@@ -533,7 +433,7 @@ function spbu_tour_checklist_steps(): array
                 'done'      => null,
                 'remember'  => true,
             ],
-            // Segel ke-2 dst: tidak ada lagi penjelasan pop up, hanya diarahkan mengisi semuanya.
+
             [
                 'no'        => 4,
                 'label'     => 'Soal 6 · Segel',
@@ -544,12 +444,12 @@ function spbu_tour_checklist_steps(): array
                 'hint'      => '👆 Ketuk nomor Segel yang menyala',
                 'done'      => '.spp-modal, [data-tour="spp-segel-group"][data-all-done="1"]',
             ],
-            // 3) Lanjut
+
             [
                 'no'     => 4,
                 'label'  => 'Soal 6 · Selesai',
                 'target' => $next,
-                'when'   => $next,   // baru tampil setelah semua Produk & Segel terisi
+                'when'   => $next,
                 'title'  => 'Ketuk “Selanjutnya”',
                 'text'   => 'Semua Produk dan Segel sudah diverifikasi. Ketuk “Selanjutnya” untuk melanjutkan ke soal berikutnya.',
                 'hint'   => '👆 Ketuk “Selanjutnya”',
@@ -558,7 +458,6 @@ function spbu_tour_checklist_steps(): array
         ]];
     }
 
-    // ---- Soal 7: form pengukuran tiap LO (daftar LO di sini, form-nya di layar claim_loss) ----
     if ($type === 'form_ukur') {
         return ['journey' => 'checklist', 'subKey' => 'checklist_ukur', 'steps' => [
             [
@@ -583,7 +482,6 @@ function spbu_tour_checklist_steps(): array
         ]];
     }
 
-    // ---- Soal 8: Test Report (tidak ada yang dijawab) ----
     if ($type === 'test_report') {
         return ['journey' => 'checklist', 'subKey' => 'checklist_report', 'steps' => [[
             'no'     => 3,
@@ -596,7 +494,6 @@ function spbu_tour_checklist_steps(): array
         ]]];
     }
 
-    // ---- Soal terakhir (14): dua bagian (satu langkah per bagian), lalu ke Konfirmasi LO ----
     if ($step === $total) {
         return ['journey' => 'checklist', 'subKey' => 'checklist_last', 'steps' => [
             [
@@ -623,7 +520,6 @@ function spbu_tour_checklist_steps(): array
         ]];
     }
 
-    // ---- Soal dengan dua bagian (11, 13): satu langkah per bagian ----
     if ($type === 'dual_verif') {
         return ['journey' => 'checklist', 'subKey' => 'checklist_dual', 'steps' => [
             [
@@ -650,7 +546,6 @@ function spbu_tour_checklist_steps(): array
         ]];
     }
 
-    // ---- Tugas AMT yang diverifikasi SPBU (tipe "action") ----
     if ($type === 'action') {
         return ['journey' => 'checklist', 'subKey' => 'checklist_action', 'steps' => [
             [
@@ -667,8 +562,6 @@ function spbu_tour_checklist_steps(): array
         ]];
     }
 
-    // ---- Tugas SPBU sendiri (tipe "self_action_photo" / "photo") ----
-    // (Kartu pengantar "Checklist 14 soal" di soal 1 sudah dihapus: tutorial langsung ke soalnya.)
     $steps = [];
     $steps[] = [
         'no'     => 3,
@@ -684,10 +577,6 @@ function spbu_tour_checklist_steps(): array
     return ['journey' => 'checklist', 'subKey' => 'checklist_self', 'steps' => $steps];
 }
 
-/* ------------------------------------------------------------
- * Metode Pengukuran (layar claim_loss) -- bagian dari soal 7
- * Status form dibaca dari #claimForm[data-ready="1"] (semua kolom wajib terisi).
- * ------------------------------------------------------------ */
 function spbu_tour_claim_loss_steps(): array
 {
     if ((int) ($_SESSION['activity_done'] ?? 0) >= 2) {
@@ -699,7 +588,7 @@ function spbu_tour_claim_loss_steps(): array
             'label'    => 'Soal 7 · Metode Pengukuran',
             'target'   => '[data-tour="claim-metode-group"]',
             'title'    => 'Pilih metode pengukuran',
-            'text'     => 'Ada dua metode: “IJKBOUT” (serah terima custody transfer, diukur dengan dipstick) dan “Flow Meter” (meter arus pada mobil tangki PTO/portabel). Pilih yang sesuai dengan pembongkaran di lapangan.',
+            'text'     => 'Ada dua metode: “IJKBOUT” (serah terima custody transfer, diukur dengan dipstick) dan “Flow Meter” (meter arus pada mobil tangki PTO/portabel, terpilih lebih dulu). Pilih yang sesuai dengan pembongkaran di lapangan.',
             'hint'     => '👆 Pilih metode, atau ketuk “Mengerti” bila sudah sesuai',
             'button'   => 'Mengerti',
             'remember' => true,
@@ -710,7 +599,7 @@ function spbu_tour_claim_loss_steps(): array
             'label'    => 'Soal 7 · Form Pengukuran',
             'target'   => '.claim-form',
             'title'    => 'Isi form pengukuran',
-            'text'     => 'Isi semua kolom bertanda * sesuai hasil pengukuran sebenarnya (mis. Kompartemen, Level BBM di SPP, Level BBM Sebelum Bongkar, Temperatur Obs, Density Obs). Tombol “Generate” menyala setelah semuanya terisi.',
+            'text'     => 'Isi semua kolom bertanda * sesuai hasil pengukuran sebenarnya. Flow Meter: Volume Meter, Temperatur Obs, Density Obs. IJKBOUT: pilih Kompartemen (T2 Tera MT terisi otomatis), lalu isi Level BBM Sebelum Bongkar, Temperatur Obs, Density Obs. Tombol “Generate” menyala setelah semuanya terisi.',
             'hint'     => '👆 Isi semua kolom yang bertanda *',
             'done'     => '#claimForm[data-ready="1"]',
             'settle'   => 1500,
@@ -726,8 +615,7 @@ function spbu_tour_claim_loss_steps(): array
             'done'   => '#hasilModal',
         ],
         [
-            // Pop up hasil disorot penuh. Bila SPBU mengetuk "Batal", kartu ini hilang dan kartu
-            // "Ketuk Generate" muncul lagi; kartu ini muncul lagi saat pop up dibuka ulang.
+
             'no'        => 5,
             'label'     => 'Soal 7 · Hasil Generate',
             'target'    => '[data-tour="hasil-primary-action"]',
@@ -742,12 +630,6 @@ function spbu_tour_claim_loss_steps(): array
     ]];
 }
 
-/* ------------------------------------------------------------
- * Upload Dokumen Klaim (layar claim_upload) -- lanjutan "Ajukan Klaim" pada soal 7
- * Status dibaca dari class .is-filled pada baris isian (dipasang view claim_upload.php):
- *   [data-tour="cu-dipstick"].is-filled   Sertifikat Dipstick sudah diupload
- *   [data-tour="cu-qr"].is-filled         QR Code AMT sudah discan
- * ------------------------------------------------------------ */
 function spbu_tour_claim_upload_steps(): array
 {
     return ['journey' => 'checklist', 'subKey' => 'claim_upload', 'steps' => [
@@ -785,9 +667,6 @@ function spbu_tour_claim_upload_steps(): array
     ]];
 }
 
-/* ------------------------------------------------------------
- * Scan QR AMT (layar claim_scan_qr) -- kamera pemindai, satu kartu penjelasan
- * ------------------------------------------------------------ */
 function spbu_tour_claim_scan_steps(): array
 {
     return ['journey' => 'checklist', 'subKey' => 'claim_scan', 'steps' => [
@@ -804,9 +683,6 @@ function spbu_tour_claim_scan_steps(): array
     ]];
 }
 
-/* ------------------------------------------------------------
- * Konfirmasi LO (layar berdiri sendiri setelah soal 14)
- * ------------------------------------------------------------ */
 function spbu_tour_konfirmasi_steps(): array
 {
     if ((int) ($_SESSION['activity_done'] ?? 0) >= 2) {
@@ -836,35 +712,26 @@ function spbu_tour_konfirmasi_steps(): array
     ]];
 }
 
-/* ------------------------------------------------------------
- * Notifikasi (permintaan Verifikasi Order dari AMT masuk ±5 detik setelah dibuka)
- *
- * Langkah 1 TIDAK menyorot bagian apa pun (target null): hanya kartu penjelasan di tengah layar
- * yang memberi tahu bahwa sebentar lagi akan ada notifikasi dari AMT, dan bahwa AMT akan memindai
- * (scan) kode yang tampil di layar Petugas SPBU. Kartu tampil 20 detik; hilang saat "Mengerti" diketuk, atau
- * hilang sendiri setelah 20 detik bila tidak diketuk ('autoHide'). Pop up permintaan dari AMT (views/notifikasi.php)
- * baru dimunculkan SETELAH kartu ini hilang, supaya kartu tidak terpotong oleh pop up.
- * ------------------------------------------------------------ */
 function spbu_tour_notifikasi_steps(): array
 {
     if ((int) ($_SESSION['activity_done'] ?? 0) >= 3) {
         return ['journey' => 'verifikasi', 'subKey' => null, 'steps' => []];
     }
-    $dismissed = '#verifOrderModal[data-dismissed]';   // pop up ditutup ("Tutup")
-    $muncul    = '#verifOrderModal:not([hidden])';     // pop up sedang tampil
+    $dismissed = '#verifOrderModal[data-dismissed]';
+    $muncul    = '#verifOrderModal:not([hidden])';
     return ['journey' => 'verifikasi', 'subKey' => 'notifikasi', 'steps' => [
         [
             'no'     => 2,
             'label'  => 'Verifikasi Order',
-            'target' => null,                          // tidak ada bagian yang disorot
+            'target' => null,
             'title'  => 'Tunggu pemberitahuan dari AMT',
             'text'   => 'Sebentar lagi akan ada pemberitahuan dari AMT yang meminta Verifikasi Order. AMT akan memindai (scan) kode yang muncul di layar HP Anda. Anda tidak perlu melakukan apa-apa dulu, cukup tunggu sampai pemberitahuannya muncul.',
             'button' => 'Mengerti',
-            'autoHide' => 20000,                       // tampil 20 detik penuh; tidak diketuk -> hilang sendiri
+            'autoHide' => 20000,
             'done'   => null,
         ],
         [
-            // Pop up disorot penuh; bila ditutup, kartu cadangan di bawah mengarahkan ke kartu notifikasi.
+
             'no'        => 2,
             'label'     => 'Verifikasi Order',
             'target'    => '#btnLihatNotifikasi',
@@ -889,12 +756,9 @@ function spbu_tour_notifikasi_steps(): array
     ]];
 }
 
-/* ------------------------------------------------------------
- * Permintaan Verifikasi (Kode QR / Kode Konfirmasi untuk AMT)
- * ------------------------------------------------------------ */
 function spbu_tour_qr_steps(): array
 {
-    // Verifikasi sudah dilakukan: layar hanya menampilkan "Verifikasi Telah Dilakukan"
+
     if ((int) ($_SESSION['activity_done'] ?? 0) >= 3) {
         return ['journey' => 'verifikasi', 'subKey' => null, 'steps' => []];
     }
@@ -923,9 +787,6 @@ function spbu_tour_qr_steps(): array
     ]];
 }
 
-/* ------------------------------------------------------------
- * Rating Petugas AMT (2 halaman: AMT 1 lalu AMT 2). Status dibaca dari #ratingForm.
- * ------------------------------------------------------------ */
 function spbu_tour_rating_steps(): array
 {
     if ((int) ($_SESSION['activity_done'] ?? 0) >= count(ACTIVITY_STEPS)) {
@@ -934,7 +795,7 @@ function spbu_tour_rating_steps(): array
 
     $isAmt2 = (int) ($_SESSION['rating_step'] ?? 1) >= 2;
     $who    = $isAmt2 ? 'AMT 2' : 'AMT 1';
-    $card   = '.rating-card[data-rating-card]:not(.is-rated)';   // kartu bintang berikutnya yang belum dinilai
+    $card   = '.rating-card[data-rating-card]:not(.is-rated)';
 
     $explain = [
         'Penilaian keseluruhan untuk ' . $who . ' (kartu paling atas).',
@@ -946,7 +807,7 @@ function spbu_tour_rating_steps(): array
     ];
 
     return ['journey' => 'rating', 'subKey' => $isAmt2 ? 'rating_amt2' : 'rating_amt1', 'steps' => [
-        // 1) Penjelasan bintang: tampil SATU KALI, menyorot kartu pertama yang belum dinilai.
+
         [
             'no'        => $isAmt2 ? 3 : 1,
             'label'     => 'Rating ' . $who,
@@ -958,15 +819,14 @@ function spbu_tour_rating_steps(): array
             'hint'      => '👆 Ketuk bintang pada kartu yang menyala',
             'done'      => '.rating-card.is-rated',
         ],
-        // 2) Pengingat singkat: HANYA tampil sesaat setelah bintang PERTAMA diisi. Begitu kartu kedua diisi,
-        //    tutorial menghilang sampai SEMUA kartu terisi (lalu muncul langkah "Selanjutnya" / "Kirim").
+
         [
             'no'        => $isAmt2 ? 3 : 1,
             'label'     => 'Rating ' . $who,
             'target'    => $card . ' .stars',
             'highlight' => $card,
             'when'      => '#ratingForm[data-rated="1"]',
-            'nodim'     => true,    // kartu penilaian tidak digelapkan, supaya mudah dilihat & diketuk
+            'nodim'     => true,
             'title'     => 'Lanjutkan mengisi bintang',
             'text'      => 'Bagus! Ketuk bintang pada kartu penilaian lain yang masih kosong sampai semuanya terisi.',
             'hint'      => '👆 Isi bintang di kartu yang masih kosong',
@@ -975,7 +835,7 @@ function spbu_tour_rating_steps(): array
             'okText'    => $isAmt2 ? 'Tinggal kirim penilaian Anda.' : 'Lanjut menilai AMT 2.',
             'hold'      => 1500,
         ],
-        // 3) Tombol lanjut / kirim (tampil hanya setelah SEMUA bintang terisi)
+
         $isAmt2
             ? [
                 'no'     => 4,

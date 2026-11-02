@@ -1,22 +1,13 @@
-/* ============================================================
-   OneFIS - verification.css
-   Khusus alur di lokasi SPBU: Tiba di Lokasi, Checklist LO, QR
-   verifikasi, Rating AMT, wizard checklist, dan halaman Selesai.
-   ============================================================ */
-
-/* ---------- Tiba di Lokasi (verification) ---------- */
 .arrival-wrap { display: flex; flex-direction: column; min-height: 100%; }
 .arrival-body { flex: 1 0 auto; padding-top: 1rem; display: flex; flex-direction: column; gap: 0.875rem; }
 .arrival-body .card + .card { margin-top: 0; }
 .arrival-footer { position: sticky; bottom: 0; z-index: 5; padding-bottom: calc(1rem + env(safe-area-inset-bottom)); }
 
-/* Waktu Tiba & SPBU ke: teks polos di atas latar halaman (tanpa kartu) */
 .arrival-info { display: flex; gap: 0.75rem; padding: 0 0.25rem; }
 .arrival-info-col { flex: 1; display: flex; flex-direction: column; gap: 0.3rem; }
 .arrival-info-col .label { font-size: 0.6875rem; font-weight: 500; color: #64748b; }
 .arrival-info-col .value { font-size: 0.75rem; font-weight: 700; color: #0f172a; }
 
-/* Kartu verifikasi: foto + identitas di atas, garis pemisah, pertanyaan + petunjuk, dua tombol */
 .arrival-body .subject-card { padding: 1.05rem; border-radius: 1.1rem; border-color: #e8edf5; box-shadow: 0 4px 16px -6px rgba(15,23,42,0.12); }
 .subject-row { display: flex; align-items: flex-start; gap: 1rem; margin-bottom: 0; }
 .subject-thumb {
@@ -31,8 +22,6 @@
 .arrival-body .question { font-size: 0.875rem; font-weight: 700; color: #0f172a; margin-bottom: 0.2rem; }
 .question-hint { font-size: 0.6875rem; font-style: italic; font-weight: 600; color: #64748b; line-height: 1.4; margin-bottom: 0.8rem; }
 
-/* Dua tombol jawaban. Belum dipilih: keduanya abu-abu polos.
-   Setelah diketuk: "Sesuai" jadi biru muda berbingkai biru, "Tidak Sesuai" jadi merah muda berbingkai merah. */
 .arrival-body .choice-group { gap: 0.6rem; }
 .arrival-body .choice-group .btn-choice {
     padding: 0.55rem 0.5rem; border-radius: 0.55rem;
@@ -43,12 +32,10 @@
 .arrival-body .choice-group .btn-choice.blue.is-selected { background: #eff6ff; border-color: #2563eb; color: #1d4ed8; }
 .arrival-body .choice-group .btn-choice.red.is-selected  { background: #fef2f2; border-color: #ef4444; color: #dc2626; }
 
-/* Header layar ini: panah "←" abu-abu dan bayangan lembut (tanpa garis bawah) */
 body:has(#arrivalForm) .app-header-simple { border-bottom: 0; box-shadow: 0 4px 14px -6px rgba(15,23,42,0.18); }
 body:has(#arrivalForm) .app-header-simple .back-btn { color: #94a3b8; }
 body:has(#arrivalForm) .app-header-simple h1 { font-weight: 700; font-size: 1.0625rem; }
 
-/* Tombol pilihan: radio disembunyikan, label yang jadi tombolnya */
 .choice-group .btn-choice { position: relative; cursor: pointer; transition: background 0.15s, color 0.15s; }
 .choice-group .btn-choice input[type="radio"] {
     position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none;
@@ -57,7 +44,6 @@ body:has(#arrivalForm) .app-header-simple h1 { font-weight: 700; font-size: 1.06
 .choice-group .btn-choice.blue.is-selected { background: #2563eb; color: #fff; border-color: #2563eb; }
 .choice-group .btn-choice:focus-within { box-shadow: 0 0 0 3px #dbeafe; }
 
-/* ---------- Pop up konfirmasi ---------- */
 .modal-backdrop {
     position: fixed; inset: 0; z-index: 100;
     background: rgba(15,23,42,0.45);
@@ -81,13 +67,11 @@ body:has(#arrivalForm) .app-header-simple h1 { font-weight: 700; font-size: 1.06
 .modal-sheet p { font-size: 0.8125rem; color: #64748b; line-height: 1.55; margin-bottom: 0.5rem; }
 .modal-sheet .btn-outline { width: 100%; background: #fff; }
 
-/* Di layar desktop kartu HP berada di tengah, modal ikut menyesuaikan */
 @media (min-width: 641px) {
     .modal-backdrop { align-items: center; padding: 1rem; }
     .modal-sheet { border-radius: 1.25rem; }
 }
 
-/* ---------- Shipment / Verification ---------- */
 .stripe-card { position: relative; overflow: hidden; padding-left: 1.5rem; }
 .stripe-card::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 0.375rem; background: #3b82f6; }
 .avatar-circle { width: 3rem; height: 3rem; border-radius: 50%; background: #eff6ff; color: #3b82f6; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 1px solid #e2e8f0; }
@@ -99,7 +83,6 @@ body:has(#arrivalForm) .app-header-simple h1 { font-weight: 700; font-size: 1.06
 .person-sub { font-size: 0.75rem; color: #64748b; font-weight: 500; }
 .question { font-size: 0.75rem; font-weight: 600; color: #334155; margin-bottom: 0.75rem; }
 
-/* ---------- LO List ---------- */
 .lo-select-all {
     background: #fff; border: 1px solid #e2e8f0; border-radius: 1.25rem;
     box-shadow: 0 2px 12px -4px rgba(0,0,0,0.05);
@@ -121,8 +104,6 @@ body:has(#arrivalForm) .app-header-simple h1 { font-weight: 700; font-size: 1.06
 }
 .lo-card.selected { border-color: #2563eb; border-width: 1.5px; padding: calc(0.875rem - 0.5px) calc(1rem - 0.5px); background: #fff; }
 
-/* Kotak centang (Pilih Semua & kartu LO): kotak kecil membulat, saat terpilih
-   penuh biru dengan tanda centang putih tebal -- seperti sistem asli. */
 .lo-checkbox {
     width: 1.125rem; height: 1.125rem; border-radius: 0.25rem;
     border: 1.5px solid #cbd5e1; background: #fff;
@@ -150,7 +131,6 @@ body:has(#arrivalForm) .app-header-simple h1 { font-weight: 700; font-size: 1.06
     font-size: 0.8125rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 
-/* ---------- Notifikasi ---------- */
 .notif-body { padding-top: 1rem; }
 .pill-tabs { display: flex; gap: 0.375rem; background: #f1f5f9; border-radius: 0.75rem; padding: 0.25rem; }
 .pill-tab { flex: 1; text-align: center; padding: 0.5rem 0.25rem; border-radius: 0.625rem; font-size: 0.75rem; font-weight: 700; color: #64748b; cursor: pointer; background: transparent; border: none; font-family: inherit; white-space: nowrap; }
@@ -162,20 +142,17 @@ body:has(#arrivalForm) .app-header-simple h1 { font-weight: 700; font-size: 1.06
 .notif-time { font-size: 0.6875rem; color: #94a3b8; font-weight: 500; white-space: nowrap; }
 .chip-done { display: inline-block; width: fit-content; }
 
-/* ---------- Pop up: grid AMT / MT / LO / Order ---------- */
 .verif-modal-grid { display: flex; gap: 1rem; padding-bottom: 0.75rem; margin-bottom: 0.25rem; border-bottom: 1px solid #eef2f7; }
 .verif-modal-col { flex: 1; display: flex; flex-direction: column; gap: 0.25rem; min-width: 0; }
 .verif-modal-col .label { font-size: 0.6875rem; font-weight: 500; color: #94a3b8; }
 .verif-modal-col .value { font-size: 0.8125rem; font-weight: 700; color: #1e293b; word-break: break-word; }
 
-/* ---------- Permintaan Verifikasi (LO yang di Serahkan) ---------- */
 .verif-body { padding-top: 1.25rem; }
 .verif-body .section-title { font-size: 0.9375rem; font-weight: 700; color: #1e293b; }
 .verif-lo-card { display: flex; flex-direction: column; gap: 0.875rem; }
 .verif-lo-row { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
 .verif-lo-id { font-size: 0.8125rem; font-weight: 600; color: #1e293b; }
 
-/* ---------- QR ---------- */
 .qr-box { background: #fff; border-radius: 1.25rem; padding: 2rem; border: 1px solid #f1f5f9; text-align: center; box-shadow: 0 2px 12px -4px rgba(0,0,0,0.05); margin-bottom: 1.5rem; }
 .qr-box h2 { font-size: 0.9375rem; font-weight: 700; color: #1e293b; margin-bottom: 0.5rem; }
 .qr-box p.desc { font-size: 0.75rem; color: #64748b; margin-bottom: 2rem; line-height: 1.6; }
@@ -185,12 +162,11 @@ body:has(#arrivalForm) .app-header-simple h1 { font-weight: 700; font-size: 1.06
 .qr-alt p.label { font-size: 0.6875rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.15em; margin-bottom: 0.75rem; }
 .qr-code-text { font-size: 2.25rem; font-weight: 900; letter-spacing: 0.3em; color: #2563eb; }
 
-/* ---------- Rating ---------- */
 .stars { display: flex; justify-content: center; gap: 0.5rem; }
 .star-input { display: none; }
 .star-label { cursor: pointer; }
 .star-label svg { width: 1.75rem; height: 1.75rem; fill: #f8fafc; stroke: #e2e8f0; stroke-width: 1.5; transition: fill 0.1s, stroke 0.1s; }
-/* trik CSS murni: urutan radio dibalik (row-reverse) supaya bisa highlight bintang di kiri saat salah satu dipilih, tanpa JS */
+
 .stars-inner { display: flex; flex-direction: row-reverse; justify-content: center; gap: 0.5rem; }
 .stars-inner .star-input:checked ~ .star-label svg,
 .stars-inner .star-label:hover svg,
@@ -211,7 +187,6 @@ textarea.review-box:focus { outline: none; border-color: #60a5fa; box-shadow: 0 
 .rating-feedback-title { font-size: 0.9375rem; font-weight: 700; color: #1e293b; margin-bottom: 0.25rem; }
 .rating-feedback-body { font-size: 0.75rem; color: #64748b; line-height: 1.5; }
 
-/* Spinner kecil di tombol "Telah Kirim" saat form sedang dikirim */
 .btn-primary.is-loading { color: transparent; pointer-events: none; position: relative; }
 .btn-primary.is-loading::after {
     content: ""; position: absolute; width: 1.125rem; height: 1.125rem;
@@ -220,13 +195,6 @@ textarea.review-box:focus { outline: none; border-color: #60a5fa; box-shadow: 0 
 }
 @keyframes btnSpin { to { transform: rotate(360deg); } }
 
-/* ============================================================
-   Checklist wizard (Checklist Pra Bongkar BBM SPBU)
-   Ukuran & warna disamakan dengan tampilan aplikasi.
-   ============================================================ */
-
-/* ---------- Indikator langkah ----------
-   Hijau = langkah yang sudah dilewati, biru = langkah aktif. */
 .progress-row { display: flex; align-items: center; gap: 0.5rem; padding: 1.375rem 1rem 0.25rem 1rem; }
 .progress-seg { height: 0.3125rem; flex: 1 1 0; border-radius: 999px; background: #e2e8f0; }
 .progress-seg.done { background: #22c55e; }
@@ -236,7 +204,6 @@ textarea.review-box:focus { outline: none; border-color: #60a5fa; box-shadow: 0 
     font-size: 0.875rem; font-weight: 500; color: #64748b; letter-spacing: 0.01em;
 }
 
-/* ---------- Kartu pertanyaan ---------- */
 .checklist-card {
     background: #fff; border-radius: 1rem; padding: 1.125rem;
     border: 1px solid #eef2f7; box-shadow: 0 4px 18px -12px rgba(15,23,42,0.18);
@@ -249,7 +216,6 @@ textarea.review-box:focus { outline: none; border-color: #60a5fa; box-shadow: 0 
 .checklist-card h2 .req,
 .claim-form-field label .req { color: #ef4444; font-weight: 600; }
 
-/* ---------- Kotak isian di dalam kartu ---------- */
 .subtle-box { background: #fff; border-radius: 0.875rem; padding: 1rem; border: 1px solid #e8edf3; }
 .subtle-box .hint {
     font-size: 0.875rem; font-style: italic; font-weight: 400; color: #94a3b8;
@@ -257,9 +223,6 @@ textarea.review-box:focus { outline: none; border-color: #60a5fa; box-shadow: 0 
 }
 .subtle-divider { border-top: 1px solid #eef2f7; margin: 1rem 0 0.875rem 0; }
 
-/* Tombol "Tidak Dilakukan" / "Ya, Dilakukan" -- disamakan dengan checklist AMT:
-   tombol terpilih TIDAK diisi penuh, cukup latar lembut (biru muda / merah
-   muda) dengan teks & garis tetap berwarna. */
 .checklist-card .btn-choice.red  { border: 1px solid #e04b4b; color: #dc2626; background: #fff; font-weight: 500; }
 .checklist-card .btn-choice.blue { border: 1px solid #1d4ed8; color: #1d4ed8; background: #fff; font-weight: 500; }
 .checklist-card .btn-choice.red:hover  { background: #fdeaea; }
@@ -267,7 +230,6 @@ textarea.review-box:focus { outline: none; border-color: #60a5fa; box-shadow: 0 
 .checklist-card .btn-choice.red.is-selected  { background: #fdeaea; border-color: #e04b4b; color: #dc2626; }
 .checklist-card .btn-choice.blue.is-selected { background: #e8effc; border-color: #1d4ed8; color: #1d4ed8; }
 
-/* ---------- Langkah 8: Test Report (tanpa tombol Ya/Tidak) ---------- */
 .test-report-box {
     background: #fff; border: 1px solid #e8edf3; border-radius: 0.875rem;
     padding: 1rem; text-align: center;
@@ -282,7 +244,6 @@ textarea.review-box:focus { outline: none; border-color: #60a5fa; box-shadow: 0 
 }
 .test-report-status svg { width: 0.875rem; height: 0.875rem; fill: none; stroke: currentColor; stroke-width: 2.5; flex-shrink: 0; }
 
-/* ---------- Area ambil foto ---------- */
 .photo-drop {
     width: 100%; min-height: 6rem; background: #fff;
     border: 1.5px dashed #60a5fa; border-radius: 0.75rem;
@@ -292,12 +253,10 @@ textarea.review-box:focus { outline: none; border-color: #60a5fa; box-shadow: 0 
 .photo-drop-title { font-size: 1rem; font-weight: 600; color: #2563eb; }
 .photo-drop-sub { font-size: 0.8125rem; font-weight: 400; color: #94a3b8; }
 
-/* ---------- Judul bagian di dalam kartu (Produk / Segel / Daftar LO) ---------- */
 .section-heading { font-size: 1.0625rem; font-weight: 600; color: #1e293b; margin-bottom: 0.25rem; }
 .section-heading-gap { margin-top: 1.5rem; }
 .section-sub { font-size: 0.875rem; font-weight: 400; color: #94a3b8; line-height: 1.5; margin-bottom: 0.875rem; }
 
-/* ---------- Kartu Produk & Segel (langkah 6) ---------- */
 .nav-item-card {
     display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;
     background: #fff; border: 1px solid #e2e8f0; border-radius: 0.875rem;
@@ -318,10 +277,6 @@ textarea.review-box:focus { outline: none; border-color: #60a5fa; box-shadow: 0 
 .chip-pending { background: #fef9c3; color: #a16207; }
 .chip-done { background: #dcfce7; color: #15803d; }
 
-/* ---------- Dialog verifikasi Produk & Segel (soal 6) ----------
-   Bottom sheet seperti sistem asli: menempel di dasar layar, sudut atas
-   membulat, ada "grabber", TANPA tombol Batal (tutup dengan menyentuh area
-   gelap di luar sheet). */
 .spp-modal-backdrop {
     position: fixed; inset: 0; z-index: 100;
     background: rgba(15,23,42,0.45);
@@ -366,16 +321,15 @@ textarea.review-box:focus { outline: none; border-color: #60a5fa; box-shadow: 0 
     display: flex; align-items: center; justify-content: center;
     padding: 0.625rem 0.5rem; border-radius: 0.5rem;
     font-size: 0.75rem; font-weight: 500; cursor: pointer;
-    /* Disamakan dengan checklist AMT: default putih bergaris warna,
-       terpilih = latar lembut (bukan terisi penuh). */
+
     border: 1px solid #1d4ed8; background: #fff; color: #1d4ed8;
     transition: background 0.12s, color 0.12s;
 }
-/* Tidak Sesuai = garis & teks merah */
+
 .spp-opt.danger span { border: 1px solid #e04b4b; background: #fff; color: #dc2626; }
 .spp-opt span:hover { background: #e8effc; }
 .spp-opt.danger span:hover { background: #fdeaea; }
-/* Terpilih = latar lembut, teks & garis tetap berwarna */
+
 .spp-opt input:checked + span { border-color: #1d4ed8; background: #e8effc; color: #1d4ed8; font-weight: 600; }
 .spp-opt.danger input:checked + span { border-color: #e04b4b; background: #fdeaea; color: #dc2626; font-weight: 600; }
 .spp-opt input:focus-visible + span { box-shadow: 0 0 0 3px #dbeafe; }
@@ -389,7 +343,6 @@ textarea.review-box:focus { outline: none; border-color: #60a5fa; box-shadow: 0 
 }
 .spp-modal-save:hover { background: #1d4ed8; }
 
-/* ---------- Kartu LO di langkah pengukuran (langkah 7) ---------- */
 .measure-lo-card {
     display: flex; align-items: center; gap: 0.5rem;
     background: #fff; border: 1.5px solid #2563eb; border-radius: 0.875rem;
@@ -414,10 +367,6 @@ textarea.review-box:focus { outline: none; border-color: #60a5fa; box-shadow: 0 
     font-size: 0.8125rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 
-/* ---------- Layar Konfirmasi LO (di luar soal checklist) ---------- */
-/* Disamakan dengan tampilan sistem asli (diukur dari screenshot referensi,
-   skala 393px): ukuran huruf kecil, kolom label lebar, kotak "Order" selebar
-   isinya (bukan melebar), tombol status setengah-setengah dengan jarak 10px. */
 .konfirmasi-page { padding: 1rem 1rem 0.5rem 1rem; }
 .konfirmasi-title { font-size: 0.8125rem; font-weight: 600; color: #1e293b; margin-bottom: 0.25rem; line-height: 1.4; }
 .konfirmasi-sub { font-size: 0.8125rem; color: #94a3b8; margin-bottom: 1.125rem; line-height: 1.5; }
@@ -447,14 +396,10 @@ textarea.review-box:focus { outline: none; border-color: #60a5fa; box-shadow: 0 
 }
 .konfirmasi-btn.is-selected { background: #dbeafe; border-color: #60a5fa; color: #1d4ed8; font-weight: 600; }
 
-/* Footer: tombol Sebelumnya / Konfirmasi LO -- garis biru lembut, teks biru tua */
 .wizard-nav.konfirmasi-nav .btn-wiz { border: 1px solid #7b96dc; color: #2e4fbf; border-radius: 0.625rem; padding: 0.8125rem 0.5rem; font-size: 0.8125rem; font-weight: 500; white-space: nowrap; }
 .wizard-nav.konfirmasi-nav .btn-wiz svg { color: #3b82f6; width: 1rem; height: 1rem; }
 .wizard-nav.konfirmasi-nav .btn-wiz.is-disabled { border-color: #e2e8f0; color: #cbd5e1; }
 
-/* ============================================================
-   Halaman "Ajukan Claim Loss"
-   ============================================================ */
 .claim-pad { padding: 1.25rem 1rem 0.5rem 1rem; }
 .claim-head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
 .claim-title { font-size: 1.25rem; font-weight: 700; color: #1e293b; letter-spacing: -0.01em; }
@@ -499,8 +444,27 @@ textarea.review-box:focus { outline: none; border-color: #60a5fa; box-shadow: 0 
 .claim-input-wrap input::placeholder { color: #cbd5e1; }
 .claim-input-wrap .unit { font-size: 1rem; color: #94a3b8; font-weight: 400; margin-left: 0.5rem; flex-shrink: 0; }
 .claim-field-hint { font-size: 0.8125rem; font-weight: 400; color: #3b82f6; margin-top: 0.4375rem; line-height: 1.5; }
+.claim-field-hint.warn { color: #c2410c; }
+.claim-field-hint[hidden], .claim-form-field[hidden] { display: none; }
 
-/* ---------- Pop up "Hasil Generate Claim Loss" (bottom sheet, sama seperti sistem asli) ---------- */
+.claim-select-wrap { position: relative; padding: 0; }
+.claim-select-wrap:focus-within { border-color: #0f172a; box-shadow: none; }
+.claim-select-wrap::after {
+    content: ""; position: absolute; right: 1rem; top: 50%; width: 0.5rem; height: 0.5rem; margin-top: -0.375rem;
+    border-right: 2px solid #94a3b8; border-bottom: 2px solid #94a3b8; transform: rotate(45deg); pointer-events: none;
+}
+.claim-select-wrap select {
+    width: 100%; box-sizing: border-box; border: 0; outline: 0; background: transparent;
+    padding: 0.875rem 2.5rem 0.875rem 1rem; font: inherit; font-size: 1rem; color: #94a3b8;
+    -webkit-appearance: none; appearance: none; cursor: pointer;
+}
+.claim-select-wrap select.is-chosen { color: #1e293b; }
+.claim-select-wrap select option { color: #1e293b; }
+
+.claim-input-wrap.is-locked { background: #e2e8f0; border-color: #e2e8f0; }
+.claim-input-wrap.is-locked:focus-within { box-shadow: none; border-color: #e2e8f0; }
+.claim-input-wrap.is-locked input { color: #64748b; cursor: not-allowed; }
+
 .hasil-generate-sheet { text-align: left; gap: 0.625rem; }
 .hasil-generate-sheet .sheet-grabber { margin-bottom: 0.5rem; }
 .hasil-generate-sheet h2 { text-align: left; font-size: 0.9375rem; margin-bottom: 0.25rem; }
@@ -534,7 +498,6 @@ textarea.review-box:focus { outline: none; border-color: #60a5fa; box-shadow: 0 
     font-size: 0.8125rem; font-weight: 500; color: #64748b; text-decoration: none; cursor: pointer;
 }
 
-/* ---------- Dialog konfirmasi di tengah layar (Kirim Checklist) ---------- */
 .modal-backdrop.confirm-backdrop { align-items: center; padding: 1.25rem; }
 .modal-sheet.confirm-sheet {
     max-width: 21rem; border-radius: 1rem; gap: 0.5rem;
@@ -553,13 +516,8 @@ textarea.review-box:focus { outline: none; border-color: #60a5fa; box-shadow: 0 
 .confirm-sheet .confirm-btn-yes { background: #2563eb; color: #fff; border: 1px solid #2563eb; box-shadow: none; }
 .confirm-sheet .confirm-btn-no  { background: #fff; color: #2563eb; border: 1px solid #e2e8f0; }
 
-/* Konfirmasi LO: tombol navigasi bawah */
 .konfirmasi-nav { margin-top: auto; }
 
-/* ============================================================
-   Navigasi bawah (dipakai wizard checklist & claim loss)
-   Navigasi selalu menempel di bawah layar walau isi halaman pendek.
-   ============================================================ */
 .content-with-nav { display: flex; flex-direction: column; }
 .content-with-nav > * { flex-shrink: 0; }
 .content-with-nav > form { display: flex; flex-direction: column; flex: 1 0 auto; }
@@ -589,14 +547,13 @@ textarea.review-box:focus { outline: none; border-color: #60a5fa; box-shadow: 0 
 .wizard-nav .btn-primary:disabled { background: #e2e8f0; color: #94a3b8; box-shadow: none; }
 .wizard-nav .btn-next { flex: 1 1 0; }
 
-/* ---------- Done ---------- */
 .done-wrap { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 6rem 1.5rem 2rem 1.5rem; min-height: 100%; }
 .done-icon { width: 6rem; height: 6rem; border-radius: 50%; background: #d1fae5; color: #10b981; display: flex; align-items: center; justify-content: center; margin-bottom: 1.5rem; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
 .done-icon svg { width: 3rem; height: 3rem; fill: none; stroke: currentColor; stroke-width: 2; }
 .done-wrap h1 { font-size: 1.5rem; font-weight: 700; color: #1e293b; margin-bottom: 0.75rem; }
 .done-wrap p { font-size: 0.875rem; color: #64748b; max-width: 16.25rem; margin: 0 auto 2rem auto; line-height: 1.6; }
 .done-wrap .btn-primary { margin-top: auto; }
-/* ---------- Tombol "Ajukan Claim Losses" di Daftar LO (langkah 7) ---------- */
+
 .ajukan-claim-list-btn {
     margin-top: 0.75rem;
     display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;

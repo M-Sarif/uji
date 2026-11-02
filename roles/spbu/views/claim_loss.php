@@ -4,31 +4,22 @@ $loId   = isset($_GET['lo']) && array_key_exists((string) $_GET['lo'], LO_LIST)
     : null;
 $method = isset($_GET['metode']) && array_key_exists($_GET['metode'], MEASUREMENT_METHODS)
     ? $_GET['metode']
-    : 'ijkbout';
+    : DEFAULT_MEASUREMENT_METHOD;
 $loQuery = $loId !== null ? '&lo=' . urlencode($loId) : '';
 
-// Draft hasil "Generate" (belum final) & data yang sudah final tersimpan,
-// kalau ada, untuk Nomor LO ini.
 $draft     = $loId !== null ? ($_SESSION['lo_form_draft'][$loId] ?? null) : null;
 $finalForm = $loId !== null ? ($_SESSION['lo_form'][$loId] ?? null) : null;
 
-// Nilai yang sudah pernah diisi untuk LO ini (draft diprioritaskan supaya
-// isian form tidak hilang saat pop up Hasil Generate ditutup / Batal).
 $source = ($draft !== null && $draft['metode'] === $method) ? $draft
     : (($finalForm !== null && $finalForm['metode'] === $method) ? $finalForm : null);
 $saved  = $source !== null ? $source['nilai'] : [];
 
-// Tampilkan pop up "Hasil Generate Claim Losses" hanya kalau baru saja
-// klik "Generate" (flag ?hasil=1) DAN draft-nya cocok dengan metode aktif.
 $showResult = ($_GET['hasil'] ?? '') === '1' && $draft !== null && $draft['metode'] === $method;
 
 $claimLossResult = $draft !== null ? (float) $draft['claim_loss'] : 0.0;
 $bisaKlaim        = $claimLossResult > 0;
 $batalHref        = 'index.php?screen=claim_loss&metode=' . urlencode($method) . $loQuery;
 
-// Sama seperti $activeLoIds di views/checklist.php: LO yang sedang
-// dikerjakan pada wizard ini. Dipakai untuk penanda data-tour-any-done
-// (apakah sudah ada LO lain yang terisi sebelumnya).
 $ukurActiveLoIds = array_keys(array_filter($_SESSION['lo_checked']));
 if (empty($ukurActiveLoIds)) {
     $ukurActiveLoIds = array_keys(LO_LIST);
@@ -67,36 +58,53 @@ foreach ($ukurActiveLoIds as $ukurCheckId) {
 
         <div class="claim-form">
             <?php foreach (MEASUREMENT_METHODS[$method]['fields'] as $field):
-                // Kolom desimal seperti "Density Obs" (contoh: 0.989 /
-                // 0.9898) butuh beberapa digit di belakang koma supaya
-                // benar-benar akurat -- kalau tombol "Generate" sudah aktif
-                // begitu baru ketik "0", pengguna keburu ternavigasi keluar
-                // (mis. tersentuh/ter-Enter) SEBELUM selesai mengetik semua
-                // angkanya. 'data-min-length' (dibaca oleh skrip validasi &
-                // tutorial di bawah) menahan tombol tetap nonaktif sampai
-                // panjang isian kolom ini mencapai minimal segini dulu.
-                // Kolom lain (angka bulat seperti Kompartemen/Temperatur)
-                // tetap cukup diisi apa saja (tidak dibatasi panjang).
                 $minLen = ($field['key'] === 'density_obs') ? 5 : 1;
+                $type   = $field['type'] ?? 'text';
+                $fid    = 'f_' . $field['key'];
+                $val    = isset($saved[$field['key']]) ? rtrim(rtrim(number_format($saved[$field['key']], 3, '.', ''), '0'), '.') : '';
             ?>
+            <?php if ($type === 'select'): ?>
             <div class="claim-form-field">
-                <label for="f_<?php echo h($field['key']); ?>"><?php echo h($field['label']); ?> <span class="req">*</span></label>
+                <label for="<?php echo h($fid); ?>"><?php echo h($field['label']); ?> <span class="req">*</span></label>
+                <div class="claim-input-wrap claim-select-wrap">
+                    <select id="<?php echo h($fid); ?>" name="<?php echo h($field['key']); ?>" required>
+                        <option value="" disabled<?php echo $val === '' ? ' selected' : ''; ?> hidden><?php echo h($field['placeholder'] ?? 'Pilih'); ?></option>
+                        <?php foreach (COMPARTMENT_TERA_T2 as $no => $t2): ?>
+                        <option value="<?php echo (int) $no; ?>"<?php echo (string) $val === (string) $no ? ' selected' : ''; ?>>Kompartemen <?php echo (int) $no; ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <p class="claim-field-hint" id="kompHint"<?php echo $val === '' ? ' hidden' : ''; ?>>*Pilih kompartemen tempat BBM LO ini berada di MT (di dispatching tercatat kompartemen <?php echo (int) COMPARTMENT_DISPATCH; ?>). T2 Tera MT dan kapasitas mengikuti kompartemen yang dipilih.</p>
+            </div>
+            <?php elseif ($type === 'tera'): ?>
+            <div class="claim-form-field" id="teraField"<?php echo $val === '' ? ' hidden' : ''; ?>>
+                <label for="<?php echo h($fid); ?>"><?php echo h($field['label']); ?></label>
+                <div class="claim-input-wrap is-locked">
+                    <input type="text" id="<?php echo h($fid); ?>" name="<?php echo h($field['key']); ?>" value="<?php echo h($val); ?>" readonly tabindex="-1" aria-readonly="true">
+                    <?php if (!empty($field['unit'])): ?><span class="unit"><?php echo h($field['unit']); ?></span><?php endif; ?>
+                </div>
+                <p class="claim-field-hint">*Nilai T2 terisi otomatis dari data Tera MT.</p>
+            </div>
+            <?php else: ?>
+            <div class="claim-form-field">
+                <label for="<?php echo h($fid); ?>"><?php echo h($field['label']); ?> <span class="req">*</span></label>
                 <div class="claim-input-wrap">
                     <input type="text" inputmode="decimal"
-                           id="f_<?php echo h($field['key']); ?>"
+                           id="<?php echo h($fid); ?>"
                            name="<?php echo h($field['key']); ?>"
-                           value="<?php echo isset($saved[$field['key']]) ? h(rtrim(rtrim(number_format($saved[$field['key']], 3, '.', ''), '0'), '.')) : ''; ?>"
+                           value="<?php echo h($val); ?>"
                            placeholder="<?php echo h($field['placeholder'] ?? '0'); ?>"
                            data-min-length="<?php echo (int) $minLen; ?>" required>
                     <?php if (!empty($field['unit'])): ?><span class="unit"><?php echo h($field['unit']); ?></span><?php endif; ?>
                 </div>
                 <?php if (!empty($field['hint'])): ?>
-                <p class="claim-field-hint">*<?php echo h($field['hint']); ?></p>
+                <p class="claim-field-hint<?php echo !empty($field['hint_class']) ? ' ' . h($field['hint_class']) : ''; ?>">*<?php echo h($field['hint']); ?></p>
                 <?php endif; ?>
                 <?php if ($field['key'] === 'density_obs'): ?>
                 <p class="claim-field-hint">*Isi paling sedikit beberapa digit di belakang koma (contoh: 0.989 atau 0.9898) untuk hasil yang akurat.</p>
                 <?php endif; ?>
             </div>
+            <?php endif; ?>
             <?php endforeach; ?>
         </div>
     </div>
@@ -171,7 +179,6 @@ foreach ($ukurActiveLoIds as $ukurCheckId) {
     var batal = document.getElementById('btnHasilBatal');
     if (!modal || !batal) { return; }
 
-    /* klik area gelap di luar kartu, atau tombol Escape, = Batal */
     modal.addEventListener('click', function (e) {
         if (e.target === modal) { batal.click(); }
     });
@@ -183,21 +190,31 @@ foreach ($ukurActiveLoIds as $ukurCheckId) {
 <?php endif; ?>
 
 <script>
-/* Tombol "Generate" baru aktif setelah semua isian wajib diisi -- dan
-   khusus kolom yang punya 'data-min-length' (mis. "Density Obs"), baru
-   dianggap terisi kalau panjang isiannya sudah mencapai minimal segitu,
-   supaya tidak dianggap "selesai" begitu baru ketik satu digit saja. */
 (function () {
     var form = document.getElementById('claimForm');
     if (!form) { return; }
 
     var btn    = document.getElementById('btnGenerate');
-    var inputs = form.querySelectorAll('input[type="text"][required]');
+    var inputs = form.querySelectorAll('input[type="text"][required], select[required]');
+    var komp   = document.getElementById('f_kompartemen');
+    var tera   = document.getElementById('f_level_spp');
+    var teraBox = document.getElementById('teraField');
+    var kompHint = document.getElementById('kompHint');
+    var t2 = <?php echo json_encode(COMPARTMENT_TERA_T2); ?>;
 
     function fieldFilled(el) {
         var val    = el.value.trim();
         var minLen = parseInt(el.getAttribute('data-min-length') || '1', 10) || 1;
         return val !== '' && val.length >= minLen;
+    }
+
+    function syncTera() {
+        if (!komp || !tera || !teraBox) { return; }
+        var chosen = komp.value !== '' && t2[komp.value] !== undefined;
+        tera.value = chosen ? String(t2[komp.value]) : '';
+        teraBox.hidden = !chosen;
+        if (kompHint) { kompHint.hidden = !chosen; }
+        komp.classList.toggle('is-chosen', chosen);
     }
 
     function refresh() {
@@ -206,18 +223,17 @@ foreach ($ukurActiveLoIds as $ukurCheckId) {
             if (!fieldFilled(el)) { lengkap = false; }
         });
         btn.disabled = !lengkap;
-        // Penanda untuk tutorial: langkah "isi form pengukuran" selesai bila semua kolom wajib terisi.
         form.setAttribute('data-ready', lengkap ? '1' : '0');
     }
 
-    inputs.forEach(function (el) { el.addEventListener('input', refresh); });
+    inputs.forEach(function (el) {
+        el.addEventListener('input', refresh);
+        el.addEventListener('change', refresh);
+    });
+    if (komp) { komp.addEventListener('change', function () { syncTera(); refresh(); }); }
+    syncTera();
     refresh();
 
-    /* Jaga-jaga: tombol "Enter"/"Done" di keyboard (terutama keyboard
-       angka di HP) bisa langsung men-submit form walau tombol "Generate"
-       kelihatannya belum sempat berubah nonaktif -> aktif dengan benar.
-       Kalau ini terjadi SELAGI ada kolom yang belum memenuhi syarat
-       (termasuk syarat panjang minimal), batalkan submit-nya. */
     form.addEventListener('submit', function (e) {
         var lengkap = true;
         inputs.forEach(function (el) { if (!fieldFilled(el)) { lengkap = false; } });

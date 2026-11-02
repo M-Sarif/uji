@@ -1,13 +1,4 @@
 <?php
-/**
- * Layar: ?screen=amt_kendala  (role AMT)  -- "Laporkan Kendala"
- * Letak: roles/amt/views/kendala.php
- *
- * Form: Jenis Kendala, Estimasi Kendala (Ya, Bisa Diprediksi / Tidak Bisa Diprediksi), Estimasi Waktu
- * Kendala Selesai (HANYA bila "Ya"), Foto Bukti, Justifikasi AMT. Tombol "Kirim Laporan Kendala" aktif
- * bila semua isian wajib sudah lengkap -> POST submit_kendala (amt_kendala_handle_post()).
- * Logika layar: assets/js/amt-kendala.js. Tutorial: amt_tour_kendala_steps() (includes/tutorial.php).
- */
 $s = amt_kendala_ship();
 if ($s === null) {
     echo '<section class="kd"><p class="kd-empty">Tidak ada pengiriman yang sedang berjalan.</p></section>';
@@ -23,9 +14,10 @@ $v = function (string $f): int { return (int) @filemtime(AMT_ASSET_DIR . '/' . $
     <input type="hidden" name="est_h" id="kdEstH" value="">
     <input type="hidden" name="est_m" id="kdEstM" value="">
     <input type="hidden" name="photo_data" id="kdPhotoData" value="">
+    <input type="hidden" name="route" id="kdRouteValue" value="">
 
     <div class="kd-body">
-        <!-- Jenis Kendala -->
+
         <label class="kd-label" for="kdJenis">Jenis Kendala<b class="kd-req">*</b></label>
         <div class="kd-select" id="kdJenisWrap">
             <select id="kdJenis" name="jenis">
@@ -37,14 +29,12 @@ $v = function (string $f): int { return (int) @filemtime(AMT_ASSET_DIR . '/' . $
             <button type="button" class="kd-clear" id="kdJenisClear" aria-label="Hapus pilihan jenis kendala" hidden>&times;</button>
         </div>
 
-        <!-- Estimasi Kendala -->
         <div class="kd-label" id="kdBisaLabel">Estimasi Kendala<b class="kd-req">*</b></div>
         <div class="kd-radios" id="kdBisa" role="radiogroup" aria-labelledby="kdBisaLabel">
             <label class="kd-radio"><input type="radio" name="bisa" value="ya" checked><span class="kd-dot"></span><span>Ya, Bisa Diprediksi</span></label>
             <label class="kd-radio"><input type="radio" name="bisa" value="tidak"><span class="kd-dot"></span><span>Tidak Bisa Diprediksi</span></label>
         </div>
 
-        <!-- Estimasi Waktu Kendala Selesai (hanya bila "Ya, Bisa Diprediksi") -->
         <div id="kdTimeBlock">
             <label class="kd-label" for="kdTime">Estimasi Waktu Kendala Selesai<b class="kd-req">*</b></label>
             <button type="button" class="kd-field kd-time" id="kdTime" aria-haspopup="dialog">
@@ -53,7 +43,6 @@ $v = function (string $f): int { return (int) @filemtime(AMT_ASSET_DIR . '/' . $
             </button>
         </div>
 
-        <!-- Foto Bukti -->
         <div class="kd-label" id="kdPhotoLabel">Foto Bukti<b class="kd-req">*</b></div>
         <div class="kd-photo" id="kdPhoto">
             <button type="button" class="kd-photo__idle" id="kdPhotoBtn" aria-labelledby="kdPhotoLabel">
@@ -73,12 +62,19 @@ $v = function (string $f): int { return (int) @filemtime(AMT_ASSET_DIR . '/' . $
             </div>
         </div>
 
-        <!-- Justifikasi AMT -->
         <label class="kd-label" for="kdNote">Justifikasi AMT<b class="kd-req">*</b></label>
         <div class="kd-ta" id="kdNoteWrap">
             <textarea id="kdNote" name="note" rows="4" maxlength="<?= (int) AMT_KENDALA_NOTE_MAX ?>"
                       placeholder="Masukkan keterangan atau kronologi kejadian"></textarea>
             <button type="button" class="kd-clear kd-clear--ta" id="kdNoteClear" aria-label="Hapus keterangan" hidden>&times;</button>
+        </div>
+
+        <div id="kdRouteBlock" data-type="<?= amt_e(AMT_KENDALA_ROUTE_TYPE) ?>" hidden>
+            <div class="kd-label" id="kdRouteLabel">Perubahan Rute Pengiriman</div>
+            <button type="button" class="kd-routebtn" id="kdRouteBtn" aria-labelledby="kdRouteLabel">
+                <span class="kd-routebtn__act">Ubah Rute</span>
+                <span class="kd-routebtn__val" id="kdRouteVal">Belum ditambahkan</span>
+            </button>
         </div>
     </div>
 
@@ -89,7 +85,6 @@ $v = function (string $f): int { return (int) @filemtime(AMT_ASSET_DIR . '/' . $
         </button>
     </div>
 
-    <!-- Pop up: Estimasi Waktu Kendala Selesai (jam : menit) -->
     <div class="kd-modal" id="kdModal" hidden>
         <div class="kd-sheet" role="dialog" aria-modal="true" aria-labelledby="kdModalTitle">
             <h3 class="kd-sheet__title" id="kdModalTitle">Estimasi Waktu Kendala Selesai</h3>
@@ -104,6 +99,47 @@ $v = function (string $f): int { return (int) @filemtime(AMT_ASSET_DIR . '/' . $
         </div>
     </div>
 </form>
+
+<?php $routeStops = amt_kendala_route_stops($s); ?>
+<div class="kd-page" id="kdRoutePage" role="dialog" aria-modal="true" aria-labelledby="kdRouteTitle" hidden>
+    <div class="app-header-simple centered amt-centered">
+        <button type="button" class="back-btn" id="kdRouteBack" aria-label="Kembali">
+            <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 12H5m7-7l-7 7 7 7"/></svg>
+        </button>
+        <h1 id="kdRouteTitle">Perubahan Rute Pengiriman</h1>
+        <span class="back-btn" style="visibility:hidden;"></span>
+    </div>
+
+    <div class="kd-page__body">
+        <div class="kd-info">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>
+            <p>Geser ke atas atau ke bawah untuk mengatur urutan pengiriman dari Depot ke SPBU.</p>
+        </div>
+
+        <h2 class="kd-page__sub">Rute Tersedia</h2>
+        <ul class="kd-stops" id="kdRouteList">
+            <?php foreach ($routeStops as $i => $stop): ?>
+                <li class="kd-stop" data-id="<?= amt_e($stop['id']) ?>" data-spbu="<?= amt_e($stop['spbu']) ?>" tabindex="0" aria-label="SPBU <?= amt_e($stop['spbu']) ?>, urutan <?= $i + 1 ?>. Tekan panah atas atau bawah untuk memindahkan.">
+                    <span class="kd-stop__no"><?= $i + 1 ?></span>
+                    <div class="kd-stop__row">
+                        <strong class="kd-stop__name">SPBU <?= amt_e($stop['spbu']) ?></strong>
+                        <span class="kd-stop__km"><?= amt_e($stop['km']) ?> KM</span>
+                    </div>
+                    <div class="kd-stop__tags">
+                        <?php foreach ($stop['products'] as $name): ?>
+                            <span class="kd-stop__tag"><?= amt_e($name) ?></span>
+                        <?php endforeach; ?>
+                    </div>
+                    <svg class="kd-stop__grip" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 9l4-4 4 4M8 15l4 4 4-4M12 5v14"/></svg>
+                </li>
+            <?php endforeach; ?>
+        </ul>
+    </div>
+
+    <div class="kd-page__foot">
+        <button type="button" class="kd-send" id="kdRouteApply" disabled>Terapkan Rute Pengiriman</button>
+    </div>
+</div>
 
 <script src="<?= AMT_URL ?>/js/camera.js?v=<?= $v('js/camera.js') ?>"></script>
 <script src="<?= AMT_URL ?>/js/amt-kendala.js?v=<?= $v('js/amt-kendala.js') ?>"></script>

@@ -1,16 +1,14 @@
 <?php
-/**
- * Layar: ?screen=amt_verifikasi  (Verifikasi Order - Daftar LO + Metode Verifikasi)
- * Letak: roles/amt/views/amt_verifikasi.php
- */
-
 $los      = amt_verif_lo_list();
 $selected = amt_verif_selected();
 $hasPick  = count($selected) > 0;
 $allDone  = amt_verif_is_done();
+$qrBase   = amt_verif_url('amt_verifikasi_qr', ['restart' => 1]);
+$kodeBase = amt_verif_url('amt_verifikasi_kode', ['restart' => 1]);
+$selQuery = '&sel=' . rawurlencode(implode(',', $selected));
 ?>
 
-<section class="verif">
+<section class="verif" id="verif" data-sync="<?= amt_e(amt_verif_url('amt_verifikasi', ['ajax' => 1])) ?>">
     <div data-tour="verif-list">
     <div class="verif-head">
         <h2 class="verif-title">Daftar LO</h2>
@@ -24,10 +22,11 @@ $allDone  = amt_verif_is_done();
     <?php foreach ($los as $lo):
         $eligible = amt_verif_is_eligible($lo);
         $verified = amt_verif_is_verified($lo['id']);
+        $pickable = $eligible && !$verified;
         $checked  = in_array($lo['id'], $selected, true);
-        $classes  = 'verif-lo' . ($checked ? ' is-selected' : '') . (($eligible && !$verified) ? '' : ' is-disabled');
+        $classes  = 'verif-lo' . ($checked ? ' is-selected' : '') . ($pickable ? '' : ' is-disabled');
     ?>
-        <div class="<?= $classes ?>">
+        <div class="<?= $classes ?>"<?= $pickable ? ' data-lo="' . amt_e($lo['id']) . '"' : '' ?>>
             <dl class="verif-rows">
                 <div><dt>Nomor LO</dt><dd class="verif-strong"><?= amt_e($lo['id']) ?></dd></div>
                 <div><dt>Order</dt><dd><span class="verif-pill"><?= amt_e($lo['order']) ?></span></dd></div>
@@ -39,7 +38,7 @@ $allDone  = amt_verif_is_done();
                 <?php endif; ?>
             </dl>
 
-            <?php if ($eligible && !$verified): ?>
+            <?php if ($pickable): ?>
                 <a class="verif-check<?= $checked ? ' is-on' : '' ?>"
                    href="<?= amt_e(amt_verif_url('amt_verifikasi', ['toggle' => $lo['id']])) ?>"
                    role="checkbox" aria-checked="<?= $checked ? 'true' : 'false' ?>"
@@ -49,7 +48,7 @@ $allDone  = amt_verif_is_done();
             <?php endif; ?>
         </div>
     <?php endforeach; ?>
-    </div><!-- /data-tour=verif-list -->
+    </div>
 
     <?php if ($allDone): ?>
         <p class="verif-note">Semua LO sudah diverifikasi.</p>
@@ -59,38 +58,94 @@ $allDone  = amt_verif_is_done();
         <h2 class="verif-title verif-title--gap">Metode Verifikasi</h2>
         <p class="verif-hint">Pilih metode untuk verifikasi order</p>
 
-        <?php if ($hasPick): ?>
-            <a class="verif-method is-on" href="<?= amt_e(amt_verif_url('amt_verifikasi_qr', ['restart' => 1])) ?>">
-                <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M8 12h8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                Pindai Kode QR
-            </a>
-            <a class="verif-method is-on" href="<?= amt_e(amt_verif_url('amt_verifikasi_kode', ['restart' => 1])) ?>">
-                <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M6 3h9l4 4v14H6zM14 3v5h5M9 13h6M9 17h6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                Kode Konfirmasi
-            </a>
-        <?php else: ?>
-            <span class="verif-method" aria-disabled="true">Pindai Kode QR</span>
-            <span class="verif-method" aria-disabled="true">Kode Konfirmasi</span>
-            <p class="verif-note">Centang LO di atas untuk memilih metode.</p>
-        <?php endif; ?>
-        </div><!-- /data-tour=verif-methods -->
+        <a class="verif-method<?= $hasPick ? ' is-on' : '' ?>" id="verifQr"
+           data-base="<?= amt_e($qrBase) ?>" href="<?= amt_e($qrBase . $selQuery) ?>"
+           aria-disabled="<?= $hasPick ? 'false' : 'true' ?>"<?= $hasPick ? '' : ' tabindex="-1"' ?>>
+            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M8 12h8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Pindai Kode QR
+        </a>
+        <a class="verif-method<?= $hasPick ? ' is-on' : '' ?>" id="verifKode"
+           data-base="<?= amt_e($kodeBase) ?>" href="<?= amt_e($kodeBase . $selQuery) ?>"
+           aria-disabled="<?= $hasPick ? 'false' : 'true' ?>"<?= $hasPick ? '' : ' tabindex="-1"' ?>>
+            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M6 3h9l4 4v14H6zM14 3v5h5M9 13h6M9 17h6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Kode Konfirmasi
+        </a>
+        <p class="verif-note" id="verifPickNote"<?= $hasPick ? ' hidden' : '' ?>>Centang LO di atas untuk memilih metode.</p>
+        </div>
     <?php endif; ?>
 </section>
 
 <script>
-// Seluruh kartu LO bisa disentuh untuk mencentang (sama dengan menyentuh kotak centang).
 (function () {
-    var cards = document.querySelectorAll('.verif-lo');
-    for (var i = 0; i < cards.length; i++) {
-        (function (card) {
-            var a = card.querySelector('.verif-check');
-            if (!a) return;
-            card.style.cursor = 'pointer';
-            card.addEventListener('click', function (e) {
-                if (e.target.closest && e.target.closest('a')) return;
-                window.location.href = a.getAttribute('href');
-            });
-        })(cards[i]);
+    var root = document.getElementById('verif');
+    if (!root) { return; }
+    var cards = [].slice.call(root.querySelectorAll('.verif-lo[data-lo]'));
+    var methods = [].slice.call(root.querySelectorAll('.verif-method[data-base]'));
+    var note = document.getElementById('verifPickNote');
+    var syncUrl = root.getAttribute('data-sync');
+    var timer = 0;
+
+    function selected() {
+        var ids = [];
+        for (var i = 0; i < cards.length; i++) {
+            if (cards[i].classList.contains('is-selected')) { ids.push(cards[i].getAttribute('data-lo')); }
+        }
+        return ids;
     }
+
+    function render() {
+        var ids = selected();
+        var has = ids.length > 0;
+        var query = '&sel=' + encodeURIComponent(ids.join(','));
+        for (var i = 0; i < methods.length; i++) {
+            var m = methods[i];
+            m.classList.toggle('is-on', has);
+            m.setAttribute('aria-disabled', has ? 'false' : 'true');
+            m.setAttribute('href', m.getAttribute('data-base') + query);
+            if (has) { m.removeAttribute('tabindex'); } else { m.setAttribute('tabindex', '-1'); }
+        }
+        if (note) { note.hidden = has; }
+    }
+
+    function save() {
+        clearTimeout(timer);
+        timer = setTimeout(function () {
+            if (!window.fetch) { return; }
+            var url = syncUrl + '&sel=' + encodeURIComponent(selected().join(','));
+            fetch(url, { credentials: 'same-origin', cache: 'no-store', keepalive: true }).catch(function () {});
+        }, 120);
+    }
+
+    function toggle(card) {
+        var on = !card.classList.contains('is-selected');
+        card.classList.toggle('is-selected', on);
+        var box = card.querySelector('.verif-check');
+        if (box) {
+            box.classList.toggle('is-on', on);
+            box.setAttribute('aria-checked', on ? 'true' : 'false');
+        }
+        render();
+        save();
+    }
+
+    root.addEventListener('click', function (e) {
+        var t = e.target;
+        if (!t || !t.closest) { return; }
+        var method = t.closest('.verif-method');
+        if (method) {
+            if (method.getAttribute('aria-disabled') === 'true') { e.preventDefault(); }
+            return;
+        }
+        var card = t.closest('.verif-lo[data-lo]');
+        if (!card) { return; }
+        e.preventDefault();
+        toggle(card);
+    });
+
+    window.addEventListener('pageshow', function (e) {
+        if (e.persisted) { window.location.reload(); }
+    });
+
+    render();
 })();
 </script>

@@ -1,20 +1,3 @@
-/*
- * OneFIS - AMT - layar Laporkan Kendala (?screen=amt_kendala)
- * Letak: roles/amt/assets/js/amt-kendala.js
- *
- * - Jenis Kendala (select + tombol hapus pilihan)
- * - Estimasi Kendala: "Ya, Bisa Diprediksi" menampilkan kolom Estimasi Waktu; "Tidak Bisa Diprediksi" menyembunyikannya
- * - Estimasi Waktu: pop up pemilih jam : menit (geser / ketuk angka); "Terapkan" aktif bila durasi > 0
- * - Foto Bukti: kamera layar penuh (camera.js, bisa ganti kamera depan/belakang), "Hapus Foto"
- * - Justifikasi AMT (textarea + tombol hapus)
- * - Tombol "Kirim Laporan Kendala" aktif bila semua isian wajib lengkap
- *
- * Status form tampil sebagai atribut data-* pada #kdForm (dibaca tutorial; lihat amt_tour_kendala_steps()):
- *   data-jenis="1"  jenis kendala dipilih          data-bisa="ya|tidak"  pilihan Estimasi Kendala
- *   data-est="1"    estimasi waktu sudah diterapkan data-photo="1"       foto bukti tersimpan
- *   data-note="1"   justifikasi terisi             data-ready="1"        semua isian wajib lengkap
- * Pop up estimasi memakai class .is-open pada #kdModal saat tampil.
- */
 (function () {
     'use strict';
 
@@ -35,12 +18,20 @@
 
     var est = { set: false, h: 0, m: 0 };
 
+    var routeBlock = $('kdRouteBlock'), routeBtn = $('kdRouteBtn'), routeVal = $('kdRouteVal');
+    var routeInput = $('kdRouteValue');
+    var routePage = $('kdRoutePage'), routeList = $('kdRouteList');
+    var routeApply = $('kdRouteApply'), routeBack = $('kdRouteBack');
+    var routeType = routeBlock ? routeBlock.getAttribute('data-type') : '';
+    var routeBase = '';
+    var routeApplied = null;
+    var routeOpenOrder = '';
+
     function bisa() {
         var r = form.querySelector('input[name="bisa"]:checked');
         return r ? r.value : 'ya';
     }
 
-    /* ---------- status form ---------- */
     function refresh() {
         var hasJenis = jenis.value !== '';
         var hasNote  = note.value.trim() !== '';
@@ -53,6 +44,9 @@
         jenisClear.hidden = !hasJenis;
         noteClear.hidden = note.value === '';
         timeBlock.hidden = !prediksi;
+        var showRoute = !!routeBlock && jenis.value === routeType;
+        if (routeBlock) { routeBlock.hidden = !showRoute; }
+        if (routeInput) { routeInput.value = (showRoute && routeApplied) ? routeApplied.join(',') : ''; }
 
         form.setAttribute('data-jenis', hasJenis ? '1' : '0');
         form.setAttribute('data-bisa', prediksi ? 'ya' : 'tidak');
@@ -64,15 +58,12 @@
         document.dispatchEvent(new CustomEvent('amt:state'));
     }
 
-    /* ---------- jenis kendala ---------- */
     jenis.addEventListener('change', refresh);
     jenisClear.addEventListener('click', function () { jenis.value = ''; refresh(); jenis.focus(); });
 
-    /* ---------- estimasi kendala ---------- */
     form.querySelectorAll('input[name="bisa"]').forEach(function (r) { r.addEventListener('change', refresh); });
 
-    /* ---------- pemilih durasi (jam : menit) ---------- */
-    var STEP_PX = 30;   // jarak geser (px) untuk berpindah satu angka
+    var STEP_PX = 30;
 
     function Wheel(el, onChange) {
         var max = parseInt(el.getAttribute('data-max'), 10) || 59;
@@ -106,14 +97,13 @@
             acc += e.clientY - lastY;
             lastY = e.clientY;
             if (Math.abs(acc) > 6) { dragged = true; }
-            while (acc >= STEP_PX)  { set(val - 1); acc -= STEP_PX; }   // geser ke bawah = angka sebelumnya
-            while (acc <= -STEP_PX) { set(val + 1); acc += STEP_PX; }   // geser ke atas  = angka berikutnya
+            while (acc >= STEP_PX)  { set(val - 1); acc -= STEP_PX; }
+            while (acc <= -STEP_PX) { set(val + 1); acc += STEP_PX; }
         });
         function end() { dragging = false; }
         el.addEventListener('pointerup', end);
         el.addEventListener('pointercancel', end);
 
-        // ketuk angka di atas / bawah angka terpilih
         el.addEventListener('click', function (e) {
             if (dragged) { dragged = false; return; }
             var b = e.target.closest ? e.target.closest('[data-off]') : null;
@@ -137,7 +127,6 @@
 
     function updateApply() { apply.disabled = (wheelH.get() === 0 && wheelM.get() === 0); }
 
-    // Pop up memenuhi bingkai HP (di dalam .app-container), seperti kamera & pop up sukses
     var host = document.querySelector('.app-container');
     if (host) { host.appendChild(modal); } else { modal.classList.add('is-fixed'); }
 
@@ -172,11 +161,10 @@
         refresh();
     });
 
-    /* ---------- foto bukti ---------- */
     var cam = null;
     if (window.AmtCamera) {
         cam = window.AmtCamera.create({
-            facing: 'environment',     // kamera belakang dulu (bukti kejadian); tombol "Kamera Depan" untuk ganti
+            facing: 'environment',
             switchable: true,
             title: 'Foto Bukti',
             onSave: function (dataUrl) { setPhoto(dataUrl); }
@@ -192,17 +180,161 @@
     photoBtn.addEventListener('click', function () { if (cam) { cam.open(); } });
     photoDel.addEventListener('click', function () { setPhoto(''); });
 
-    /* ---------- justifikasi ---------- */
     note.addEventListener('input', refresh);
     noteClear.addEventListener('click', function () { note.value = ''; refresh(); note.focus(); });
 
-    /* ---------- kirim ---------- */
+    function Sortable(list, onChange) {
+        var st = null;
+
+        function items() { return [].slice.call(list.children); }
+        function order() { return items().map(function (li) { return li.getAttribute('data-id'); }); }
+        function renumber() {
+            items().forEach(function (li, i) { li.querySelector('.kd-stop__no').textContent = String(i + 1); });
+        }
+        function snapshot() {
+            var map = {};
+            items().forEach(function (li) { map[li.getAttribute('data-id')] = li.offsetTop; });
+            return map;
+        }
+        function animate(prev) {
+            items().forEach(function (li) {
+                if (st && li === st.el) { return; }
+                var d = prev[li.getAttribute('data-id')] - li.offsetTop;
+                if (!d) { return; }
+                li.style.transition = 'none';
+                li.style.transform = 'translateY(' + d + 'px)';
+                li.getBoundingClientRect();
+                li.style.transition = 'transform .18s ease';
+                li.style.transform = '';
+            });
+        }
+        function step(el, dir) {
+            var all = items();
+            var i = all.indexOf(el);
+            var j = i + dir;
+            if (j < 0 || j >= all.length) { return; }
+            var prev = snapshot();
+            if (dir < 0) { list.insertBefore(el, all[j]); } else { list.insertBefore(all[j], el); }
+            animate(prev);
+            renumber();
+            onChange();
+            el.focus();
+        }
+
+        list.addEventListener('pointerdown', function (e) {
+            var el = e.target.closest ? e.target.closest('.kd-stop') : null;
+            if (!el || st || (typeof e.button === 'number' && e.button > 0)) { return; }
+            st = { el: el, startY: e.clientY, id: e.pointerId };
+            el.classList.add('is-drag');
+            el.style.transition = 'none';
+            try { el.setPointerCapture(e.pointerId); } catch (x) {}
+        });
+
+        list.addEventListener('pointermove', function (e) {
+            if (!st || e.pointerId !== st.id) { return; }
+            var el = st.el;
+            el.style.transform = 'translateY(' + (e.clientY - st.startY) + 'px)';
+            var all = items();
+            var others = all.filter(function (x) { return x !== el; });
+            var center = el.offsetTop + (e.clientY - st.startY) + el.offsetHeight / 2;
+            var idx = 0;
+            others.forEach(function (x) {
+                if (x.offsetTop + x.offsetHeight / 2 < center) { idx++; }
+            });
+            if (idx !== all.indexOf(el)) {
+                var prev = snapshot();
+                var oldTop = el.offsetTop;
+                list.insertBefore(el, others[idx] || null);
+                animate(prev);
+                st.startY += el.offsetTop - oldTop;
+                el.style.transform = 'translateY(' + (e.clientY - st.startY) + 'px)';
+                renumber();
+            }
+        });
+
+        function end(e) {
+            if (!st || e.pointerId !== st.id) { return; }
+            var el = st.el;
+            st = null;
+            el.classList.remove('is-drag');
+            el.style.transition = 'transform .18s ease';
+            el.style.transform = '';
+            setTimeout(function () { el.style.transition = ''; }, 220);
+            onChange();
+        }
+        list.addEventListener('pointerup', end);
+        list.addEventListener('pointercancel', end);
+
+        list.addEventListener('keydown', function (e) {
+            var el = e.target.closest ? e.target.closest('.kd-stop') : null;
+            if (!el) { return; }
+            if (e.key === 'ArrowUp')   { e.preventDefault(); step(el, -1); }
+            if (e.key === 'ArrowDown') { e.preventDefault(); step(el, 1); }
+        });
+
+        return { order: order, renumber: renumber };
+    }
+
+    var sorter = null;
+    if (routePage && routeList) {
+        routeBase = [].slice.call(routeList.children).map(function (li) { return li.getAttribute('data-id'); }).join(',');
+        sorter = Sortable(routeList, function () {
+            routeApply.disabled = (sorter.order().join(',') === routeOpenOrder);
+        });
+        var routeHost = document.querySelector('.app-container');
+        if (routeHost) { routeHost.appendChild(routePage); } else { routePage.classList.add('is-fixed'); }
+    }
+
+    function arrangeRoute(ids) {
+        var map = {};
+        [].slice.call(routeList.children).forEach(function (li) { map[li.getAttribute('data-id')] = li; });
+        ids.forEach(function (id) { if (map[id]) { routeList.appendChild(map[id]); } });
+        sorter.renumber();
+    }
+    function routeText() {
+        if (!routeApplied) { return 'Belum ditambahkan'; }
+        return routeApplied.map(function (id) {
+            var li = routeList.querySelector('[data-id="' + id + '"]');
+            return li ? li.getAttribute('data-spbu') : id;
+        }).join(' \u203A ');
+    }
+    function openRoute() {
+        arrangeRoute((routeApplied || routeBase.split(',')));
+        routeOpenOrder = sorter.order().join(',');
+        routeApply.disabled = true;
+        routePage.hidden = false;
+        routePage.classList.add('is-open');
+        document.dispatchEvent(new CustomEvent('amt:state'));
+    }
+    function closeRoute() {
+        routePage.hidden = true;
+        routePage.classList.remove('is-open');
+        if (routeBtn) { routeBtn.focus(); }
+        document.dispatchEvent(new CustomEvent('amt:state'));
+    }
+
+    if (routeBtn && routePage) {
+        routeBtn.addEventListener('click', openRoute);
+        routeBack.addEventListener('click', closeRoute);
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && !routePage.hidden) { closeRoute(); }
+        });
+        routeApply.addEventListener('click', function () {
+            if (routeApply.disabled) { return; }
+            var now = sorter.order();
+            routeApplied = (now.join(',') === routeBase) ? null : now;
+            routeVal.textContent = routeText();
+            routeVal.classList.toggle('is-set', !!routeApplied);
+            closeRoute();
+            refresh();
+        });
+    }
+
     form.addEventListener('submit', function (e) {
         if (form.getAttribute('data-ready') !== '1') { e.preventDefault(); return; }
-        setTimeout(function () { send.disabled = true; }, 0);   // cegah kirim ganda
+        setTimeout(function () { send.disabled = true; }, 0);
     });
 
-    // Halaman dipulihkan dari cache (tombol Kembali): sinkronkan ulang tampilan dengan isi kolom
     window.addEventListener('pageshow', function () {
         if (photoData.value && photoDone.hidden) { setPhoto(photoData.value); } else { refresh(); }
     });

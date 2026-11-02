@@ -1,15 +1,4 @@
 <?php
-/**
- * Layar "Tiba di Lokasi".
- * Tampil setelah pengguna menekan langkah "Tiba di Lokasi" pada
- * halaman Detail Order (views/shipment.php).
- *
- * Isi layar:
- *  - Info waktu tiba & SPBU keberapa dari rute mobil tangki
- *  - Kartu verifikasi Mobil Tangki, AMT 1, dan AMT 2 (data: ARRIVAL_SUBJECTS)
- *  - Tombol "Simpan" yang baru aktif setelah SEMUA pertanyaan dijawab
- */
-
 $arrivalError = $_SESSION['arrival_error'] ?? '';
 unset($_SESSION['arrival_error']);
 ?>
@@ -18,7 +7,6 @@ unset($_SESSION['arrival_error']);
 
     <div class="content-pad arrival-body">
 
-        <!-- Ringkasan waktu tiba (tanpa kartu, teks langsung di atas latar halaman) -->
         <div class="arrival-info">
             <div class="arrival-info-col">
                 <span class="label">Waktu Tiba</span>
@@ -30,9 +18,6 @@ unset($_SESSION['arrival_error']);
             </div>
         </div>
 
-        <!-- Kartu verifikasi: mobil tangki, AMT 1, AMT 2 -->
-        <!-- Dibungkus satu wadah (data-tour) supaya tutorial menyorot KETIGA
-             kartu sekaligus dan tooltip tidak menutupi tombol "Ya, sesuai". -->
         <div data-tour="verif-subjects" style="display:flex;flex-direction:column;gap:0.875rem;">
         <?php foreach (ARRIVAL_SUBJECTS as $name => $subject): ?>
             <?php $answer = $_SESSION[$name] ?? null; ?>
@@ -76,24 +61,22 @@ unset($_SESSION['arrival_error']);
 
     </div>
 
-    <!-- Tombol simpan (nonaktif sampai semua pertanyaan dijawab) -->
     <div class="sticky-footer arrival-footer">
         <button type="button" class="btn-primary" id="btnSimpan" disabled>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M5 3h11l3 3v15a0 0 0 010 0H5a0 0 0 010 0V3z"/>
-                <path stroke-linecap="round" stroke-linejoin="round" d="M8 3v6h8V3M8 21v-6h8v6"/>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
             </svg>
-            Simpan
+            Kirim
         </button>
     </div>
 
-    <!-- Pop up konfirmasi sebelum hasil verifikasi dikirim -->
-    <div class="modal-backdrop" id="konfirmasiModal" hidden>
-        <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="konfirmasiJudul">
-            <h2 id="konfirmasiJudul">Konfirmasi Kirim Hasil Verifikasi</h2>
-            <p>Apakah Anda yakin ingin mengirim hasil verifikasi MT dan AMT?</p>
-            <button type="submit" class="btn-primary" id="btnKirim">Kirim Verifikasi MT dan AMT</button>
-            <button type="button" class="btn-outline modal-close" id="btnTutup">Tutup</button>
+    <div class="modal-backdrop confirm-backdrop" id="konfirmasiModal" hidden>
+        <div class="modal-sheet confirm-sheet" role="dialog" aria-modal="true" aria-labelledby="konfirmasiJudul">
+            <h2 id="konfirmasiJudul">Kirim Checklist</h2>
+            <p class="confirm-text">Pastikan data yang diisi sudah benar. Apakah Anda yakin ingin mengirim checklist ini?</p>
+            <p class="confirm-note">Note : Data yang tersimpan tidak dapat diubah kembali setelah dikirim.</p>
+            <button type="submit" class="btn-primary confirm-btn-yes" id="btnKirim">Ya, Kirim</button>
+            <button type="button" class="btn-outline modal-close confirm-btn-no" id="btnTutup">Batal</button>
         </div>
     </div>
 </form>
@@ -104,7 +87,6 @@ unset($_SESSION['arrival_error']);
     var btn    = document.getElementById('btnSimpan');
     var groups = form.querySelectorAll('.choice-group');
 
-    /* Tandai tombol terpilih + aktifkan "Simpan" bila semua sudah dijawab */
     function refresh() {
         var answered = 0;
 
@@ -119,18 +101,14 @@ unset($_SESSION['arrival_error']);
 
             if (isAnswered) { answered++; }
 
-            // Penanda untuk tutorial: kartu yang sudah dijawab tidak disorot lagi.
             var card = group.closest('.subject-card');
             if (card) { card.classList.toggle('is-answered', isAnswered); }
         });
 
         btn.disabled = (answered !== groups.length);
 
-        // Penanda untuk tutorial: langkah "jawab ketiga kartu" selesai bila semuanya sudah dijawab.
         form.setAttribute('data-all', btn.disabled ? '0' : '1');
 
-        // Kalau tutorial sedang menunggu tombol "Simpan" ini aktif, langsung
-        // coba tampilkan sekarang juga (tidak menunggu polling 400ms).
         if (window.OneFISTour) { window.OneFISTour.rescan(); }
     }
 
@@ -138,7 +116,6 @@ unset($_SESSION['arrival_error']);
         if (e.target.type === 'radio') { refresh(); }
     });
 
-    /* ---------- Pop up konfirmasi ---------- */
     var modal = document.getElementById('konfirmasiModal');
 
     function bukaModal() {
@@ -155,7 +132,6 @@ unset($_SESSION['arrival_error']);
     });
     document.getElementById('btnTutup').addEventListener('click', tutupModal);
 
-    /* klik area gelap di luar kartu = tutup */
     modal.addEventListener('click', function (e) {
         if (e.target === modal) { tutupModal(); }
     });

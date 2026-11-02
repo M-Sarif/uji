@@ -1,17 +1,7 @@
 <?php
-/**
- * Verifikasi Order - role AMT (state + aksi GET).
- * Letak: roles/amt/includes/amt_verif_functions.php
- *
- * Semua aksi memakai GET (sama seperti toggle di lo_list), jadi penjaga POST di index.php tidak perlu diubah.
- * Hanya bisa dibuka saat timer kerja berjalan, pengiriman sedang berjalan, sudah "Tiba di Lokasi",
- * dan Checklist Pra-Pembongkaran sudah terkirim (kalau belum, diarahkan kembali ke layar SPBU).
- * Dipanggil dari index.php:  amt_verif_bootstrap($screen);
- */
 
 require_once __DIR__ . '/amt_verif_data.php';
 
-/** ID pengiriman (shipment) yang sedang diverifikasi: dari ?id=, atau yang tersimpan di session. */
 function amt_verif_ship_id()
 {
     $id = isset($_GET['id']) ? (string) $_GET['id'] : '';
@@ -27,7 +17,7 @@ function amt_verif_url($screen, array $params = [])
     $base = ['screen' => $screen];
     $id = amt_verif_ship_id();
     if ($id !== '') {
-        $base['id'] = $id;   // supaya tombol back / "Oke" kembali ke pengiriman yang sama
+        $base['id'] = $id;
     }
     return 'index.php?' . http_build_query(array_merge($base, $params));
 }
@@ -38,26 +28,40 @@ function amt_verif_redirect($screen, array $params = [])
     exit;
 }
 
-/* ---------- State ---------- */
-
 function amt_verif_state()
 {
     if (!isset($_SESSION['amt_verif']) || !is_array($_SESSION['amt_verif'])) {
         $_SESSION['amt_verif'] = [
-            'selected'      => [],  // id LO yang dicentang
-            'verified'      => [],  // id LO => true
+            'selected'      => [],
+            'verified'      => [],
             'qr_deadline'   => 0,
             'code_deadline' => 0,
-            'last'          => null // hasil verifikasi terakhir (untuk halaman berhasil)
+            'last'          => null
         ];
     }
     return $_SESSION['amt_verif'];
 }
 
-/** Mulai ulang verifikasi (mis. saat Start Work / shift baru). */
 function amt_verif_reset()
 {
     unset($_SESSION['amt_verif']);
+}
+
+function amt_verif_apply_selection($csv)
+{
+    amt_verif_state();
+    $out = [];
+    foreach (explode(',', substr((string) $csv, 0, 600)) as $id) {
+        $id = trim($id);
+        if ($id === '' || in_array($id, $out, true)) {
+            continue;
+        }
+        $lo = amt_verif_find_lo($id);
+        if (amt_verif_is_eligible($lo) && !amt_verif_is_verified($id)) {
+            $out[] = $id;
+        }
+    }
+    $_SESSION['amt_verif']['selected'] = $out;
 }
 
 function amt_verif_find_lo($id)
@@ -81,7 +85,6 @@ function amt_verif_is_verified($id)
     return !empty($s['verified'][(string) $id]);
 }
 
-/** LO yang dicentang, masih eligible, dan belum terverifikasi. */
 function amt_verif_selected()
 {
     $s = amt_verif_state();
@@ -95,7 +98,6 @@ function amt_verif_selected()
     return $out;
 }
 
-/** true kalau semua LO yang eligible sudah terverifikasi (dipakai halaman Shipment). */
 function amt_verif_is_done(?array $s = null)
 {
     $any = false;
@@ -111,7 +113,6 @@ function amt_verif_is_done(?array $s = null)
     return $any;
 }
 
-/** Sisa detik: $kind = 'qr' atau 'code'. */
 function amt_verif_remaining($kind)
 {
     $s = amt_verif_state();
@@ -132,7 +133,6 @@ function amt_verif_has_timer($kind)
     return (int) ($kind === 'qr' ? $s['qr_deadline'] : $s['code_deadline']) > 0;
 }
 
-/** Tandai LO terpilih sebagai terverifikasi, lalu ke halaman berhasil. */
 function amt_verif_complete($via)
 {
     $ids = amt_verif_selected();
@@ -150,21 +150,17 @@ function amt_verif_complete($via)
     amt_verif_redirect('amt_verifikasi_sukses');
 }
 
-/* ---------- Aksi per layar ---------- */
-
 function amt_verif_bootstrap($screen)
 {
     if (!in_array($screen, AMT_VERIF_SCREENS, true)) {
         return;
     }
     amt_verif_state();
-    // Ingat pengiriman yang sedang diverifikasi (dibawa dari ?id= layar SPBU)
     $rid = isset($_GET['id']) ? (string) $_GET['id'] : '';
     if (preg_match('/^[A-Za-z0-9-]{1,64}$/', $rid)) {
         $_SESSION['amt_verif']['ship_id'] = $rid;
     }
 
-    // Penjagaan akses
     if (!amt_work_ok()) {
         go_to(amt_home_screen());
     }
@@ -176,9 +172,16 @@ function amt_verif_bootstrap($screen)
         go_to('amt_spbu', ['id' => $ship['id']]);
     }
 
+    if (isset($_GET['sel']) && is_string($_GET['sel'])) {
+        amt_verif_apply_selection($_GET['sel']);
+    }
+    if ($screen === 'amt_verifikasi' && isset($_GET['ajax'])) {
+        http_response_code(204);
+        exit;
+    }
+
     switch ($screen) {
         case 'amt_verifikasi':
-            // Centang / lepas centang satu LO
             if (isset($_GET['toggle'])) {
                 $id = (string) $_GET['toggle'];
                 $lo = amt_verif_find_lo($id);
@@ -206,7 +209,6 @@ function amt_verif_bootstrap($screen)
                 amt_verif_start_timer('qr');
             }
             if (isset($_GET['scan'])) {
-                // SIMULASI: hasil pindai selalu dianggap benar selama belum kedaluwarsa.
                 if (amt_verif_remaining('qr') > 0) {
                     amt_verif_complete('qr');
                 }
@@ -226,7 +228,6 @@ function amt_verif_bootstrap($screen)
                 amt_verif_start_timer('code');
             }
             if (isset($_GET['kode'])) {
-                // SIMULASI: angka apa saja diterima asalkan panjangnya pas dan belum kedaluwarsa.
                 $kode = (string) $_GET['kode'];
                 if (amt_verif_remaining('code') > 0 && preg_match('/^[0-9]{' . AMT_VERIF_CODE_LENGTH . '}$/', $kode)) {
                     amt_verif_complete('kode');

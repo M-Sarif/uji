@@ -1,10 +1,4 @@
-/* ============================================================
-   OneFIS - AMT - amt-kendala.css
-   Layar Laporkan Kendala (?screen=amt_kendala). Semua kelas berawalan "kd-".
-   Kamera "Foto Bukti" memakai camera.css (kelas amtcam-*).
-   ============================================================ */
-
-.kd, .kd-modal {
+.kd, .kd-modal, .kd-page {
     --kd-ink: #0f172a;
     --kd-muted: #64748b;
     --kd-line: #dbe3f0;
@@ -20,7 +14,6 @@
 .kd-body > .kd-label:first-child { margin-top: 4px; }
 .kd-req { color: var(--kd-red); margin-left: 1px; }
 
-/* ---------- Kolom (select / durasi / textarea) ---------- */
 .kd-select, .kd-ta { position: relative; }
 .kd-select select, .kd-field, .kd-ta textarea {
     width: 100%; box-sizing: border-box; font: inherit; font-size: 14px; color: var(--kd-ink);
@@ -44,7 +37,6 @@
     outline: 0; border-color: var(--kd-blue); box-shadow: 0 0 0 3px rgba(37, 99, 235, .15);
 }
 
-/* ---------- Estimasi Kendala (radio) ---------- */
 .kd-radios { display: flex; flex-direction: column; gap: 8px; margin-bottom: 2px; }
 .kd-radio { display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .kd-radio input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
@@ -55,7 +47,6 @@
 .kd-radio input:checked + .kd-dot { border: 5px solid var(--kd-blue); }
 .kd-radio input:focus-visible + .kd-dot { box-shadow: 0 0 0 3px rgba(37, 99, 235, .25); }
 
-/* ---------- Estimasi Waktu ---------- */
 #kdTimeBlock[hidden] { display: none; }
 .kd-time {
     display: flex; align-items: center; justify-content: space-between; gap: 8px;
@@ -64,7 +55,6 @@
 .kd-time svg { flex: 0 0 auto; color: #94a3b8; }
 .kd-time__text.is-ph { color: #7b879b; }
 
-/* ---------- Foto Bukti ---------- */
 .kd-photo {
     background: #fff; border: 1px solid var(--kd-line); border-radius: 16px; overflow: hidden;
     box-shadow: 0 4px 16px rgba(15, 23, 42, .05);
@@ -85,11 +75,9 @@
     font: inherit; font-size: 12px; color: var(--kd-red); cursor: pointer;
 }
 
-/* ---------- Justifikasi ---------- */
 .kd-ta textarea { min-height: 104px; padding: 12px 34px 12px 14px; line-height: 1.45; resize: vertical; }
 .kd-ta textarea::placeholder { color: #7b879b; }
 
-/* ---------- Tombol kirim (menempel di bawah) ---------- */
 .kd-footer {
     position: sticky; bottom: 0; z-index: 5; box-sizing: border-box;
     padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
@@ -103,7 +91,6 @@
 .kd-send:disabled { background: #a9b6cc; cursor: not-allowed; }
 .kd-send:not(:disabled):active { background: #1d4ed8; }
 
-/* ---------- Pop up Estimasi Waktu (jam : menit) ---------- */
 .kd-modal {
     position: absolute; inset: 0; z-index: 900; display: flex; align-items: center; justify-content: center;
     padding: 20px; background: rgba(15, 23, 42, .5);
@@ -134,7 +121,72 @@
     display: block; width: 100%; height: 40px; box-sizing: border-box; border-radius: 10px;
     font: inherit; font-size: 13.5px; font-weight: 700; cursor: pointer;
 }
-.kd-apply { border: 0; background: #1f6feb; color: #fff; }                      /* sudah diatur: biru */
+.kd-apply { border: 0; background: #1f6feb; color: #fff; }
 .kd-apply:not(:disabled):active { background: #1859c4; }
-.kd-apply:disabled { background: #cfd9ea; color: #fff; cursor: not-allowed; }     /* belum diatur (00 : 00): abu-biru */
+.kd-apply:disabled { background: #cfd9ea; color: #fff; cursor: not-allowed; }
 .kd-cancel { margin-top: 8px; border: 1px solid #dbe3f0; background: #fff; color: #0f172a; font-weight: 600; }
+
+#kdRouteBlock[hidden] { display: none; }
+.kd-routebtn {
+    display: flex; align-items: center; gap: 10px; width: 100%; height: 46px; padding: 0 14px;
+    box-sizing: border-box; font: inherit; font-size: 13px; text-align: left; cursor: pointer;
+    background: #fff; border: 1px solid var(--kd-line); border-radius: 12px; -webkit-tap-highlight-color: transparent;
+}
+.kd-routebtn:focus-visible { outline: 0; border-color: var(--kd-blue); box-shadow: 0 0 0 3px rgba(37, 99, 235, .15); }
+.kd-routebtn:active { background: #f1f5ff; }
+.kd-routebtn__act { flex: 0 0 auto; font-weight: 500; color: var(--kd-blue); }
+.kd-routebtn__val { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #7b879b; }
+.kd-routebtn__val.is-set { color: var(--kd-ink); font-weight: 600; }
+
+.kd-page {
+    position: absolute; inset: 0; z-index: 850; display: flex; flex-direction: column; box-sizing: border-box;
+    color: var(--kd-ink);
+    background:
+        radial-gradient(135% 26% at 85% 0%, #d7e5fb 0%, rgba(215, 229, 251, 0) 100%),
+        radial-gradient(125% 14% at 15% 100%, #fbdde8 0%, rgba(251, 221, 232, 0) 100%),
+        #f8fafc;
+}
+.kd-page.is-fixed { position: fixed; }
+.kd-page[hidden] { display: none; }
+.kd-page > .app-header-simple { flex: none; }
+.kd-page__body { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 14px 16px 20px; -webkit-overflow-scrolling: touch; }
+.kd-page__foot {
+    flex: none; box-sizing: border-box; padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+    background: rgba(255, 255, 255, .92); border-top: 1px solid #f1f5f9;
+}
+.kd-page__sub { margin: 18px 0 10px 2px; font-size: 13px; font-weight: 700; }
+
+.kd-info {
+    display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; color: #2f56b5;
+    background: #eaf1ff; border: 1px solid #cddcfb; border-radius: 12px;
+}
+.kd-info svg { flex: 0 0 auto; margin-top: 1px; }
+.kd-info p { margin: 0; font-size: 12px; line-height: 1.5; }
+
+.kd-stops { list-style: none; margin: 0; padding: 0; position: relative; display: flex; flex-direction: column; gap: 10px; }
+.kd-stop {
+    position: relative; box-sizing: border-box; padding: 12px 44px 12px 14px; cursor: grab;
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; box-shadow: 0 4px 14px rgba(15, 23, 42, .06);
+    touch-action: none; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent;
+}
+.kd-stop:focus-visible { outline: 0; border-color: var(--kd-blue); box-shadow: 0 0 0 3px rgba(37, 99, 235, .2); }
+.kd-stop.is-drag {
+    z-index: 3; cursor: grabbing; border-color: #93b4f6; box-shadow: 0 14px 30px rgba(15, 23, 42, .22);
+}
+.kd-stop__no {
+    display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; margin-bottom: 8px;
+    border-radius: 50%; background: var(--kd-blue); color: #fff; font-size: 11px; font-weight: 700;
+}
+.kd-stop__row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.kd-stop__name { font-size: 12.5px; font-weight: 800; }
+.kd-stop__km { flex: none; font-size: 11px; color: var(--kd-muted); }
+.kd-stop__tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.kd-stop__tag {
+    padding: 2px 9px; font-size: 10px; font-weight: 700; color: var(--kd-ink);
+    background: #fff; border: 1px solid #cbd5e1; border-radius: 999px;
+}
+.kd-stop__grip { position: absolute; right: 14px; top: 50%; margin-top: -9px; color: #64748b; pointer-events: none; }
+
+@media (prefers-reduced-motion: reduce) {
+    .kd-stop { transition: none !important; }
+}

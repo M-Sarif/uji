@@ -1,34 +1,23 @@
 <?php
-/**
- * SPBU - data domain statis: LO, segel, metode pengukuran, checklist,
- * kategori rating, objek verifikasi "Tiba di Lokasi", dan langkah aktifitas di SPBU.
- *
- * Hasil konversi dari data.ts & types.ts: semua konten yang dulu hardcoded di
- * JSX sekarang berupa array PHP yang dipakai ulang oleh view SPBU.
- *
- * Letak: roles/spbu/includes/data.php
- */
-
 const LO_LIST = [
     '8144122089' => ['order' => 'PERTALITE 5.000 L', 'produk' => 'PERTALITE', 'qty' => '5.000 L'],
     '8144122090' => ['order' => 'PERTALITE 5.000 L', 'produk' => 'PERTALITE', 'qty' => '5.000 L'],
 ];
 
-// Daftar nomor segel yang bisa dipilih/dikonfirmasi di langkah 6 (form_spp).
 const SEGEL_LIST = ['N-0452553', 'N-0452554', 'N-0452555', 'N-0452563'];
 
-// Metode pengukuran pembongkaran BBM untuk langkah 7 (form_ukur / Ajukan
-// Claim Loss), masing-masing dengan field form yang berbeda.
+const DEFAULT_MEASUREMENT_METHOD = 'flowmeter';
+
 const MEASUREMENT_METHODS = [
     'ijkbout' => [
         'title' => 'IJKBOUT',
         'desc'  => 'Serah terima custody transfer pada mobil tangki, diukur dengan dipstick.',
         'fields' => [
-            ['key' => 'kompartemen',           'label' => 'Kompartemen',            'unit' => null],
-            ['key' => 'level_spp',              'label' => 'Level BBM di SPP',        'unit' => 'mm', 'hint' => 'Jika depot tidak menginformasikan level minyak sebelum pengiriman, maka level minyak akan diisi sesuai dengan level saat penerimaan.'],
-            ['key' => 'level_sebelum_bongkar',  'label' => 'Level BBM Sebelum Bongkar', 'unit' => 'mm'],
-            ['key' => 'temperatur_obs',         'label' => 'Temperatur Obs',          'unit' => '°C'],
-            ['key' => 'density_obs',            'label' => 'Density Obs',             'unit' => 'kg/m³', 'placeholder' => '0.000'],
+            ['key' => 'kompartemen', 'label' => 'Kompartemen', 'type' => 'select', 'placeholder' => 'Pilih kompartemen'],
+            ['key' => 'level_spp', 'label' => 'T2 Tera MT', 'type' => 'tera', 'unit' => 'mm'],
+            ['key' => 'level_sebelum_bongkar', 'label' => 'Level BBM Sebelum Bongkar', 'unit' => 'mm', 'placeholder' => 'Level T2 BBM dalam mm', 'hint' => 'isi level T2 BBM sebelum dibongkar (tinggi BBM hasil ukur dipstick) dalam mm, bukan jumlah pemesanan / Qty LO (8.000 L).', 'hint_class' => 'warn'],
+            ['key' => 'temperatur_obs', 'label' => 'Temperatur Obs', 'unit' => '°C'],
+            ['key' => 'density_obs', 'label' => 'Density Obs', 'unit' => 'kg/m³', 'placeholder' => '0.000'],
         ],
     ],
     'flowmeter' => [
@@ -42,27 +31,25 @@ const MEASUREMENT_METHODS = [
     ],
 ];
 
-// Rasio konversi tera (Liter per mm selisih level BBM) tiap kompartemen mobil
-// tangki, dipakai untuk mengonversi selisih level dipstick (mm) menjadi
-// volume (liter) pada metode pengukuran IJKBOUT.
-//
-// DIKALIBRASI dengan hasil sistem asli: Kompartemen 1, Level BBM di SPP 1212 mm,
-// Level BBM Sebelum Bongkar 1200 mm  =>  22.285714285714285 Liter
-// (selisih 12 mm x 13/7 L/mm). Isi tabel ini dengan nilai tera resmi per
-// kompartemen begitu rumus "Rumus Hitung" sistem asli tersedia.
+const COMPARTMENT_DISPATCH = 1;
+
+const COMPARTMENT_TERA_T2 = [
+    1 => 1637,
+    2 => 1642,
+    3 => 1651,
+    4 => 1629,
+];
+
 const COMPARTMENT_TERA_RATE = [
-    'default' => 13 / 7, // L / mm, dipakai kalau nomor kompartemen tidak dikenali
+    'default' => 13 / 7,
     1 => 13 / 7,
     2 => 13 / 7,
     3 => 13 / 7,
+    4 => 13 / 7,
 ];
 
-// Jumlah segmen pada bar progres (sama dengan sistem asli: nn/15). Soal-soal
-// checklist ada 14; segmen ke-15 adalah layar "Konfirmasi LO" yang berdiri
-// sendiri (bukan soal) -- lihat views/konfirmasi_lo.php.
 const CHECKLIST_PROGRESS_TOTAL = 14;
 
-// 14 soal checklist pra-pembongkaran
 const CHECKLIST_STEPS = [
     1  => ['text' => 'Pastikan tersedianya volume ruang kosong dalam tangki.', 'type' => 'self_action_photo'],
     2  => ['text' => 'Tempatkan mobil tangki pada posisi pembongkaran yang benar.', 'type' => 'action'],
@@ -80,7 +67,6 @@ const CHECKLIST_STEPS = [
     14 => ['text' => 'Selesaikan proses administrasi dan dokumen wajib ditandatangani bersama.', 'type' => 'dual_verif'],
 ];
 
-// Kategori penilaian AMT
 const RATING_CATEGORIES = [
     'safety'      => ['title' => 'Safety AMT',     'desc' => 'Apakah AMT menggunakan seragam dan APD dengan benar?'],
     'sarfas'      => ['title' => 'Sarfas',         'desc' => 'Apakah mobil tangki safety untuk proses pembongkaran?'],
@@ -89,16 +75,9 @@ const RATING_CATEGORIES = [
     'layanan'     => ['title' => 'Aspek Layanan',  'desc' => 'Ketepatan volume BBM'],
 ];
 
-/* --------------------------------------------------------------
- * Data layar "Tiba di Lokasi" (verifikasi saat MT sampai di SPBU)
- * -------------------------------------------------------------- */
-
-// SPBU keberapa dari total rute pengiriman mobil tangki hari ini
 const ARRIVAL_SPBU_KE    = 1;
 const ARRIVAL_SPBU_TOTAL = 3;
 
-// Objek yang harus diverifikasi (1 mobil tangki + 2 awak mobil tangki).
-// Key array = nama input radio sekaligus key session penyimpan jawaban.
 const ARRIVAL_SUBJECTS = [
     'mt_ok' => [
         'photo'    => SPBU_URL . '/img/ilustrasi/empty-delivery-truck.png',
@@ -126,8 +105,28 @@ const ARRIVAL_SUBJECTS = [
     ],
 ];
 
-// Langkah aktifitas di SPBU (timeline pada layar Detail Order / shipment).
-// Urutan array = urutan langkah; 'href' = layar yang dibuka saat diklik.
+const ACTIVE_SHIPMENT_INFO = [
+    'depot'    => 'Depot Pulang Pisau',
+    'spbu'     => '65748002',
+    'eta'      => '24/09/2026 10:48 AM',
+    'products' => ['PERTALITE 6000 L', 'PERTAMAX, BULK 2000 L'],
+];
+
+const ACTIVE_SHIPMENT_STAGES = [
+    ['key' => 'order', 'label' => 'Order Dibuat'],
+    ['key' => 'depot', 'label' => 'BBM Disiapkan di Depot'],
+    ['key' => 'kirim', 'label' => 'Order Sedang Dikirim'],
+    ['key' => 'tiba',  'label' => 'Tiba di SPBU'],
+];
+
+const ACTIVE_SHIPMENT_CURRENT_STAGE = 3;
+
+const ACTIVE_SHIPMENT_LOG = [
+    ['stage' => 3, 'date' => 'Jumat, 25 Sep 2026', 'time' => '14.39 WIB', 'text' => 'BBM sedang dalam perjalanan ke SPBU Anda (65748002)'],
+    ['stage' => 2, 'date' => 'Jumat, 25 Sep 2026', 'time' => '14.15 WIB', 'text' => 'Pengisian tangki MT dilakukan di Depot Pulang Pisau'],
+    ['stage' => 1, 'date' => 'Jumat, 25 Sep 2026', 'time' => '14.10 WIB', 'text' => 'Berkas pembelian sedang diproses'],
+];
+
 const ACTIVITY_STEPS = [
     'arrive' => [
         'label' => 'Tiba di Lokasi',
@@ -151,8 +150,6 @@ const ACTIVITY_STEPS = [
     ],
 ];
 
-// Informasi Pengiriman pada Detail Order (tab Aktifitas). Nopol MT dan nama AMT
-// diambil dari ARRIVAL_SUBJECTS supaya sama dengan layar "Tiba di Lokasi".
 const SHIPMENT_INFO = [
     'shipment_no' => 'ONEFIS-1791351941655-ZQUFT1',
     'spbu_no'     => '2438203',

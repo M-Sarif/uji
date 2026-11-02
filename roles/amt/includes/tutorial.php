@@ -835,24 +835,16 @@ function amt_tour_verif_steps(string $screen): array
         $more = !amt_verif_is_done($ship);
         return ['journey' => 'verifikasi', 'subKey' => 'amt_verif_sukses', 'steps' => [
             [
-                'no'       => 4,
-                'label'    => 'Order Terverifikasi',
-                'target'   => '.vok-card',
-                'title'    => 'Verifikasi berhasil ✅',
-                'text'     => 'Nomor LO pada kartu ini sudah terverifikasi.'
-                    . ($more ? ' Masih ada LO yang belum diverifikasi: setelah “Oke”, ulangi langkah yang sama untuk LO tersebut.' : ''),
-                'button'   => 'Mengerti',
-                'remember' => true,
-                'done'     => null,
-            ],
-            [
-                'no'     => null,
-                'label'  => 'Order Terverifikasi',
-                'target' => '.vok-btn',
-                'title'  => 'Ketuk “Oke”',
-                'text'   => 'Ketuk “Oke” untuk kembali ke Aktifitas di SPBU.',
-                'hint'   => '👆 Ketuk tombol biru “Oke”',
-                'done'   => null,
+                'no'        => 4,
+                'label'     => 'Order Terverifikasi',
+                'target'    => '.vok-btn',
+                'highlight' => '.vok',
+                'title'     => 'Verifikasi berhasil ✅',
+                'text'      => 'Nomor LO pada kartu ini sudah terverifikasi.'
+                    . ($more ? ' Masih ada LO yang belum diverifikasi: setelah “Oke”, ulangi langkah yang sama untuk LO tersebut.' : '')
+                    . ' Ketuk “Oke” untuk kembali ke Aktifitas di SPBU.',
+                'hint'      => '👆 Ketuk tombol biru “Oke”',
+                'done'      => null,
             ],
         ]];
     }

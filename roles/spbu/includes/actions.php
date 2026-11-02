@@ -1,13 +1,4 @@
 <?php
-/**
- * SPBU - pemrosesan aksi: form POST (pola Post/Redirect/Get) dan aksi
- * sederhana lewat GET (toggle state tanpa form).
- * Dipanggil oleh index.php lewat hook spbu_handle_post() / spbu_handle_get().
- *
- * Letak: roles/spbu/includes/actions.php
- */
-
-// Aksi POST milik SPBU (nama field hidden "action" pada form)
 const SPBU_POST_ACTIONS = [
     'save_order_info',
     'apply_product',
@@ -28,10 +19,6 @@ const SPBU_POST_ACTIONS = [
     'reset_flow',
 ];
 
-/**
- * Proses form (POST) - setiap layar yang punya form menangani aksinya sendiri
- * di sini, lalu redirect (pola Post/Redirect/Get).
- */
 function spbu_handle_post(string $action): void
 {
     switch ($action) {
@@ -52,7 +39,7 @@ function spbu_handle_post(string $action): void
             break;
 
         case 'kirim_verifikasi':
-            // Simpan jawaban verifikasi Mobil Tangki, AMT 1, dan AMT 2
+
             $belumDijawab = [];
             foreach (ARRIVAL_SUBJECTS as $key => $subject) {
                 $jawaban = $_POST[$key] ?? null;
@@ -68,13 +55,12 @@ function spbu_handle_post(string $action): void
                 go_to('verification');
             }
             unset($_SESSION['arrival_error']);
-            set_activity_done(1); // langkah "Tiba di Lokasi" selesai
-            go_to('shipment');    // kembali ke halaman aktifitas SPBU
+            set_activity_done(1);
+            go_to('shipment');
             break;
 
         case 'save_rating_step':
-            // Langkah 1: penilaian AMT 1. Tombol "Selanjutnya" -> disimpan
-            // ke session lalu lanjut ke langkah 2 (AMT 2).
+
             $subjectKey = 'amt_ok';
             $subject = ARRIVAL_SUBJECTS[$subjectKey];
             $errors = [];
@@ -101,9 +87,7 @@ function spbu_handle_post(string $action): void
             break;
 
         case 'submit_rating':
-            // Langkah 2: penilaian AMT 2 + tombol "Kirim". AMT 1 seharusnya
-            // sudah lengkap lewat langkah 1, tapi tetap divalidasi ulang
-            // untuk jaga-jaga (mis. sesi lama / navigasi langsung ke step 2).
+
             $subjectKey2 = 'amt2_ok';
             $subject2 = ARRIVAL_SUBJECTS[$subjectKey2];
             $errors2 = [];
@@ -142,14 +126,13 @@ function spbu_handle_post(string $action): void
             }
 
             unset($_SESSION['rating_error']);
-            // Penilaian selesai -> semua aktifitas di SPBU tuntas, lalu kembali
-            // ke Detail Order (tombol "Selesai" di sana yang menuju layar done).
+
             set_activity_done(4);
             go_to('shipment');
             break;
 
         case 'save_spp_produk':
-            // Hasil verifikasi kartu Produk pada langkah 6 checklist
+
             $loId = (string) ($_POST['lo'] ?? '');
             if (array_key_exists($loId, LO_LIST)) {
                 $_SESSION['spp_produk'][$loId] = [
@@ -160,7 +143,7 @@ function spbu_handle_post(string $action): void
             break;
 
         case 'save_spp_segel':
-            // Hasil verifikasi kartu Segel pada langkah 6 checklist
+
             $noSegel = (string) ($_POST['segel'] ?? '');
             if (in_array($noSegel, SEGEL_LIST, true)) {
                 $_SESSION['spp_segel'][$noSegel] = [
@@ -172,20 +155,25 @@ function spbu_handle_post(string $action): void
             break;
 
         case 'generate_claim_loss':
-            // Tombol "Generate": hitung selisih kurang claim loss dari
-            // isian form, simpan sebagai DRAFT (belum final), lalu balik
-            // ke layar claim_loss dengan flag "hasil=1" supaya pop up
-            // "Hasil Generate Claim Losses" langsung tampil.
+
             $loId = (string) ($_POST['lo'] ?? '');
             $metode = array_key_exists($_POST['metode'] ?? '', MEASUREMENT_METHODS)
                 ? (string) $_POST['metode']
-                : 'ijkbout';
+                : DEFAULT_MEASUREMENT_METHOD;
 
             if (array_key_exists($loId, LO_LIST)) {
                 $nilai = [];
                 foreach (MEASUREMENT_METHODS[$metode]['fields'] as $field) {
                     $raw = str_replace(',', '.', (string) ($_POST[$field['key']] ?? ''));
                     $nilai[$field['key']] = (float) preg_replace('/[^0-9.\-]/', '', $raw);
+                }
+                if ($metode === 'ijkbout') {
+                    $komp = (int) $nilai['kompartemen'];
+                    if (!isset(COMPARTMENT_TERA_T2[$komp])) {
+                        go_to('claim_loss', ['lo' => $loId, 'metode' => $metode]);
+                    }
+                    $nilai['kompartemen'] = (float) $komp;
+                    $nilai['level_spp']   = (float) COMPARTMENT_TERA_T2[$komp];
                 }
                 $_SESSION['lo_form_draft'][$loId] = [
                     'metode'     => $metode,
@@ -197,25 +185,18 @@ function spbu_handle_post(string $action): void
             break;
 
         case 'save_claim_loss':
-            // Tombol pada pop up "Hasil Generate Claim Losses" (Simpan /
-            // Ajukan Claim Losses / Simpan Tanpa Klaim): jadikan draft
-            // hasil "Generate" final, lalu kembali ke langkah 7 checklist
-            // dengan status "Sudah Terisi".
+
             $loId = (string) ($_POST['lo'] ?? '');
             $metode = array_key_exists($_POST['metode'] ?? '', MEASUREMENT_METHODS)
                 ? (string) $_POST['metode']
-                : 'ijkbout';
-            // 'ajukan' = tombol "Ajukan Claim Losses"
-            // 'tanpa'  = tombol "Simpan Tanpa Klaim"
-            // ''       = tombol "Simpan" (dipakai saat tidak ada selisih)
+                : DEFAULT_MEASUREMENT_METHOD;
+
             $klaim = (string) ($_POST['klaim'] ?? '');
 
             $draft = $_SESSION['lo_form_draft'][$loId] ?? null;
             $saved = false;
             if (array_key_exists($loId, LO_LIST) && $draft !== null && $draft['metode'] === $metode) {
-                // 'diajukan' baru menjadi true setelah "Kirim Klaim" di halaman
-                // Upload Dokumen Klaim (aksi kirim_klaim). Sampai saat itu LO ini
-                // berstatus "menunggu diajukan" (diajukan = false).
+
                 $_SESSION['lo_form'][$loId] = [
                     'metode'     => $draft['metode'],
                     'nilai'      => $draft['nilai'],
@@ -225,8 +206,7 @@ function spbu_handle_post(string $action): void
                 unset($_SESSION['lo_form_draft'][$loId]);
                 $saved = true;
             }
-            // "Ajukan Klaim" (dan ada selisih yang bisa diklaim) -> pindah ke
-            // halaman Upload Dokumen Klaim. Pilihan lain kembali ke langkah 7.
+
             if ($saved && $klaim === 'ajukan' && (float) $_SESSION['lo_form'][$loId]['claim_loss'] > 0) {
                 spbu_claim_start([$loId]);
                 go_to('claim_upload');
@@ -235,11 +215,7 @@ function spbu_handle_post(string $action): void
             break;
 
         case 'ajukan_claim_bulk':
-            // Tombol "Ajukan Claim Losses" di bawah Daftar LO (langkah 7):
-            // setelah konfirmasi "Ya, Ajukan", pindah ke halaman Upload Dokumen
-            // Klaim untuk SEMUA LO yang dipilih (yang punya selisih & belum
-            // diajukan). Status "diajukan" baru diset saat "Kirim Klaim"
-            // (aksi kirim_klaim) -- lihat $pendingClaimLoIds di views/checklist.php.
+
             $loIdsToClaim = [];
             foreach ((array) ($_POST['lo_ids'] ?? []) as $idToClaim) {
                 $idToClaim = (string) $idToClaim;
@@ -256,9 +232,7 @@ function spbu_handle_post(string $action): void
             break;
 
         case 'upload_dipstick':
-            // Halaman Upload Dokumen Klaim: Sertifikat Dipstick (PDF/JPG/PNG).
-            // Dikirim otomatis begitu file dipilih; file disimpan di server
-            // (uploads/claim) supaya tidak hilang saat pindah ke layar Scan QR.
+
             if (empty(spbu_claim_lo_ids())) {
                 go_to('checklist', ['step' => 7]);
             }
@@ -278,8 +252,7 @@ function spbu_handle_post(string $action): void
             break;
 
         case 'save_qr_amt':
-            // Layar Scan QR AMT: isi QR Code hasil scan (kamera / gambar dari
-            // galeri) dikirim oleh claim-scan.js, divalidasi di sini.
+
             if (empty(spbu_claim_lo_ids())) {
                 go_to('checklist', ['step' => 7]);
             }
@@ -294,9 +267,7 @@ function spbu_handle_post(string $action): void
             break;
 
         case 'kirim_klaim':
-            // Tombol "Kirim Klaim": hanya berhasil bila Sertifikat Dipstick
-            // DAN QR Code AMT sudah terisi. Semua LO yang diajukan ditandai
-            // "diajukan", lalu kembali ke Daftar LO (langkah 7).
+
             $loIdsKlaim = spbu_claim_lo_ids();
             if (empty($loIdsKlaim)) {
                 go_to('checklist', ['step' => 7]);
@@ -316,7 +287,7 @@ function spbu_handle_post(string $action): void
                     ];
                 }
             }
-            // File sudah resmi terkirim -> jangan ikut terhapus oleh reset state
+
             $_SESSION['claim_docs']   = ['dipstick' => null, 'qr' => null];
             $_SESSION['claim_submit'] = ['lo_ids' => []];
             unset($_SESSION['claim_error'], $_SESSION['claim_scan_error']);
@@ -328,21 +299,17 @@ function spbu_handle_post(string $action): void
             break;
 
         case 'kirim_checklist':
-            // Tombol "Kirim" di Daftar LO, dikonfirmasi lewat pop up
-            // "Ya, Kirim". Hanya LO yang dicentang DAN wizard-nya sudah
-            // dituntaskan ("Draft") yang benar-benar dikunci jadi "Sudah
-            // Diisi" -- LO yang belum sempat diisi sama sekali diabaikan.
+
             foreach ($_SESSION['lo_checked'] as $id => $isChecked) {
                 if ($isChecked && !empty($_SESSION['lo_draft'][$id])) {
                     $_SESSION['lo_done'][$id] = true;
                     unset($_SESSION['lo_draft'][$id]);
                 }
             }
-            set_activity_done(2); // checklist pra-pembongkaran selesai
-            // Notifikasi sukses ditampilkan sekali di halaman tujuan
-            // (Detail Order) via flash message, lalu otomatis hilang sendiri.
+            set_activity_done(2);
+
             $_SESSION['flash_success'] = 'Checklist berhasil dikirim.';
-            go_to('shipment'); // kembali ke halaman Detail Order
+            go_to('shipment');
             break;
 
         case 'reset_flow':
@@ -352,10 +319,6 @@ function spbu_handle_post(string $action): void
     }
 }
 
-/**
- * Aksi sederhana lewat GET (toggle state tanpa perlu form) + progres aktifitas
- * yang naik saat pengguna mencapai layar tertentu.
- */
 function spbu_handle_get(string $screen): void
 {
     if ($screen === 'create_order_product' && isset($_GET['added'])) {
@@ -363,9 +326,7 @@ function spbu_handle_get(string $screen): void
     }
 
     if ($screen === 'lo_list' && isset($_GET['toggle'])) {
-        // Centang/hilangkan centang SATU LO saja -- ini cuma menandai LO
-        // tersebut ikut dikerjakan di wizard checklist, belum berarti
-        // checklist-nya sudah selesai diisi.
+
         $id = (string) $_GET['toggle'];
         if (array_key_exists($id, LO_LIST)) {
             $_SESSION['lo_checked'][$id] = empty($_SESSION['lo_checked'][$id]);
@@ -373,8 +334,7 @@ function spbu_handle_get(string $screen): void
     }
 
     if ($screen === 'lo_list' && isset($_GET['toggle_all'])) {
-        // "Pilih Semua": kalau semua LO sudah tercentang -> lepas semua,
-        // kalau belum -> centang semua.
+
         $checkedCount = count(array_filter($_SESSION['lo_checked']));
         $allChecked = $checkedCount === count(LO_LIST);
         foreach (array_keys(LO_LIST) as $id) {
@@ -383,37 +343,33 @@ function spbu_handle_get(string $screen): void
     }
 
     if ($screen === 'lo_list' && isset($_GET['selesai'])) {
-        // Wizard checklist dituntaskan sampai langkah terakhir (layar "Konfirmasi
-        // LO") -- LO yang sedang dikerjakan ditandai "Draft" di
-        // Daftar LO. Belum "Sudah Diisi": itu baru terjadi setelah pengguna
-        // menekan tombol "Kirim" & konfirmasi "Ya, Kirim".
+
         foreach ($_SESSION['lo_checked'] as $id => $isChecked) {
             if ($isChecked) {
                 $_SESSION['lo_draft'][$id] = true;
             }
         }
-        // Notifikasi sekali-tampil setelah tombol "Konfirmasi LO" ditekan.
+
         $_SESSION['flash_success'] = [
             'title' => 'LO Dikonfirmasi',
             'body'  => 'Status bongkar berhasil disimpan.',
         ];
     }
 
-    // Progres aktifitas di SPBU ikut naik saat pengguna mencapai layar berikutnya
     if ($screen === 'rating') {
-        set_activity_done(3); // verifikasi order selesai
-        // Penilaian dibagi 2 langkah: 1 = AMT 1, 2 = AMT 2 + kirim.
+        set_activity_done(3);
+
         $step = isset($_GET['step']) ? (int) $_GET['step'] : ($_SESSION['rating_step'] ?? 1);
         $step = max(1, min(2, $step));
         $_SESSION['rating_step'] = $step;
     }
 
     if ($screen === 'done') {
-        set_activity_done(4); // rating AMT selesai
+        set_activity_done(4);
     }
 
     if ($screen === 'verification' && empty($_SESSION['arrival_time'])) {
-        // Waktu tiba dicatat saat pertama kali layar "Tiba di Lokasi" dibuka
+
         $_SESSION['arrival_time'] = date('d/m/Y H:i:s');
     }
 
@@ -422,12 +378,10 @@ function spbu_handle_get(string $screen): void
         $step = max(1, min(count(CHECKLIST_STEPS), $step));
         $_SESSION['checklist_step'] = $step;
 
-        // Jawaban "Tidak Dilakukan" / "Ya, dilakukan" pada langkah checklist
         if (isset($_GET['jawab']) && in_array($_GET['jawab'], ['ya', 'tidak'], true)) {
             $_SESSION['checklist_answers'][$step] = $_GET['jawab'];
         }
 
-        // Jawaban verifikasi Tugas Role Lawan (langkah bertipe 'dual_verif': 11, 13, 14)
         if (isset($_GET['jawab_lawan']) && in_array($_GET['jawab_lawan'], ['ya', 'tidak'], true)
             && (CHECKLIST_STEPS[$step]['type'] ?? '') === 'dual_verif'
         ) {
@@ -436,9 +390,8 @@ function spbu_handle_get(string $screen): void
 
     }
 
-    // Layar Konfirmasi LO (di luar soal checklist): status akhir tiap LO
     if ($screen === 'konfirmasi_lo') {
-        // Header "back" & tombol "Sebelumnya" kembali ke soal terakhir.
+
         $_SESSION['checklist_step'] = count(CHECKLIST_STEPS);
 
         if (isset($_GET['lo'], $_GET['status'])
