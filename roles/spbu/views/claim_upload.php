@@ -1,25 +1,12 @@
 <?php
-/**
- * SPBU - layar "Ajukan Claim Loss" -> Upload Dokumen Klaim.
- *
- * Dibuka setelah pengguna menekan "Ajukan Klaim" (pop up Hasil Generate Claim Loss)
- * atau "Ajukan Claim Losses" (di bawah Daftar LO, langkah 7). Dua dokumen wajib:
- *   1. Sertifikat Dipstick  -> diupload (PDF / JPG / PNG, maks. 5 MB)
- *   2. QR Code AMT          -> di-scan lewat layar "Scan QR AMT" (claim_scan_qr)
- * Tombol "Kirim Klaim" baru aktif setelah keduanya terisi (aksi: kirim_klaim).
- *
- * Letak: roles/spbu/views/claim_upload.php
- */
 $docs      = spbu_claim_docs();
 $dipstick  = $docs['dipstick'];
 $qr        = $docs['qr'];
 $ready     = spbu_claim_ready();
 
-// Pesan error sekali-tampil (hasil aksi upload / kirim sebelumnya)
 $claimError = (string) ($_SESSION['claim_error'] ?? '');
 unset($_SESSION['claim_error']);
 
-/** Ukuran file yang mudah dibaca, mis. 1,2 MB */
 $fmtSize = static function (int $bytes): string {
     if ($bytes >= 1048576) { return number_format($bytes / 1048576, 1, ',', '.') . ' MB'; }
     return max(1, (int) round($bytes / 1024)) . ' KB';
@@ -34,7 +21,6 @@ $fmtSize = static function (int $bytes): string {
         <div class="cu-alert" role="alert"><?php echo h($claimError); ?></div>
         <?php endif; ?>
 
-        <!-- 1. Sertifikat Dipstick (upload file) -->
         <div class="cu-field">
             <span class="cu-label" id="lblDipstick">Sertifikat Dipstick <span class="req">*</span></span>
             <form method="post" action="index.php" enctype="multipart/form-data" id="uploadForm">
@@ -63,10 +49,9 @@ $fmtSize = static function (int $bytes): string {
             <?php if ($dipstick): ?>
             <form method="post" action="index.php" id="hapusForm"><input type="hidden" name="action" value="hapus_dipstick"></form>
             <?php endif; ?>
-            <p class="cu-hint" id="dipstickHint">Format PDF, JPG, atau PNG &bull; maksimal 5 MB.</p>
+            <p class="cu-hint" id="dipstickHint" hidden></p>
         </div>
 
-        <!-- 2. QR Code AMT (scan lewat kamera) -->
         <div class="cu-field">
             <span class="cu-label" id="lblQr">QR Code AMT <span class="req">*</span></span>
             <div class="cu-row<?php echo $qr ? ' is-filled' : ''; ?>" data-tour="cu-qr" aria-labelledby="lblQr">
@@ -89,7 +74,6 @@ $fmtSize = static function (int $bytes): string {
     </div>
 </div>
 
-<!-- Tombol "Kirim Klaim": nonaktif sampai Sertifikat Dipstick DAN QR Code AMT terisi -->
 <form method="post" action="index.php" class="cu-footer" id="kirimKlaimForm">
     <input type="hidden" name="action" value="kirim_klaim">
     <div class="wizard-nav cu-nav">
@@ -104,14 +88,13 @@ $fmtSize = static function (int $bytes): string {
     var hint  = document.getElementById('dipstickHint');
     if (!input || !form) { return; }
 
-    /* Dokumen langsung diupload begitu dipilih (disimpan di server, jadi tidak
-       hilang saat pindah ke layar Scan QR AMT). Cek ukuran dulu di browser. */
     input.addEventListener('change', function () {
         var f = input.files && input.files[0];
         if (!f) { return; }
         var max = parseInt(input.getAttribute('data-max') || '0', 10);
         if (max && f.size > max) {
             hint.textContent = 'Ukuran dokumen terlalu besar (maksimal 5 MB).';
+            hint.hidden = false;
             hint.classList.add('is-error');
             input.value = '';
             return;

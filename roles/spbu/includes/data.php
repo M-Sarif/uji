@@ -15,7 +15,7 @@ const MEASUREMENT_METHODS = [
         'fields' => [
             ['key' => 'kompartemen', 'label' => 'Kompartemen', 'type' => 'select', 'placeholder' => 'Pilih kompartemen'],
             ['key' => 'level_spp', 'label' => 'T2 Tera MT', 'type' => 'tera', 'unit' => 'mm'],
-            ['key' => 'level_sebelum_bongkar', 'label' => 'Level BBM Sebelum Bongkar', 'unit' => 'mm', 'placeholder' => 'Level T2 BBM dalam mm', 'hint' => 'isi level T2 BBM sebelum dibongkar (tinggi BBM hasil ukur dipstick) dalam mm, bukan jumlah pemesanan / Qty LO (8.000 L).', 'hint_class' => 'warn'],
+            ['key' => 'level_sebelum_bongkar', 'label' => 'Level BBM Sebelum Bongkar', 'unit' => 'mm', 'placeholder' => 'Level T2 BBM dalam mm', 'hint' => 'Isi level T2 BBM sebelum dibongkar (tinggi BBM hasil ukur dipstick) dalam mm, bukan jumlah pemesanan / Qty LO (8.000 L).', 'hint_class' => 'warn'],
             ['key' => 'temperatur_obs', 'label' => 'Temperatur Obs', 'unit' => '°C'],
             ['key' => 'density_obs', 'label' => 'Density Obs', 'unit' => 'kg/m³', 'placeholder' => '0.000'],
         ],
@@ -59,7 +59,7 @@ const CHECKLIST_STEPS = [
     6  => ['text' => 'Periksa kesesuaian SPP yaitu produk, nomor segel (periksa keutuhan segel bawah dan atas) nopol Mobil Tangki, dan nama AMT.', 'type' => 'form_spp'],
     7  => ['text' => 'Persiapkan alat ukur, buka tutup manhole atas mobil tangki BBM, periksa jenis dan volume BBM dari IJK bout-nya, dan pastikan sertifikat tera sesuai dengan ijk bout aktual di mobil tangki dan ditutup kembali.', 'type' => 'form_ukur'],
     8  => ['text' => 'Pemeriksaan Sampel BBM & View Test Reports', 'type' => 'test_report'],
-    9  => ['text' => 'Pasang selang bongkar pada inlet pipa tangki (filling point), pastikan kesesuaian tangki penerima dengan produk yang akan dibongkar, kemudian pada outlet mobil tangki (gunakan quick coupling).', 'type' => 'action'],
+    9  => ['text' => 'Pasang selang bongkar pada inlet pipa tangki (filling point), pastikan kesesuaian tangki penerima dengan produk yang akan dibongkar, kemudian pada outlet mobil tangki (gunakan quick coupling).', 'type' => 'self_action_photo'],
     10 => ['text' => 'Lakukan pembongkaran dengan membuka kerangan sedikit demi sedikit. Pastikan tidak ada kebocoran pada selang maupun sambungan/coupling. (Khusus Pertashop): Pastikan tidak menggunakan pompa Alcon berbahan bakar bensin serta wajib menggunakan pompa yang telah memiliki izin tipe dari Metrologi dengan surat tera yang masih aktif sebagai pompa transfer BBM.', 'type' => 'self_action_photo'],
     11 => ['text' => 'Selesai melakukan bongkar, pastikan: Muatan BBM di mobil tangki benar-benar telah habis dan lakukan pengukuran volume BBM di dalam tangki penerima. Pastikan manhole atas tertutup sempurna.', 'type' => 'dual_verif'],
     12 => ['text' => 'Tutup kerangan, lepas selang bongkar dimulai dari mobil tangki dan tutup kembali lubang pengisian dari mobil tangki serta dipastikan tidak ada genangan BBM.', 'type' => 'photo'],

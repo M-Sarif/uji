@@ -173,7 +173,9 @@ function spbu_handle_post(string $action): void
                         go_to('claim_loss', ['lo' => $loId, 'metode' => $metode]);
                     }
                     $nilai['kompartemen'] = (float) $komp;
-                    $nilai['level_spp']   = (float) COMPARTMENT_TERA_T2[$komp];
+                    if ($nilai['level_spp'] <= 0) {
+                        $nilai['level_spp'] = (float) COMPARTMENT_TERA_T2[$komp];
+                    }
                 }
                 $_SESSION['lo_form_draft'][$loId] = [
                     'metode'     => $metode,

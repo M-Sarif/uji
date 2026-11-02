@@ -67,23 +67,28 @@ foreach ($ukurActiveLoIds as $ukurCheckId) {
             <div class="claim-form-field">
                 <label for="<?php echo h($fid); ?>"><?php echo h($field['label']); ?> <span class="req">*</span></label>
                 <div class="claim-input-wrap claim-select-wrap">
-                    <select id="<?php echo h($fid); ?>" name="<?php echo h($field['key']); ?>" required>
+                    <select id="<?php echo h($fid); ?>" name="<?php echo h($field['key']); ?>"<?php echo $val !== '' ? ' class="is-chosen"' : ''; ?> required>
                         <option value="" disabled<?php echo $val === '' ? ' selected' : ''; ?> hidden><?php echo h($field['placeholder'] ?? 'Pilih'); ?></option>
                         <?php foreach (COMPARTMENT_TERA_T2 as $no => $t2): ?>
                         <option value="<?php echo (int) $no; ?>"<?php echo (string) $val === (string) $no ? ' selected' : ''; ?>>Kompartemen <?php echo (int) $no; ?></option>
                         <?php endforeach; ?>
                     </select>
                 </div>
-                <p class="claim-field-hint" id="kompHint"<?php echo $val === '' ? ' hidden' : ''; ?>>*Pilih kompartemen tempat BBM LO ini berada di MT (di dispatching tercatat kompartemen <?php echo (int) COMPARTMENT_DISPATCH; ?>). T2 Tera MT dan kapasitas mengikuti kompartemen yang dipilih.</p>
+                <p class="claim-field-hint" id="kompHint">*Pilih kompartemen tempat BBM LO ini berada di MT (di dispatching tercatat kompartemen <?php echo (int) COMPARTMENT_DISPATCH; ?>). T2 Tera MT dan kapasitas mengikuti kompartemen yang dipilih.</p>
             </div>
             <?php elseif ($type === 'tera'): ?>
-            <div class="claim-form-field" id="teraField"<?php echo $val === '' ? ' hidden' : ''; ?>>
-                <label for="<?php echo h($fid); ?>"><?php echo h($field['label']); ?></label>
-                <div class="claim-input-wrap is-locked">
-                    <input type="text" id="<?php echo h($fid); ?>" name="<?php echo h($field['key']); ?>" value="<?php echo h($val); ?>" readonly tabindex="-1" aria-readonly="true">
+            <div class="claim-form-field" id="teraField">
+                <label for="<?php echo h($fid); ?>"><?php echo h($field['label']); ?> <span class="req">*</span></label>
+                <div class="claim-input-wrap" id="teraWrap">
+                    <input type="text" inputmode="decimal"
+                           id="<?php echo h($fid); ?>"
+                           name="<?php echo h($field['key']); ?>"
+                           value="<?php echo h($val); ?>"
+                           placeholder="0"
+                           data-min-length="1" required>
                     <?php if (!empty($field['unit'])): ?><span class="unit"><?php echo h($field['unit']); ?></span><?php endif; ?>
                 </div>
-                <p class="claim-field-hint">*Nilai T2 terisi otomatis dari data Tera MT.</p>
+                <p class="claim-field-hint" id="teraHint" data-found="Nilai T2 terisi otomatis dari data Tera MT." data-missing="Data T2 Tera MT tidak ditemukan pada master kendaraan, silakan input manual jika diketahui.">*Data T2 Tera MT tidak ditemukan pada master kendaraan, silakan input manual jika diketahui.</p>
             </div>
             <?php else: ?>
             <div class="claim-form-field">
@@ -109,7 +114,7 @@ foreach ($ukurActiveLoIds as $ukurCheckId) {
         </div>
     </div>
 
-    <div class="wizard-nav">
+    <div class="wizard-nav claim-nav">
         <a href="#" class="btn-wiz">Rumus Hitung</a>
         <button type="submit" class="btn-primary btn-generate" id="btnGenerate" disabled>
             <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg>
@@ -137,6 +142,8 @@ foreach ($ukurActiveLoIds as $ukurCheckId) {
                 <?php echo $bisaKlaim ? 'Dapat di Klaim' : 'Tidak Bisa di Klaim'; ?>
                 <?php if ($bisaKlaim): ?>
                 <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#16a34a"/><path d="M7.5 12.5l3 3 6-6.5" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <?php else: ?>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#ef4444"/><path d="M8.5 8.5l7 7M15.5 8.5l-7 7" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/></svg>
                 <?php endif; ?>
             </span>
         </div>
@@ -161,12 +168,13 @@ foreach ($ukurActiveLoIds as $ukurCheckId) {
                 <button type="submit" class="btn-outline hasil-btn-full hasil-btn-second">Simpan Tanpa Klaim</button>
             </form>
         <?php else: ?>
+            <button type="button" class="btn-primary hasil-btn-main" disabled>Ajukan Klaim</button>
             <form method="post" action="index.php">
                 <input type="hidden" name="action" value="save_claim_loss">
                 <input type="hidden" name="lo" value="<?php echo h((string) $loId); ?>">
                 <input type="hidden" name="metode" value="<?php echo h($method); ?>">
-                <input type="hidden" name="klaim" value="">
-                <button type="submit" class="btn-primary hasil-btn-main" data-tour="hasil-primary-action">Simpan</button>
+                <input type="hidden" name="klaim" value="tanpa">
+                <button type="submit" class="btn-outline hasil-btn-full hasil-btn-second" data-tour="hasil-primary-action">Simpan Tanpa Klaim</button>
             </form>
         <?php endif; ?>
 
@@ -198,8 +206,8 @@ foreach ($ukurActiveLoIds as $ukurCheckId) {
     var inputs = form.querySelectorAll('input[type="text"][required], select[required]');
     var komp   = document.getElementById('f_kompartemen');
     var tera   = document.getElementById('f_level_spp');
-    var teraBox = document.getElementById('teraField');
-    var kompHint = document.getElementById('kompHint');
+    var teraHint = document.getElementById('teraHint');
+    var teraWrap = document.getElementById('teraWrap');
     var t2 = <?php echo json_encode(COMPARTMENT_TERA_T2); ?>;
 
     function fieldFilled(el) {
@@ -208,13 +216,17 @@ foreach ($ukurActiveLoIds as $ukurCheckId) {
         return val !== '' && val.length >= minLen;
     }
 
-    function syncTera() {
-        if (!komp || !tera || !teraBox) { return; }
+    function syncTera(autofill) {
+        if (!komp || !tera) { return; }
         var chosen = komp.value !== '' && t2[komp.value] !== undefined;
-        tera.value = chosen ? String(t2[komp.value]) : '';
-        teraBox.hidden = !chosen;
-        if (kompHint) { kompHint.hidden = !chosen; }
-        komp.classList.toggle('is-chosen', chosen);
+        if (chosen) { tera.value = String(t2[komp.value]); }
+        tera.readOnly = chosen;
+        tera.tabIndex = chosen ? -1 : 0;
+        if (teraWrap) { teraWrap.classList.toggle('is-locked', chosen); }
+        if (teraHint) {
+            teraHint.textContent = '*' + teraHint.getAttribute(chosen ? 'data-found' : 'data-missing');
+        }
+        komp.classList.toggle('is-chosen', komp.value !== '');
     }
 
     function refresh() {
@@ -230,8 +242,8 @@ foreach ($ukurActiveLoIds as $ukurCheckId) {
         el.addEventListener('input', refresh);
         el.addEventListener('change', refresh);
     });
-    if (komp) { komp.addEventListener('change', function () { syncTera(); refresh(); }); }
-    syncTera();
+    if (komp) { komp.addEventListener('change', function () { syncTera(true); refresh(); }); }
+    syncTera(false);
     refresh();
 
     form.addEventListener('submit', function (e) {
