@@ -818,13 +818,13 @@ function amt_tour_verif_steps(string $screen): array
             [
                 'no'        => null,
                 'label'     => 'Kode Konfirmasi',
-                'target'    => '#vkodeBoxes',
-                'highlight' => '.vkode-card',
+                'target'    => '#vkodeKeypad',
+                'highlight' => '#vkodeKeypad',
                 'title'     => 'Ketik 6 angka kode',
-                'text'      => 'Ketuk kotak pertama lalu ketik semua angka. Setelah kotak terakhir terisi, kode terkirim otomatis.'
+                'text'      => 'Ketuk tombol angka di bawah sesuai kode dari Petugas SPBU. Salah ketik? Ketuk tombol hapus di pojok kanan bawah. Setelah kotak terakhir terisi, kode terkirim otomatis.'
                     . ($sim ? ' Mode simulasi: angka apa saja diterima.' : '')
                     . ' Bila kode kedaluwarsa, ketuk “Kirim ulang kode” atau pakai metode Pindai Kode QR.',
-                'hint'      => '👆 Ketuk kotak angka, lalu ketik kode',
+                'hint'      => '👆 Ketuk tombol angka untuk mengisi kode',
                 'skip'      => '#vkodeExpired:not([hidden])',
                 'done'      => null,
             ],

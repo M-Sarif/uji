@@ -1,19 +1,5 @@
 <?php
-/**
- * Layar: ?screen=amt_checklist_lo&id=...  (role AMT)  -- "Checklist Pra-Pembongkaran" (Daftar LO)
- *
- * Alur:
- *   Isi Checklist (amt_spbu) -> Daftar LO -> centang LO -> "Mulai Checklist" -> wizard 14 langkah (amt_checklist)
- *   Wizard selesai -> kembali ke sini, LO yang dikerjakan berstatus "Draft"
- *   "Kirim" -> pop up "Kirim Checklist" -> "Ya, Kirim" -> LO "Sudah Diisi"
- *   Semua LO terkirim -> kembali ke Aktifitas di SPBU.
- *
- * Tombol:
- *   Mulai Checklist : aktif bila ada LO yang dicentang
- *   Kirim           : aktif bila ada LO dicentang yang berstatus "Draft"
- * Logika tampilan (Pilih Semua, aktif/nonaktif tombol, pop up) ada di roles/amt/assets/js/amt-checklist.js.
- * Penyimpanan & validasi di server: roles/amt/includes/amt_pbk.php (aksi submit_pbk, phase=start|send).
- */
+
 $s = amt_ship_current();
 if ($s === null || !amt_pbk_ship_ready($s)) {
     echo '<section class="pbk"><p class="pbk-empty">Checklist tidak tersedia.</p></section>';
@@ -22,11 +8,13 @@ if ($s === null || !amt_pbk_ship_ready($s)) {
 
 $id  = $s['id'];
 $sel = array_flip(amt_pbk_selected($s));
+
+$saved = $_SESSION['amt_spbu']['pbk_saved'] ?? null;
+unset($_SESSION['amt_spbu']['pbk_saved']);
 $v   = function (string $file): int {
     return (int) @filemtime(AMT_ASSET_DIR . '/' . $file);
 };
 
-// Siapkan baris LO: nomor, nama order, status, dicentang?
 $rows = [];
 foreach ($s['products'] as $p) {
     $lo     = (string) $p['lo'];
@@ -48,6 +36,13 @@ $anyDraft   = (bool) array_filter($selectable, function ($r) { return $r['checke
 $check = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>';
 ?>
 <link rel="stylesheet" href="<?= AMT_URL ?>/css/amt-checklist.css?v=<?= $v('css/amt-checklist.css') ?>">
+
+<?php if (is_array($saved)): ?>
+<div class="pbl-toast" id="pblToast" role="status" aria-live="polite">
+    <strong class="pbl-toast__title"><?= amt_e($saved['title'] ?? '') ?></strong>
+    <span class="pbl-toast__body"><?= amt_e($saved['body'] ?? '') ?></span>
+</div>
+<?php endif; ?>
 
 <form method="post" action="<?= amt_e(amt_pbk_lo_url($s)) ?>" class="pbk pbl" id="pblForm" novalidate>
     <input type="hidden" name="action" value="submit_pbk">
@@ -90,7 +85,6 @@ $check = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="cu
     </div>
 </form>
 
-<!-- Pop up konfirmasi sebelum checklist dikirim (dipindahkan ke <body> oleh amt-checklist.js) -->
 <div class="pbk-modal" id="pblModal" hidden>
     <div class="pbk-modal__card pbl-modal__card" role="dialog" aria-modal="true" aria-labelledby="pblModalTitle">
         <h2 class="pbl-modal__title" id="pblModalTitle">Kirim Checklist</h2>

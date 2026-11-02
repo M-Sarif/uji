@@ -1,14 +1,5 @@
 <?php
-/**
- * Beranda peran AMT (Awak Mobil Tangki).
- * Isi: kartu Jam Kerja, menu cepat (7 menu), dan panel "Pengiriman Aktif".
- *
- * 'key'   : dipakai untuk penguncian (amt_menu_locked) dan penanda tutorial.
- *           Mulai Ritase aktif setelah Mulai Kerja (timer berjalan); PTI aktif setelah
- *           Mulai Ritase + tutorial DCU (amt_pti_unlocked); Selesai Ritase belum aktif
- *           (WORK_LOCKED_MENUS di roles/amt/includes/work.php).
- * 'href'  => '#'  : layar tujuan belum tersedia.
- */
+
 $running = work_is_running();
 
 $amtMenus = [
@@ -23,7 +14,6 @@ $amtMenus = [
 ?>
 <div class="amt-home" data-dcu-seen="<?php echo amt_flow_get('dcu_seen') ? '1' : '0'; ?>" data-seal-seen="<?php echo amt_out_seal_seen() ? '1' : '0'; ?>">
 
-    <!-- Jam Kerja (sejak Mulai Kerja) + Jam Kerja Aktif (sejak Mulai Ritase; dijeda saat Selesai Ritase) -->
     <?php
         $startedAt   = work_started_at();
         $jamKerjaSec = $startedAt > 0 ? max(0, time() - $startedAt) : 0;
@@ -40,7 +30,6 @@ $amtMenus = [
         </div>
     </div>
 
-    <!-- Menu cepat -->
     <nav class="amt-menu" aria-label="Menu AMT">
         <?php foreach ($amtMenus as $m): ?>
             <?php $locked = amt_menu_locked($m['key']); ?>
@@ -58,22 +47,29 @@ $amtMenus = [
     </nav>
 
 <?php
-    /* Rute Pengiriman: muncul di beranda setelah PTI selesai (hasil bukan NO GO) selama ada pengiriman
-     * yang belum diselesaikan. Data dari amt_ship_find() (roles/amt/includes/amt_ship_data.php).
-     * Kartu SPBU membuka "Aktifitas di SPBU". Selain kondisi itu tampil panel kosong seperti biasa. */
+
     $routeShip = amt_home_route_ship();
+    $routeDone = false;
+    if ($routeShip === null) {
+        $routeShip = amt_home_route_done_ship();
+        $routeDone = $routeShip !== null;
+    }
 ?>
     <?php if ($routeShip !== null): ?>
-    <!-- Rute pengiriman (setelah PTI selesai) -->
-    <section class="amt-route" data-tour="home-route" aria-labelledby="amtrTitle">
+
+    <section class="amt-route<?php echo $routeDone ? ' amt-route--done' : ''; ?>" data-tour="home-route" aria-labelledby="amtrTitle">
         <h2 class="amtr-title" id="amtrTitle">Rute Pengiriman</h2>
 
+        <?php if ($routeDone): ?>
+        <p class="amtr-note">Pengiriman telah selesai otomatis setelah Anda menekan tombol Selesai di SPBU terakhir.</p>
+        <?php else: ?>
         <p class="amtr-note">Pengiriman akan diselesaikan secara otomatis setelah Anda menekan tombol Selesai di SPBU terakhir.</p>
 
         <div class="amtr-order">
             <span class="amtr-order-label">Urutan Pengiriman</span>
             <strong class="amtr-order-value">Pengiriman menuju ke SPBU <?php echo amt_e($routeShip['spbu']); ?></strong>
         </div>
+        <?php endif; ?>
 
         <div class="amtr-timeline">
             <span class="amtr-line" aria-hidden="true"></span>
@@ -99,11 +95,16 @@ $amtMenus = [
                                     <div class="amtr-spbu-sub"><?php echo amt_e($routeShip['nama']); ?></div>
                                 <?php endif; ?>
                             </div>
-                            <span class="amtr-chip">Belum Selesai</span>
+                            <span class="amtr-chip"><?php echo $routeDone ? 'Selesai' : 'Belum Selesai'; ?></span>
                         </div>
                         <div class="amtr-tags">
                             <?php foreach ($routeShip['products'] as $p): ?>
-                                <span class="amtr-tag"><?php echo amt_e($p['name']); ?></span>
+                                <span class="amtr-tag<?php echo $routeDone ? ' amtr-tag--ok' : ''; ?>">
+                                    <?php echo amt_e($p['name']); ?>
+                                    <?php if ($routeDone): ?>
+                                        <span class="amtr-tag-check" aria-hidden="true"><svg viewBox="0 0 24 24" width="8" height="8" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></span>
+                                    <?php endif; ?>
+                                </span>
                             <?php endforeach; ?>
                         </div>
                     </a>
@@ -119,7 +120,7 @@ $amtMenus = [
         </a>
     </div>
     <?php else: ?>
-    <!-- Pengiriman aktif (kosong) -->
+
     <section class="amt-active">
         <img src="<?php echo AMT_URL; ?>/img/ilustrasi/empty-delivery-truck.png" alt="Ilustrasi pengiriman">
         <h3>Pengiriman Aktif Belum Tersedia</h3>

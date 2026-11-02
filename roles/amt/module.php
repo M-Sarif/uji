@@ -81,6 +81,9 @@ function amt_screen_title(string $screen): string
     if ($screen === 'amt_kendala') {
         return 'Laporkan Kendala';
     }
+    if ($screen === 'amt_verifikasi_sukses') {
+        return 'Berhasil';
+    }
     if (in_array($screen, AMT_VERIF_SCREENS, true)) {
         return 'Verifikasi Order';
     }

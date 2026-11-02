@@ -1,37 +1,11 @@
 <?php
-/**
- * Checklist Pra Bongkar BBM (peran AMT).
- *
- * Alur layar:
- *   amt_spbu  ->  Tiba di Lokasi (dikonfirmasi)  ->  "Isi Checklist"  ->  amt_checklist_lo (Daftar LO)
- *   amt_checklist_lo  ->  pilih LO  ->  "Mulai Checklist"  ->  amt_checklist (14 langkah)
- *   amt_checklist     ->  Selesai  ->  kembali ke amt_checklist_lo (LO berstatus "Draft")
- *   amt_checklist_lo  ->  "Kirim"  ->  pop up "Ya, Kirim"  ->  LO "Sudah Diisi"
- *   Semua LO terkirim ->  kembali ke amt_spbu ("Isi Checklist" hijau, "Verifikasi Order" aktif)
- *
- * Tipe langkah (kunci 'type'):
- *   spbu_task  Tugas Petugas SPBU, diverifikasi AMT        -> 1 pilihan Ya/Tidak (tanpa foto)
- *   self       Verifikasi mandiri tugas AMT                 -> 1 pilihan Ya/Tidak + foto (opsional)
- *   qr         Tugas AMT, diverifikasi SPBU lewat QR Code   -> tombol Generate / Regenerate QR Code
- *   dual       Mandiri + verifikasi tugas role lawan        -> 2 pilihan Ya/Tidak + foto (opsional)
- *
- * State disimpan di $_SESSION['amt_spbu']['pbk'][<id pengiriman>], jadi ikut terhapus
- * oleh amt_spbu_reset() (Start Work / End Work / kembali ke pilih peran).
- *
- * Dimuat dari roles/amt/includes/amt.php (setelah amt_ship_data.php).
- */
 
-const AMT_PBK_SCREEN    = 'amt_checklist';      // wizard 14 langkah
-const AMT_PBK_LO_SCREEN = 'amt_checklist_lo';   // Daftar LO (pilih LO, Mulai Checklist, Kirim)
-const AMT_PBK_QR_TTL    = 180;        // detik: QR Code berlaku 3 menit sejak dibuat
-const AMT_PBK_QR_STEP   = 7;          // langkah yang membuat QR Code
-const AMT_PBK_PHOTO_MAX = 1500000;    // batas ukuran foto (dataURL) per langkah, dalam karakter
+const AMT_PBK_SCREEN    = 'amt_checklist';
+const AMT_PBK_LO_SCREEN = 'amt_checklist_lo';
+const AMT_PBK_QR_TTL    = 180;
+const AMT_PBK_QR_STEP   = 7;
+const AMT_PBK_PHOTO_MAX = 1500000;
 
-/**
- * Daftar langkah (urutan = nomor langkah 1..14).
- * Langkah 11 tidak ada di screenshot yang dikirim, jadi teksnya memakai langkah 11 checklist SPBU
- * dan diperlakukan sebagai 'dual' (sama seperti langkah 11 di checklist SPBU). Ubah di sini bila berbeda.
- */
 function amt_pbk_steps(): array
 {
     return [
@@ -57,7 +31,6 @@ function amt_pbk_total(): int
     return count(amt_pbk_steps());
 }
 
-/** Teks petunjuk di dalam kotak jawaban, per tipe langkah. */
 function amt_pbk_hint(string $type): string
 {
     return [
@@ -68,22 +41,15 @@ function amt_pbk_hint(string $type): string
     ][$type] ?? '';
 }
 
-/** Apakah tipe langkah ini punya kotak foto (opsional)? */
 function amt_pbk_has_photo(string $type): bool
 {
     return $type === 'self' || $type === 'dual';
 }
 
-/* ------------------------------------------------------------
- * State per pengiriman
- * ------------------------------------------------------------ */
-
 function amt_pbk_state(string $id): array
 {
     $st = $_SESSION['amt_spbu']['pbk'][$id] ?? [];
-    // lo  : [nomor LO => 'draft' | 'done']   (tidak ada = "Belum Diisi")
-    // sel : [nomor LO => true]               LO yang dicentang di Daftar LO
-    // run : wizard sedang dikerjakan (setelah "Mulai Checklist", sebelum "Selesai")
+
     return $st + ['a' => [], 'b' => [], 'photo' => [], 'qr' => null, 'lo' => [], 'sel' => [], 'run' => false];
 }
 
@@ -92,20 +58,17 @@ function amt_pbk_save(string $id, array $st): void
     $_SESSION['amt_spbu']['pbk'][$id] = $st;
 }
 
-/** Nomor LO milik pengiriman (urutan sama dengan Order List di layar SPBU). */
 function amt_pbk_lo_ids(array $s): array
 {
     return array_values(array_map(function ($p) { return (string) $p['lo']; }, $s['products'] ?? []));
 }
 
-/** Status checklist satu LO: 'belum' | 'draft' | 'done'. */
 function amt_pbk_lo_status(string $id, string $lo): string
 {
     $v = amt_pbk_state($id)['lo'][$lo] ?? '';
     return ($v === 'draft' || $v === 'done') ? $v : 'belum';
 }
 
-/** LO yang dicentang di Daftar LO (hanya yang valid & belum terkirim). */
 function amt_pbk_selected(array $s): array
 {
     $sel = amt_pbk_state($s['id'])['sel'];
@@ -118,13 +81,11 @@ function amt_pbk_selected(array $s): array
     return $out;
 }
 
-/** Wizard 14 langkah sedang dikerjakan? */
 function amt_pbk_running(string $id): bool
 {
     return !empty(amt_pbk_state($id)['run']);
 }
 
-/** Checklist dianggap selesai bila SEMUA LO pengiriman ini sudah dikirim ("Sudah Diisi"). */
 function amt_pbk_done(string $id): bool
 {
     $s = amt_ship_find($id);
@@ -143,7 +104,6 @@ function amt_pbk_done(string $id): bool
     return true;
 }
 
-/** Jawaban 'ya' | 'tidak' | null. $slot: 'a' (utama / mandiri) atau 'b' (role lawan, hanya tipe dual). */
 function amt_pbk_answer(string $id, int $step, string $slot = 'a'): ?string
 {
     $v = amt_pbk_state($id)[$slot][$step] ?? null;
@@ -155,7 +115,6 @@ function amt_pbk_photo(string $id, int $step): string
     return (string) (amt_pbk_state($id)['photo'][$step] ?? '');
 }
 
-/** QR Code terakhir: ['token','at','exp','valid'] atau null bila belum pernah dibuat. */
 function amt_pbk_qr(string $id): ?array
 {
     $qr = amt_pbk_state($id)['qr'];
@@ -166,14 +125,12 @@ function amt_pbk_qr(string $id): ?array
     return $qr;
 }
 
-/** Teks "Berlaku sampai" di pop up QR Code, mis. 02/10/2026, 08.56.20 WIB */
 function amt_pbk_qr_exp_text(array $qr): string
 {
     $dt = (new DateTime('@' . (int) $qr['exp']))->setTimezone(new DateTimeZone('Asia/Jakarta'));
     return $dt->format('d/m/Y, H.i.s') . ' WIB';
 }
 
-/** Isi yang dibaca pemindai: tidak memuat data sensitif, hanya penanda pengiriman + token sekali pakai. */
 function amt_pbk_qr_payload(array $s, array $qr): string
 {
     return implode('|', ['ONEFIS-PBK', $s['id'], $s['spbu'], $qr['token'], $qr['exp']]);
@@ -194,7 +151,6 @@ function amt_pbk_step_complete(string $id, int $step): bool
     return amt_pbk_answer($id, $step, 'a') !== null;
 }
 
-/** Langkah pertama yang belum lengkap; total + 1 bila semuanya sudah lengkap. */
 function amt_pbk_first_incomplete(string $id): int
 {
     $total = amt_pbk_total();
@@ -215,21 +171,16 @@ function amt_pbk_url(array $s, ?int $step = null): string
     return '?' . http_build_query($q);
 }
 
-/** Daftar LO ("Checklist Pra-Pembongkaran"): pintu masuk dari langkah "Isi Checklist". */
 function amt_pbk_lo_url(array $s): string
 {
     return '?' . http_build_query(['screen' => AMT_PBK_LO_SCREEN, 'id' => $s['id']]);
 }
 
-/** Pengiriman yang boleh mengisi checklist: sedang berjalan DAN "Tiba di Lokasi" sudah dikonfirmasi. */
 function amt_pbk_ship_ready(?array $s): bool
 {
     return $s !== null && $s['status'] === 'sedang' && amt_spbu_arrived($s);
 }
 
-/* ------------------------------------------------------------
- * Penjagaan akses layar (GET) - dipanggil dari amt_guard_work()
- * ------------------------------------------------------------ */
 function amt_pbk_guard(string $screen): void
 {
     if ($screen !== AMT_PBK_SCREEN && $screen !== AMT_PBK_LO_SCREEN) {
@@ -243,18 +194,16 @@ function amt_pbk_guard(string $screen): void
         go_to('amt_shipments');
     }
     if (!amt_pbk_ship_ready($s)) {
-        go_to('amt_spbu', ['id' => $s['id']]);       // belum tiba / sudah selesai
+        go_to('amt_spbu', ['id' => $s['id']]);
     }
     if (amt_pbk_done($s['id'])) {
-        go_to('amt_spbu', ['id' => $s['id']]);       // semua LO sudah dikirim
+        go_to('amt_spbu', ['id' => $s['id']]);
     }
 
-    // Daftar LO: boleh dibuka kapan saja setelah tiba di lokasi
     if ($screen === AMT_PBK_LO_SCREEN) {
         return;
     }
 
-    // Wizard 14 langkah: hanya setelah "Mulai Checklist" di Daftar LO
     if (!amt_pbk_running($s['id'])) {
         go_to(AMT_PBK_LO_SCREEN, ['id' => $s['id']]);
     }
@@ -264,20 +213,11 @@ function amt_pbk_guard(string $screen): void
     $want  = isset($_GET['step']) ? (int) $_GET['step'] : $first;
     $want  = max(1, min($total, $want));
 
-    // Tidak boleh melompat melewati langkah yang belum diisi
     if ($want > $first || !isset($_GET['step'])) {
         go_to(AMT_PBK_SCREEN, ['id' => $s['id'], 'step' => min($want, $first)]);
     }
 }
 
-/* ------------------------------------------------------------
- * Proses form (POST, aksi "submit_pbk") - pola Post/Redirect/Get
- *
- * Field 'phase' menentukan tahap:
- *   start  -> "Mulai Checklist" di Daftar LO (lo[] = LO yang dicentang)
- *   send   -> "Ya, Kirim" di pop up Kirim Checklist (lo[] = LO yang dicentang)
- *   (kosong) -> navigasi wizard 14 langkah
- * ------------------------------------------------------------ */
 function amt_pbk_handle_post(): void
 {
     if (!amt_work_ok()) {
@@ -300,7 +240,6 @@ function amt_pbk_handle_post(): void
         amt_pbk_post_send($s);
     }
 
-    // Wizard hanya boleh diproses saat sedang berjalan
     if (!amt_pbk_running($id)) {
         go_to(AMT_PBK_LO_SCREEN, ['id' => $id]);
     }
@@ -314,7 +253,6 @@ function amt_pbk_handle_post(): void
     $type = $steps[$step]['type'];
     $st   = amt_pbk_state($id);
 
-    // Jawaban Ya/Tidak ('a' = utama/mandiri, 'b' = role lawan hanya untuk tipe dual)
     foreach (($type === 'dual' ? ['a', 'b'] : ['a']) as $slot) {
         $v = $_POST[$slot] ?? '';
         if ($type !== 'qr' && ($v === 'ya' || $v === 'tidak')) {
@@ -322,7 +260,6 @@ function amt_pbk_handle_post(): void
         }
     }
 
-    // Foto bukti (opsional). Hanya gambar dengan ukuran wajar; field kosong = tetap pakai foto lama.
     if (amt_pbk_has_photo($type)) {
         $photo = (string) ($_POST['photo_data'] ?? '');
         if ($photo !== ''
@@ -335,8 +272,6 @@ function amt_pbk_handle_post(): void
 
     $nav = (string) ($_POST['nav'] ?? 'next');
 
-    // "Generate QR Code" (langkah 7) / "Regenerate" di pop up QR Code (langkah 7 dst).
-    // Setelah dibuat, pop up QR Code langsung dibuka (?qr=1).
     if ($nav === 'qr' && $step >= AMT_PBK_QR_STEP) {
         $now = time();
         $st['qr'] = ['token' => bin2hex(random_bytes(12)), 'at' => $now, 'exp' => $now + AMT_PBK_QR_TTL];
@@ -350,12 +285,11 @@ function amt_pbk_handle_post(): void
     if ($nav === 'prev') {
         unset($_SESSION['amt_spbu']['pbk_error']);
         if ($step <= 1) {
-            go_to(AMT_PBK_LO_SCREEN, ['id' => $id]);     // kembali ke Daftar LO
+            go_to(AMT_PBK_LO_SCREEN, ['id' => $id]);
         }
         go_to(AMT_PBK_SCREEN, ['id' => $id, 'step' => $step - 1]);
     }
 
-    // "Selanjutnya" / "Selesai": langkah ini harus lengkap
     if (!amt_pbk_step_complete($id, $step)) {
         $_SESSION['amt_spbu']['pbk_error'] = $step;
         go_to(AMT_PBK_SCREEN, ['id' => $id, 'step' => $step]);
@@ -366,7 +300,6 @@ function amt_pbk_handle_post(): void
         go_to(AMT_PBK_SCREEN, ['id' => $id, 'step' => $step + 1]);
     }
 
-    // Langkah terakhir: pastikan semua langkah lengkap, lalu LO yang dipilih menjadi "Draft"
     $first = amt_pbk_first_incomplete($id);
     if ($first <= $total) {
         go_to(AMT_PBK_SCREEN, ['id' => $id, 'step' => $first]);
@@ -375,15 +308,18 @@ function amt_pbk_handle_post(): void
     foreach (amt_pbk_selected($s) as $lo) {
         $st['lo'][$lo] = 'draft';
     }
-    // Jawaban wizard dikosongkan supaya Mulai Checklist berikutnya (LO lain) mulai dari langkah 1
+
     $st['a'] = $st['b'] = $st['photo'] = [];
     $st['qr']  = null;
     $st['run'] = false;
     amt_pbk_save($id, $st);
+    $_SESSION['amt_spbu']['pbk_saved'] = [
+        'title' => 'Checklist disimpan',
+        'body'  => 'Checklist AMT tersimpan. Lanjutkan dengan tombol Kirim pada daftar LO.',
+    ];
     go_to(AMT_PBK_LO_SCREEN, ['id' => $id]);
 }
 
-/** LO yang dicentang di form Daftar LO (lo[]), hanya yang valid dan belum terkirim. */
 function amt_pbk_post_los(array $s): array
 {
     $picked = array_map('strval', (array) ($_POST['lo'] ?? []));
@@ -396,18 +332,15 @@ function amt_pbk_post_los(array $s): array
     return $out;
 }
 
-/** "Mulai Checklist": simpan LO yang dicentang lalu buka wizard (langkah pertama yang belum lengkap). */
 function amt_pbk_post_start(array $s): void
 {
     $id  = $s['id'];
     $los = amt_pbk_post_los($s);
     if (!$los) {
-        go_to(AMT_PBK_LO_SCREEN, ['id' => $id]);      // tidak ada LO yang dipilih
+        go_to(AMT_PBK_LO_SCREEN, ['id' => $id]);
     }
     $st = amt_pbk_state($id);
 
-    // Pilihan LO sama dan wizard belum selesai -> lanjutkan jawaban yang sudah ada.
-    // Pilihan berbeda (atau mengulang LO "Draft") -> mulai dari awal.
     $same = $st['run'] && amt_pbk_selected($s) === $los;
     $st['sel'] = array_fill_keys($los, true);
     if (!$same) {
@@ -422,7 +355,6 @@ function amt_pbk_post_start(array $s): void
     go_to(AMT_PBK_SCREEN, ['id' => $id, 'step' => $first]);
 }
 
-/** "Ya, Kirim": LO berstatus "Draft" yang dicentang menjadi "Sudah Diisi". */
 function amt_pbk_post_send(array $s): void
 {
     $id = $s['id'];
@@ -435,7 +367,7 @@ function amt_pbk_post_send(array $s): void
         }
     }
     if ($sent === 0) {
-        go_to(AMT_PBK_LO_SCREEN, ['id' => $id]);      // tidak ada draft yang bisa dikirim
+        go_to(AMT_PBK_LO_SCREEN, ['id' => $id]);
     }
     $st['sel'] = [];
     amt_pbk_save($id, $st);
@@ -444,6 +376,6 @@ function amt_pbk_post_send(array $s): void
         'title' => 'Checklist Terkirim',
         'body'  => 'Checklist Pra Bongkar SPBU ' . $s['spbu'] . ' berhasil dikirim.',
     ];
-    // Semua LO terkirim -> kembali ke Aktifitas di SPBU; masih ada LO lain -> tetap di Daftar LO
+
     go_to(amt_pbk_done($id) ? 'amt_spbu' : AMT_PBK_LO_SCREEN, ['id' => $id]);
 }

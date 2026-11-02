@@ -1,9 +1,4 @@
 <?php
-/**
- * Layar: ?screen=amt_verifikasi_sukses  (Order Berhasil Diverifikasi)
- * Letak: roles/amt/views/amt_verifikasi_sukses.php
- */
-
 $state = amt_verif_state();
 $ids   = isset($state['last']['ids']) ? $state['last']['ids'] : [];
 ?>
@@ -17,10 +12,15 @@ $ids   = isset($state['last']['ids']) ? $state['last']['ids'] : [];
         <div class="vok-line"></div>
 
         <div class="vok-card">
-            <?php foreach ($ids as $id): ?>
-                <div class="vok-row"><span>Nomor LO</span><strong><?= amt_e($id) ?></strong></div>
+            <?php foreach ($ids as $id):
+                $lo    = amt_verif_find_lo($id);
+                $order = $lo !== null ? $lo['order'] : AMT_VERIF_ORDER_TYPE;
+            ?>
+                <div class="vok-group">
+                    <div class="vok-row"><span>Nomor LO</span><strong><?= amt_e($id) ?></strong></div>
+                    <div class="vok-row"><span>Order</span><span class="vok-pill"><?= amt_e($order) ?></span></div>
+                </div>
             <?php endforeach; ?>
-            <div class="vok-row"><span>Order</span><span class="verif-pill"><?= amt_e(AMT_VERIF_ORDER_TYPE) ?></span></div>
         </div>
     </div>
 

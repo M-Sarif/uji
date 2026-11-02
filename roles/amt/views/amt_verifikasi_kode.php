@@ -1,8 +1,4 @@
 <?php
-/**
- * Layar: ?screen=amt_verifikasi_kode  (Kode Konfirmasi - SIMULASI: angka apa saja diterima)
- * Letak: roles/amt/views/amt_verifikasi_kode.php
- */
 $remaining = amt_verif_remaining('code');
 $retryUrl  = amt_verif_url('amt_verifikasi_kode', ['restart' => 1]);
 $hasError  = isset($_GET['err']);
@@ -18,10 +14,9 @@ $len       = (int) AMT_VERIF_CODE_LENGTH;
             <input type="hidden" name="screen" value="amt_verifikasi_kode">
             <?php if (amt_verif_ship_id() !== ''): ?><input type="hidden" name="id" value="<?= amt_e(amt_verif_ship_id()) ?>"><?php endif; ?>
             <input type="hidden" name="kode" id="vkodeValue" value="">
-            <div class="vkode-boxes" id="vkodeBoxes">
+            <div class="vkode-boxes" id="vkodeBoxes" role="group" aria-label="Kode konfirmasi <?= $len ?> angka">
                 <?php for ($i = 1; $i <= $len; $i++): ?>
-                    <input class="vkode-box" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1"
-                           autocomplete="one-time-code" aria-label="Digit <?= $i ?> dari <?= $len ?>">
+                    <span class="vkode-box" aria-label="Digit <?= $i ?> dari <?= $len ?>"></span>
                 <?php endfor; ?>
             </div>
         </form>
@@ -37,9 +32,16 @@ $len       = (int) AMT_VERIF_CODE_LENGTH;
         </div>
     </div>
 
-    <?php if (AMT_VERIF_SIM_NOTE): ?>
-        <p class="vkode-sim">Mode simulasi: angka apa saja diterima.</p>
-    <?php endif; ?>
+    <div class="vkode-pad" id="vkodeKeypad" role="group" aria-label="Tombol angka">
+        <?php foreach (['1', '2', '3', '4', '5', '6', '7', '8', '9'] as $k): ?>
+            <button type="button" class="vkode-key" data-key="<?= $k ?>"><?= $k ?></button>
+        <?php endforeach; ?>
+        <span class="vkode-key vkode-key--blank" aria-hidden="true"></span>
+        <button type="button" class="vkode-key" data-key="0">0</button>
+        <button type="button" class="vkode-key vkode-key--del" data-key="del" aria-label="Hapus angka terakhir">
+            <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M9 5h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-6-7 6-7zM12.5 10l4 4M16.5 10l-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+    </div>
 </section>
 
 <script>
@@ -49,60 +51,70 @@ $len       = (int) AMT_VERIF_CODE_LENGTH;
     var form = document.getElementById('vkodeForm');
     var value = document.getElementById('vkodeValue');
     var boxes = [].slice.call(document.querySelectorAll('#vkodeBoxes .vkode-box'));
+    var pad = document.getElementById('vkodeKeypad');
+    var keys = [].slice.call(pad.querySelectorAll('button'));
     var timer = document.getElementById('vkodeTimer');
     var expired = document.getElementById('vkodeExpired');
     var err = document.getElementById('vkodeError');
     var end = Date.now() + remaining * 1000;
+    var digits = '';
     var locked = false;
 
-    function pad(n) { return (n < 10 ? '0' : '') + n; }
-    function show(s) { timer.textContent = pad(Math.floor(s / 60)) + ':' + pad(s % 60); }
-    function code() { return boxes.map(function (b) { return b.value; }).join(''); }
+    function pad2(n) { return (n < 10 ? '0' : '') + n; }
+    function show(s) { timer.textContent = pad2(Math.floor(s / 60)) + ':' + pad2(s % 60); }
 
+    function render() {
+        boxes.forEach(function (b, i) {
+            b.textContent = i < digits.length ? digits.charAt(i) : '';
+            b.classList.toggle('is-filled', i < digits.length);
+            b.classList.toggle('is-active', !locked && i === Math.min(digits.length, len - 1));
+        });
+    }
+    function disableKeys() {
+        keys.forEach(function (k) { k.disabled = true; });
+    }
     function lock() {
         locked = true;
-        boxes.forEach(function (b) { b.disabled = true; });
+        disableKeys();
         expired.hidden = false;
+        render();
     }
-    function trySubmit() {
-        var c = code();
-        if (locked || c.length !== len || !/^[0-9]+$/.test(c)) return;
+    function submit() {
         locked = true;
-        boxes.forEach(function (b) { b.readOnly = true; });
-        value.value = c;
+        disableKeys();
+        value.value = digits;
+        render();
         form.submit();
     }
-    function fill(from, digits) {
-        for (var i = 0; i < digits.length && from + i < len; i++) boxes[from + i].value = digits.charAt(i);
-        var next = Math.min(from + digits.length, len - 1);
-        boxes[next].focus();
-        trySubmit();
+    function add(d) {
+        if (locked || digits.length >= len) return;
+        if (err) err.hidden = true;
+        digits += d;
+        render();
+        if (digits.length === len) submit();
+    }
+    function del() {
+        if (locked || !digits) return;
+        if (err) err.hidden = true;
+        digits = digits.slice(0, -1);
+        render();
     }
 
-    boxes.forEach(function (box, i) {
-        box.addEventListener('input', function () {
-            if (err) err.hidden = true;
-            var digits = box.value.replace(/[^0-9]/g, '');
-            box.value = '';
-            if (digits) fill(i, digits);
-        });
-        box.addEventListener('keydown', function (e) {
-            if (e.key === 'Backspace' && !box.value && i > 0) { boxes[i - 1].value = ''; boxes[i - 1].focus(); e.preventDefault(); }
-            if (e.key === 'ArrowLeft' && i > 0) boxes[i - 1].focus();
-            if (e.key === 'ArrowRight' && i < len - 1) boxes[i + 1].focus();
-        });
-        box.addEventListener('paste', function (e) {
-            var text = (e.clipboardData || window.clipboardData).getData('text').replace(/[^0-9]/g, '');
-            if (!text) return;
-            e.preventDefault();
-            fill(i, text);
-        });
-        box.addEventListener('focus', function () { box.select(); });
+    pad.addEventListener('click', function (e) {
+        var k = e.target.closest ? e.target.closest('[data-key]') : null;
+        if (!k) return;
+        var key = k.getAttribute('data-key');
+        if (key === 'del') del(); else add(key);
+    });
+    document.addEventListener('keydown', function (e) {
+        if (e.ctrlKey || e.metaKey || e.altKey) return;
+        if (/^[0-9]$/.test(e.key)) { add(e.key); e.preventDefault(); }
+        else if (e.key === 'Backspace') { del(); e.preventDefault(); }
     });
 
     show(remaining);
+    render();
     if (remaining <= 0) { lock(); return; }
-    boxes[0].focus();
     setInterval(function () {
         if (locked) return;
         var left = Math.max(0, Math.ceil((end - Date.now()) / 1000));

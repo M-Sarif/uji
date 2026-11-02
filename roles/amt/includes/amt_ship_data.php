@@ -1,26 +1,13 @@
 <?php
-/**
- * Data & fungsi bantu "Shipments" peran AMT.
- *
- * Alur layar:
- *   amt_home  ->  amt_shipments        (daftar pengiriman, filter status)
- *             ->  amt_shipment_detail  (Detail Order: info pengiriman + rute)
- *             ->  amt_spbu             (Aktifitas di SPBU + Daftar Order)
- *
- * Data di bawah adalah CONTOH (sesuai desain). Ganti isi amt_ship_all() dengan sumber data asli
- * (database / API) bila sudah tersedia; view tidak perlu diubah selama bentuk array-nya sama.
- */
 
-/** Status pengiriman -> teks, kelas chip. */
 const AMT_SHIP_STATUS = [
     'sedang'  => ['label' => 'Sedang Dikirim',  'class' => 'is-going'],
     'selesai' => ['label' => 'Selesai Dikirim', 'class' => 'is-done'],
 ];
 
-/** Langkah aktifitas di SPBU (urutan sesuai desain). 'icon' = file pilihan; bila belum ada dipakai 'fallback'. */
 function amt_spbu_steps(): array
 {
-    $dir = AMT_URL . '/img/ship/';   // opsional: taruh ikon khusus di sini untuk menimpa bawaan
+    $dir = AMT_URL . '/img/ship/';
     $pick = function (string $file, string $fallback) use ($dir): string {
         return is_file(APP_ROOT . '/' . $dir . $file) ? $dir . $file : $fallback;
     };
@@ -33,10 +20,6 @@ function amt_spbu_steps(): array
     ];
 }
 
-/**
- * Semua pengiriman AMT (terbaru di atas).
- * Nomor polisi & kapasitas mengikuti shipment PTI supaya konsisten di semua layar.
- */
 function amt_ship_all(): array
 {
     $mt = function_exists('amt_pti_shipment') && amt_pti_shipment()
@@ -66,9 +49,9 @@ function amt_ship_all(): array
             'detail_no' => '45788827',
             'tanggal_iso' => '2026-10-01',
             'spbu'      => '62.938.839',
-            'lat'       => -2.754705,      // titik SPBU tujuan
+            'lat'       => -2.754705,
             'lng'       => 114.257301,
-            'plus'      => '67W4+4W7',   // Plus Code titik di atas (dihitung dari lat/lng); tampil di popup Tiba di Lokasi
+            'plus'      => '67W4+4W7',
             'products'  => $products('8144837464', '8144837463'),
         ]),
         array_merge($base, [
@@ -77,9 +60,9 @@ function amt_ship_all(): array
             'detail_no' => '45788811',
             'tanggal_iso' => '2026-10-01',
             'spbu'      => '65748001',
-            'lat'       => -2.739100,      // titik SPBU (CONTOH, ganti dengan data asli)
+            'lat'       => -2.739100,
             'lng'       => 114.270200,
-            'plus'      => '7727+4P8',   // kode lokasi (Plus Code) yang tampil di popup Tiba di Lokasi
+            'plus'      => '7727+4P8',
             'products'  => $products('8144837402', '8144837401'),
         ]),
         array_merge($base, [
@@ -89,15 +72,13 @@ function amt_ship_all(): array
             'detail_no' => '45788790',
             'tanggal_iso' => '2026-09-28',
             'spbu'      => '65748003',
-            'lat'       => -2.734000,      // titik SPBU (CONTOH, ganti dengan data asli)
+            'lat'       => -2.734000,
             'lng'       => 114.264000,
-            'plus'      => '7725+MH3',   // kode lokasi (Plus Code) yang tampil di popup Tiba di Lokasi
+            'plus'      => '7725+MH3',
             'products'  => $products('8144837311', '8144837310'),
         ]),
     ];
 
-    // Pengiriman yang sudah diselesaikan lewat pop up "Menyelesaikan Order" (lihat amt_rating.php)
-    // otomatis berstatus "Selesai Dikirim" di semua layar.
     foreach ($list as &$row) {
         if (!empty($_SESSION['amt_spbu']['finished'][$row['id']])) {
             $row['status'] = 'selesai';
@@ -108,7 +89,6 @@ function amt_ship_all(): array
     return $list;
 }
 
-/** Cari pengiriman berdasarkan id; tanpa id -> pengiriman yang sedang berjalan (atau yang pertama). */
 function amt_ship_find(?string $id = null): ?array
 {
     $all = amt_ship_all();
@@ -128,18 +108,6 @@ function amt_ship_find(?string $id = null): ?array
     return null;
 }
 
-/**
- * Pengiriman yang ditampilkan di panel "Rute Pengiriman" beranda AMT (null = panel tidak tampil).
- * Syarat (BERLAKU SAMA, tutorial menyala maupun dimatikan / mode bebas):
- *   1. jam kerja berjalan (sudah Mulai Kerja),
- *   2. sudah Mulai Ritase (alur DCU / tutorial dilewati lalu PTI dikerjakan),
- *   3. PTI sudah selesai dengan hasil bukan NO GO,
- *   4. order belum diselesaikan (setelah order selesai beranda masuk tahap "scan segel di AVM" -> Selesai Ritase,
- *      jadi panel rute disembunyikan),
- *   5. ada pengiriman berstatus "sedang".
- * Selama syarat belum terpenuhi beranda menampilkan panel kosong "Pengiriman Aktif Belum Tersedia".
- * Dipakai oleh views/amt_home.php DAN tutorial.php supaya tutorial hanya muncul bila panelnya benar-benar ada.
- */
 function amt_home_route_ship(): ?array
 {
     if (amt_out_order_done()) {
@@ -155,14 +123,27 @@ function amt_home_route_ship(): ?array
     return ($s !== null && $s['status'] === 'sedang') ? $s : null;
 }
 
-/** id pengiriman dari URL (?id=...), hanya karakter aman. */
+function amt_home_route_done_ship(): ?array
+{
+    if (!amt_out_order_done()) {
+        return null;
+    }
+    $f = $_SESSION['amt_spbu']['finished'] ?? [];
+    if (!is_array($f) || !$f) {
+        return null;
+    }
+    arsort($f);
+    $ids = array_keys($f);
+    $s   = amt_ship_find((string) $ids[0]);
+    return ($s !== null && $s['status'] === 'selesai') ? $s : null;
+}
+
 function amt_ship_request_id(): string
 {
     $id = isset($_GET['id']) ? (string) $_GET['id'] : '';
     return preg_match('/^[A-Za-z0-9-]{1,64}$/', $id) ? $id : '';
 }
 
-/** Pengiriman yang sedang dibuka layar saat ini (null bila id tidak dikenal). */
 function amt_ship_current(): ?array
 {
     return amt_ship_find(amt_ship_request_id());
@@ -179,32 +160,17 @@ function amt_ship_chip(string $status): string
     return '<span class="amts-chip ' . amt_e($st['class']) . '">' . amt_e($st['label']) . '</span>';
 }
 
-
-/* ------------------------------------------------------------
- * "Tiba di Lokasi" (langkah pertama Aktifitas di SPBU)
- * Status kedatangan disimpan di session per pengiriman:
- *   $_SESSION['amt_spbu']['arrived'][<id>] = ['at' => time, 'lat' => .., 'lng' => ..]
- * Direset bersama siklus kerja AMT (Mulai Kerja / Selesai Kerja / pilih peran).
- * ------------------------------------------------------------ */
-
-/**
- * Nama tempat SPBU untuk pin Google Maps pada popup "Tiba di Lokasi".
- * Bila lokasi sudah sesuai, peta menampilkan pin tempat SPBU tujuan (nama + kartu tempat, seperti pin
- * terminal di Mulai Kerja), bukan sekadar titik koordinat. Isi 'place' pada data pengiriman dengan nama
- * persis seperti di Google Maps agar pin tepat; bila kosong dipakai "SPBU Pertamina" di sekitar koordinat.
- */
 function amt_spbu_place(array $s): string
 {
     $p = trim((string) ($s['place'] ?? ''));
     if ($p !== '') {
         return $p;
     }
-    // Bila 'place' kosong: pin diberi label nomor SPBU pada data (mis. "SPBU 62.938.839").
+
     $no = trim((string) ($s['spbu'] ?? ''));
     return $no !== '' ? 'SPBU ' . $no : 'SPBU Pertamina';
 }
 
-/** Radius (meter) dari titik SPBU agar tombol "Ya, pengiriman telah tiba" aktif. */
 const AMT_SPBU_RADIUS_M = 200;
 
 function amt_spbu_arrived(array $s): bool
@@ -222,13 +188,11 @@ function amt_spbu_reset(): void
     unset($_SESSION['amt_spbu']);
 }
 
-/** Posisi (lat, lng) berada dalam radius SPBU? Dipakai untuk validasi di server. */
 function amt_spbu_in_range(array $s, float $lat, float $lng): bool
 {
     return work_distance_m($lat, $lng, (float) $s['lat'], (float) $s['lng']) <= AMT_SPBU_RADIUS_M;
 }
 
-/** id pengiriman dari field POST, hanya karakter aman. */
 function amt_ship_post_id(): string
 {
     $id = isset($_POST['id']) ? (string) $_POST['id'] : '';
