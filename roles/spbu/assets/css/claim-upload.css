@@ -94,3 +94,46 @@
 .scan-msg.is-error {
     color: #fff; background: rgba(185, 28, 28, 0.9); padding: 0.5rem 0.75rem; border-radius: 0.5rem;
 }
+.scan-sim { position: absolute; inset: 0; background: #1b1b1b; }
+.scan-sim[hidden] { display: none; }
+.scan-sim-scene { position: absolute; inset: 0; display: grid; place-items: center; background: radial-gradient(70% 70% at 50% 45%, #3a3a3a 0%, #1d1d1d 100%); }
+.scan-sim-card {
+    width: 62%; aspect-ratio: 1 / 1; padding: 7%; background: #fff; border-radius: 6px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.55); transform: rotate(-3deg);
+    animation: scan-sim-float 2.6s ease-in-out infinite alternate;
+}
+.scan-sim-card svg { display: block; width: 100%; height: 100%; }
+@keyframes scan-sim-float {
+    from { transform: rotate(-3deg) translateY(-2px); }
+    to   { transform: rotate(2deg) translateY(2px); }
+}
+.scan-sim-laser {
+    position: absolute; z-index: 2; left: 4%; right: 4%; top: 8%; height: 2px; border-radius: 2px;
+    background: #ef4444; box-shadow: 0 0 10px 2px rgba(239, 68, 68, 0.85);
+    animation: scan-sim-move 1.8s ease-in-out infinite alternate;
+}
+@keyframes scan-sim-move { from { top: 8%; } to { top: 90%; } }
+.scan-sim-status {
+    position: absolute; z-index: 3; left: 0; right: 0; bottom: 8px; text-align: center;
+    font-size: 0.6875rem; font-weight: 700; color: #fff; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+}
+.scan-stage.is-sim .scan-corner { z-index: 2; }
+.scan-stage.is-sim .scan-frame { background: #1b1b1b; }
+.scan-stage.is-found .scan-sim-laser, .scan-stage.is-expired .scan-sim-laser { animation: none; opacity: 0; }
+.scan-stage.is-found .scan-sim-card { animation: none; transform: none; box-shadow: 0 0 0 3px #22c55e, 0 6px 18px rgba(0, 0, 0, 0.55); }
+.scan-stage.is-found .scan-corner { border-color: #22c55e; }
+.scan-stage.is-expired .scan-frame { filter: grayscale(1); opacity: 0.6; }
+.scan-sim-info { display: flex; flex-direction: column; align-items: center; color: #fff; text-align: center; }
+.scan-sim-info[hidden] { display: none; }
+.scan-sim-note { margin: 0; font-size: 0.625rem; }
+.scan-sim-timer { margin: 0.375rem 0 0 0; font-size: 1.0625rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.scan-sim-expired { margin-top: 0.875rem; padding: 0.75rem 1rem; border-radius: 0.75rem; background: rgba(0, 0, 0, 0.35); }
+.scan-sim-expired[hidden] { display: none; }
+.scan-sim-expired-title { margin: 0; font-size: 0.875rem; font-weight: 800; }
+.scan-sim-expired-text { margin: 0.25rem 0 0 0; font-size: 0.6875rem; opacity: 0.85; }
+.scan-sim-retry {
+    display: inline-block; margin-top: 0.75rem; padding: 0.625rem 1.125rem; border-radius: 0.625rem;
+    background: #fff; color: #1f2937; font-size: 0.75rem; font-weight: 700; text-decoration: none;
+}
+.content.content-scan:has(.scan-stage.is-sim) { background: radial-gradient(120% 90% at 50% 42%, #747474 0%, #565656 55%, #3e3e3e 100%); }
+.app-container:has(.scan-stage.is-sim) .scan-header { background: #565656; }

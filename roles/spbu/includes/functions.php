@@ -440,6 +440,11 @@ function spbu_claim_store_upload($file): ?string
     return null;
 }
 
+function spbu_claim_sim_qr(): string
+{
+    return implode('|', [CLAIM_QR_PREFIX, 'SIMULASI', 'SIMULASI', bin2hex(random_bytes(12)), time() + 180]);
+}
+
 function spbu_claim_parse_qr(string $raw): array
 {
     $raw   = trim($raw);

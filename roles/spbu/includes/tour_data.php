@@ -582,7 +582,8 @@ function spbu_tour_claim_loss_steps(): array
     if ((int) ($_SESSION['activity_done'] ?? 0) >= 2) {
         return ['journey' => 'checklist', 'subKey' => null, 'steps' => []];
     }
-    return ['journey' => 'checklist', 'subKey' => 'claim_loss', 'steps' => [
+    $loKey = preg_replace('/[^A-Za-z0-9]/', '', (string) ($_GET['lo'] ?? ''));
+    $steps = [
         [
             'no'       => 5,
             'label'    => 'Soal 7 · Metode Pengukuran',
@@ -615,24 +616,38 @@ function spbu_tour_claim_loss_steps(): array
             'done'   => '#hasilModal',
         ],
         [
-
             'no'        => 5,
             'label'     => 'Soal 7 · Hasil Generate',
             'target'    => '[data-tour="hasil-primary-action"]',
             'highlight' => '.hasil-generate-sheet',
-            'when'      => '#hasilModal',
+            'when'      => '#hasilModal[data-claim="0"]',
             'optional'  => true,
-            'title'     => 'Hasil Generate Claim Loss',
-            'text'      => 'Sistem menampilkan selisih kekurangan (Claim Losses) beserta statusnya. Bila “Dapat di Klaim”, ketuk “Ajukan Klaim” untuk melengkapi dokumen klaim (atau “Simpan Tanpa Klaim”). Bila tidak ada selisih, ketuk “Simpan” dan Anda kembali ke daftar LO.',
-            'hint'      => '👆 Ketuk tombol biru di bawah',
+            'title'     => 'Tidak ada Claim Loss',
+            'text'      => 'Hasil Generate menunjukkan selisih 0 Liter dengan status “Tidak Bisa di Klaim”, artinya tidak ada Claim Loss. Tombol “Ajukan Klaim” nonaktif. Ketuk “Simpan Tanpa Klaim” untuk menyimpan hasil pengukuran dan kembali ke halaman checklist.',
+            'hint'      => '👆 Ketuk “Simpan Tanpa Klaim”',
             'done'      => null,
         ],
-    ]];
+        [
+            'no'        => 5,
+            'label'     => 'Soal 7 · Hasil Generate',
+            'target'    => '[data-tour="hasil-primary-action"]',
+            'highlight' => '.hasil-generate-sheet',
+            'when'      => '#hasilModal[data-claim="1"]',
+            'optional'  => true,
+            'title'     => 'Ada Claim Loss',
+            'text'      => 'Hasil Generate menunjukkan selisih kekurangan dengan status “Dapat di Klaim”, artinya ada Claim Loss. Ketuk “Ajukan Klaim” untuk melengkapi dokumen klaim: upload Sertifikat Dipstick lalu scan QR Code AMT (pada tutorial, scan disimulasikan otomatis).',
+            'hint'      => '👆 Ketuk tombol biru “Ajukan Klaim”',
+            'done'      => null,
+        ],
+    ];
+    return ['journey' => 'checklist', 'subKey' => 'claim_loss_' . $loKey, 'steps' => $steps];
 }
 
 function spbu_tour_claim_upload_steps(): array
 {
-    return ['journey' => 'checklist', 'subKey' => 'claim_upload', 'steps' => [
+    $claimIds = spbu_claim_lo_ids();
+    $loKey    = preg_replace('/[^A-Za-z0-9]/', '', (string) ($claimIds[0] ?? ''));
+    return ['journey' => 'checklist', 'subKey' => 'claim_upload_' . $loKey, 'steps' => [
         [
             'no'     => 5,
             'label'  => 'Claim Loss · Sertifikat Dipstick',
@@ -650,7 +665,7 @@ function spbu_tour_claim_upload_steps(): array
             'target' => '[data-tour="cu-qr"] .cu-action',
             'highlight' => '[data-tour="cu-qr"]',
             'title'  => 'Scan QR Code AMT',
-            'text'   => 'Ketuk “Scan Sekarang”, lalu arahkan kamera ke QR Code Claim Loss yang ditunjukkan AMT. QR berlaku 3 menit; bila kedaluwarsa, minta AMT menekan “Regenerate”.',
+            'text'   => 'Ketuk “Scan Sekarang” untuk memindai QR Code Claim Loss yang ditunjukkan AMT. Pada tutorial ini pemindaian disimulasikan otomatis, jadi kamera tidak perlu dipakai.',
             'hint'   => '👆 Ketuk “Scan Sekarang”',
             'done'   => '[data-tour="cu-qr"].is-filled',
             'ok'     => '✅ QR Code AMT sudah discan',
@@ -660,7 +675,7 @@ function spbu_tour_claim_upload_steps(): array
             'label'  => 'Claim Loss · Kirim Klaim',
             'target' => '#btnKirimKlaim',
             'title'  => 'Ketuk “Kirim Klaim”',
-            'text'   => 'Kedua dokumen sudah lengkap, jadi tombol “Kirim Klaim” menyala. Ketuk untuk mengirim pengajuan Claim Loss. Anda kembali ke daftar LO.',
+            'text'   => 'Kedua dokumen sudah lengkap, jadi tombol “Kirim Klaim” menyala. Ketuk untuk mengirim pengajuan Claim Loss. Setelah terkirim, Anda kembali ke halaman checklist soal 7 untuk melanjutkan checklist.',
             'hint'   => '👆 Ketuk tombol biru “Kirim Klaim”',
             'done'   => null,
         ],
@@ -669,15 +684,17 @@ function spbu_tour_claim_upload_steps(): array
 
 function spbu_tour_claim_scan_steps(): array
 {
-    return ['journey' => 'checklist', 'subKey' => 'claim_scan', 'steps' => [
+    $claimIds = spbu_claim_lo_ids();
+    $loKey    = preg_replace('/[^A-Za-z0-9]/', '', (string) ($claimIds[0] ?? ''));
+    return ['journey' => 'checklist', 'subKey' => 'claim_scan_' . $loKey, 'steps' => [
         [
             'no'       => 5,
             'label'    => 'Claim Loss · Scan QR AMT',
             'target'   => '.scan-frame',
-            'title'    => 'Arahkan kamera ke QR AMT',
-            'text'     => 'Minta AMT menampilkan QR Code Claim Loss, lalu arahkan kamera sampai QR berada di dalam kotak. Setelah terbaca, Anda otomatis kembali ke halaman dokumen. Kamera tidak bisa dipakai? Ketuk ikon gambar di kanan atas untuk memilih foto QR dari galeri.',
+            'title'    => 'Simulasi scan QR AMT',
+            'text'     => 'Pada kondisi sebenarnya, AMT menampilkan QR Code Claim Loss lalu Anda mengarahkan kamera ke QR tersebut. Di tutorial ini pemindaian disimulasikan: ketuk “Mengerti”, QR AMT akan terbaca otomatis dalam beberapa detik, lalu Anda kembali ke halaman dokumen.',
             'button'   => 'Mengerti',
-            'remember' => true,
+            'announce' => true,
             'done'     => null,
         ],
     ]];

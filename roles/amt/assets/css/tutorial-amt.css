@@ -1,22 +1,7 @@
-/* ============================================================
-   OneFIS - AMT - tutorial-amt.css
-   Gaya tutorial terpandu peran AMT. Semua kelas berawalan "amtt-"
-   sehingga tidak bentrok dengan roles/spbu/assets/css/tutorial.css (SPBU).
-   Urutan lapisan: kamera (1000) > lembar baca (904) > tutorial (900-902) > isi halaman.
-
-   RAMAH LANSIA / HURUF BESAR
-   - Kartu RINGKAS: judul + instruksi + tombol besar. Tidak perlu menggeser.
-   - Penjelasan panjang dibuka di "lembar baca" (huruf besar, bisa didengarkan).
-   - Ukuran huruf kartu bisa diubah lewat tombol "Aa" (normal / besar / sangat besar):
-     semua ukuran di bawah dikalikan --amtt-scale yang diatur JS.
-   ============================================================ */
-
-/* Pelindung: atribut [hidden] selalu menang */
 .amtt-panel [hidden],
 .amtt-sheet[hidden],
 .amtt-sheet [hidden] { display: none !important; }
 
-/* Latar gelap penuh (hanya untuk kartu di tengah, mis. "Selamat datang") */
 .amtt-dim {
     position: fixed; inset: 0; z-index: 900;
     background: rgba(15, 23, 42, .55);
@@ -25,8 +10,6 @@
 }
 .amtt-dim.is-on { opacity: 1; pointer-events: auto; }
 
-/* Sorotan: kotak terang di atas elemen, sekelilingnya digelapkan.
-   Tidak memblokir ketukan, jadi elemen yang disorot tetap bisa dipencet. */
 .amtt-ring {
     position: fixed; z-index: 901;
     border-radius: 14px;
@@ -37,12 +20,12 @@
     transition: opacity .2s ease;
 }
 .amtt-ring.is-on { opacity: 1; }
-.amtt-ring::after {                       /* denyut agar mudah terlihat */
+.amtt-ring::after {
     content: ''; position: absolute; inset: -7px;
     border-radius: 18px; border: 3px solid #60a5fa;
     animation: amttPulse 1.4s ease-in-out infinite;
 }
-.amtt-ring.is-nodim { box-shadow: none; }          /* mis. "isi semua rating": kartu lain tetap terang */
+.amtt-ring.is-nodim { box-shadow: none; }
 .amtt-ring.is-ok { border-color: #16a34a; }
 .amtt-ring.is-ok::after { border-color: #4ade80; animation: none; opacity: .5; }
 @keyframes amttPulse {
@@ -50,10 +33,6 @@
     50%      { opacity: .15; transform: scale(1.03); }
 }
 
-/* ------------------------------------------------------------
-   Kartu petunjuk (di bawah / di atas, diatur JS: layoutPanel)
-   Kolom: kepala tetap -> isi -> tombol selalu terlihat.
-   ------------------------------------------------------------ */
 .amtt-panel {
     --amtt-scale: 1;
     position: fixed; z-index: 902;
@@ -77,24 +56,23 @@
     width: min(360px, calc(100% - 2rem));
     transform: translate(-50%, -46%);
     text-align: center;
-    max-height: 82vh; max-height: 82dvh;      /* kartu tengah memuat daftar */
+    max-height: 82vh; max-height: 82dvh;
 }
 .amtt-panel.is-center.is-on { transform: translate(-50%, -50%); }
 
-/* ---- kepala ---- */
 .amtt-head {
     flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between; gap: .5rem;
     padding: .7rem 1rem .35rem;
 }
 .amtt-eyebrow {
-    font-size: calc(13px * var(--amtt-scale)); font-weight: 700; color: #1d4ed8;
+    font-size: calc(13px * var(--amtt-scale)); font-weight: 500; color: #1d4ed8;
     flex: 1 1 auto; min-width: 0; line-height: 1.25;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;     /* satu baris: hemat tempat */
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .amtt-tools { flex: 0 0 auto; display: flex; gap: .35rem; }
 .amtt-min {
     flex: 0 0 auto; min-height: 36px; padding: .15rem .65rem; border: 0; border-radius: 999px;
-    background: #f1f5f9; color: #334155; font-size: 13px; font-weight: 700; cursor: pointer;
+    background: #f1f5f9; color: #334155; font-size: 13px; font-weight: 500; cursor: pointer;
     touch-action: manipulation;
 }
 .amtt-min:active { background: #e2e8f0; }
@@ -111,7 +89,6 @@
     background: #2563eb; transition: width .3s ease;
 }
 
-/* ---- isi ---- */
 .amtt-bodywrap {
     position: relative; flex: 1 1 auto; min-height: 0;
     display: flex; flex-direction: column;
@@ -122,7 +99,7 @@
     padding: 0 1rem .35rem;
 }
 .amtt-title {
-    margin: 0 0 .35rem; font-size: calc(19px * var(--amtt-scale)); font-weight: 800;
+    margin: 0 0 .35rem; font-size: calc(19px * var(--amtt-scale)); font-weight: 600;
     line-height: 1.3; color: #0f172a;
 }
 .amtt-text {
@@ -133,67 +110,61 @@
     font-size: calc(16px * var(--amtt-scale)); line-height: 1.5; color: #1e293b; text-align: left;
 }
 .amtt-list li { padding-left: .15rem; margin: .22rem 0; }
-.amtt-list li::marker { font-weight: 800; color: #2563eb; }
+.amtt-list li::marker { font-weight: 600; color: #2563eb; }
 .amtt-panel.is-center .amtt-list { width: fit-content; max-width: 100%; margin-left: auto; margin-right: auto; box-sizing: border-box; }
 
-/* Kotak biru: INSTRUKSI AKSI (bagian terpenting, dibuat paling mencolok) */
 .amtt-hint {
     margin: 0 0 .45rem; padding: .6rem .75rem;
-    font-size: calc(17px * var(--amtt-scale)); font-weight: 800; line-height: 1.35;
+    font-size: calc(17px * var(--amtt-scale)); font-weight: 500; line-height: 1.35;
     color: #1e3a8a; background: #dbeafe; border-radius: .75rem;
 }
 .amtt-hint.is-wait { color: #92400e; background: #fef3c7; }
 
-/* Kartu RINGKAS: teks panjang disembunyikan (ada di tombol "Penjelasan"), jadi tidak perlu menggeser */
 .amtt-panel.is-compact .amtt-text,
 .amtt-panel.is-compact .amtt-list { display: none; }
-.amtt-panel.is-compact.is-info .amtt-text {          /* langkah baca: teks 3 baris */
+.amtt-panel.is-compact.is-info .amtt-text {
     display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2;
     overflow: hidden;
 }
 
-/* Huruf besar (Aa): teks langkah baca langsung dipindah ke tombol "Penjelasan" supaya kartu tetap muat */
 .amtt-panel.is-compact.is-info.is-big .amtt-text { display: none; }
 
-/* Penanda "masih ada isi di bawah" (hanya cadangan; mengambang, tidak memakan tempat) */
 .amtt-more {
     position: absolute; left: 0; right: 0; bottom: 0; height: 34px;
     display: flex; align-items: flex-end; justify-content: center; padding-bottom: 2px;
     background: linear-gradient(to bottom, rgba(255,255,255,0), #fff 75%);
-    font-size: 13px; font-weight: 700; color: #1d4ed8;
+    font-size: 13px; font-weight: 500; color: #1d4ed8;
     opacity: 0; pointer-events: none; transition: opacity .15s ease;
 }
 .amtt-panel.has-more .amtt-more { opacity: 1; }
 
-/* ---- tombol (besar & mudah dipencet) ---- */
 .amtt-actions {
-    flex: 0 0 auto;                      /* tombol TIDAK ikut tergulir: selalu bisa dipencet */
+    flex: 0 0 auto;
     display: flex; flex-direction: column; gap: .35rem;
     padding: .4rem 1rem .75rem;
 }
 .amtt-btn {
     width: 100%; min-height: 52px; border: 0; border-radius: .85rem;
-    background: #2563eb; color: #fff; font-size: calc(17px * var(--amtt-scale)); font-weight: 800;
+    background: #2563eb; color: #fff; font-size: calc(17px * var(--amtt-scale)); font-weight: 600;
     cursor: pointer; touch-action: manipulation;
 }
 .amtt-btn:active { background: #1d4ed8; }
 .amtt-row2 { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
 .amtt-ghost {
     flex: 1 1 auto; min-height: 46px; padding: .3rem .8rem; border: 2px solid #bfdbfe; border-radius: .8rem;
-    background: #fff; color: #1d4ed8; font-size: calc(15px * var(--amtt-scale)); font-weight: 800;
+    background: #fff; color: #1d4ed8; font-size: calc(15px * var(--amtt-scale)); font-weight: 600;
     cursor: pointer; touch-action: manipulation;
 }
 .amtt-ghost:active { background: #eff6ff; }
 .amtt-skip {
     flex: 0 0 auto; min-height: 46px; padding: .2rem .6rem;
     background: none; border: 0; cursor: pointer; touch-action: manipulation;
-    font-size: calc(14px * var(--amtt-scale)); font-weight: 700; color: #475569;
+    font-size: calc(14px * var(--amtt-scale)); font-weight: 500; color: #475569;
     text-decoration: underline; text-underline-offset: 3px;
 }
 .amtt-row2 .amtt-skip:only-child { margin-left: auto; }
 .amtt-panel.is-center .amtt-row2 { justify-content: center; }
 
-/* Mode kecil: hanya pil mungil (ketuk untuk membuka lagi) supaya tidak menutupi halaman */
 .amtt-panel.is-min {
     width: auto !important; max-height: none !important; min-width: 0;
     border-radius: 999px; cursor: pointer;
@@ -207,15 +178,11 @@
 .amtt-panel.is-min .amtt-head { padding: .3rem .4rem; }
 .amtt-panel.is-min .amtt-min { background: #2563eb; color: #fff; min-height: 44px; padding: .2rem 1rem; font-size: 14px; }
 
-/* Umpan balik "✅ sudah benar" */
 .amtt-panel.is-ok { box-shadow: 0 18px 40px -10px rgba(22, 163, 74, .45), 0 0 0 3px #16a34a; }
 .amtt-panel.is-ok .amtt-title { color: #15803d; }
 .amtt-panel.is-ok .amtt-eyebrow { color: #16a34a; }
 .amtt-panel.is-ok .amtt-bar > span { background: #16a34a; }
 
-/* ------------------------------------------------------------
-   Lembar baca: penjelasan lengkap (huruf besar, tanpa bersaing dengan halaman)
-   ------------------------------------------------------------ */
 .amtt-sheet {
     --amtt-scale: 1;
     position: fixed; inset: 0; z-index: 904;
@@ -230,24 +197,23 @@
     padding: 1rem 1.1rem calc(1rem + env(safe-area-inset-bottom, 0px));
     box-shadow: 0 -12px 40px -8px rgba(15, 23, 42, .45);
 }
-.amtt-sheet__eyebrow { flex: 0 0 auto; font-size: calc(13px * var(--amtt-scale)); font-weight: 700; color: #1d4ed8; }
+.amtt-sheet__eyebrow { flex: 0 0 auto; font-size: calc(13px * var(--amtt-scale)); font-weight: 500; color: #1d4ed8; }
 .amtt-sheet__body {
     flex: 1 1 auto; min-height: 0; overflow-y: auto;
     -webkit-overflow-scrolling: touch; overscroll-behavior: contain; touch-action: pan-y;
 }
-.amtt-sheet__title { margin: 0 0 .5rem; font-size: calc(22px * var(--amtt-scale)); font-weight: 800; line-height: 1.3; color: #0f172a; }
+.amtt-sheet__title { margin: 0 0 .5rem; font-size: calc(22px * var(--amtt-scale)); font-weight: 600; line-height: 1.3; color: #0f172a; }
 .amtt-sheet__text  { margin: 0 0 .6rem; font-size: calc(19px * var(--amtt-scale)); line-height: 1.6; color: #0f172a; }
 .amtt-sheet__list  { margin: 0 0 .4rem; padding-left: 1.6rem; font-size: calc(19px * var(--amtt-scale)); line-height: 1.55; color: #0f172a; }
 .amtt-sheet__list li { margin: .35rem 0; padding-left: .15rem; }
-.amtt-sheet__list li::marker { font-weight: 800; color: #2563eb; }
+.amtt-sheet__list li::marker { font-weight: 600; color: #2563eb; }
 .amtt-sheet__tools { flex: 0 0 auto; display: flex; gap: .5rem; }
 .amtt-sheet .amtt-btn { flex: 0 0 auto; }
 
-/* Tombol bantuan "?" (sembunyi selagi kartu tampil / saat mengetik) */
 .amtt-fab {
     position: fixed; right: 1rem; bottom: 5.25rem; z-index: 850;
     width: 3.1rem; height: 3.1rem; border-radius: 999px; border: 0;
-    background: #0f172a; color: #fff; font-size: 20px; font-weight: 800;
+    background: #0f172a; color: #fff; font-size: 20px; font-weight: 600;
     display: flex; align-items: center; justify-content: center;
     box-shadow: 0 8px 20px -4px rgba(15, 23, 42, .45); cursor: pointer;
 }
@@ -255,7 +221,6 @@
 body.amtt-on .amtt-fab { display: none; }
 body:has(input:focus, textarea:focus, select:focus) .amtt-fab { display: none; }
 
-/* Pesan singkat */
 .amtt-toast {
     position: fixed; left: 50%; bottom: 6rem; z-index: 905;
     transform: translate(-50%, 8px); opacity: 0;
@@ -271,15 +236,11 @@ body:has(input:focus, textarea:focus, select:focus) .amtt-fab { display: none; }
     .amtt-panel, .amtt-ring, .amtt-dim { transition: none; }
 }
 
-/* Cegah halaman "melompat" saat tooltip tutorial membuka/menutup */
 .content { overflow-anchor: none; }
 
-/* Langkah di dalam kamera layar penuh / pop up sukses: kartu & sorotan harus di atas lapisan itu
-   (kamera z-index 1000, pop up sukses 1200 -> lihat camera.css & work.css) */
 .amtt-ring.is-over  { z-index: 1301; }
 .amtt-panel.is-over { z-index: 1302; }
-/* MODE RINGKAS (is-tight): dipasang JS saat kartu penuh tidak muat tanpa menutupi pop up / bagian yang disorot.
-   Bilah, teks panjang, dan penanda geser disembunyikan; jarak & tombol dirapatkan. */
+
 .amtt-panel.is-tight .amtt-bar,
 .amtt-panel.is-tight .amtt-text,
 .amtt-panel.is-tight .amtt-list,

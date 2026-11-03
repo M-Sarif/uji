@@ -124,7 +124,7 @@ foreach ($ukurActiveLoIds as $ukurCheckId) {
 </form>
 
 <?php if ($showResult): ?>
-<div class="modal-backdrop" id="hasilModal">
+<div class="modal-backdrop" id="hasilModal" data-claim="<?php echo $bisaKlaim ? '1' : '0'; ?>">
     <div class="modal-sheet hasil-generate-sheet" role="dialog" aria-modal="true" aria-labelledby="hasilJudul" data-tour-any-done="<?php echo $ukurAnyDone ? '1' : '0'; ?>">
         <span class="sheet-grabber" aria-hidden="true"></span>
         <h2 id="hasilJudul">Hasil Generate Claim Loss</h2>

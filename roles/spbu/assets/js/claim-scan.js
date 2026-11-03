@@ -1,17 +1,3 @@
-/* ============================================================
-   OneFIS - SPBU - claim-scan.js
-   Layar "Scan QR AMT" (halaman claim_scan_qr).
-
-   - Membuka kamera belakang (getUserMedia) dan membaca QR Code terus-menerus
-     dengan pustaka jsQR (roles/spbu/assets/js/jsQR.js, lisensi Apache-2.0).
-   - Begitu QR terbaca, isinya diisikan ke form tersembunyi #qrForm lalu dikirim
-     (aksi "save_qr_amt"). Validasi isi QR dilakukan di server.
-   - Ikon galeri (#scanGallery) = pilih gambar QR dari galeri bila kamera
-     tidak bisa dipakai.
-
-   Catatan: getUserMedia hanya jalan di HTTPS atau http://localhost. Di alamat
-   lain (mis. http://192.168.x.x) kamera tidak aktif -> gunakan ikon galeri.
-   ============================================================ */
 (function () {
     'use strict';
 
@@ -29,6 +15,10 @@
     var rafId    = 0;
     var scanning = false;
     var sent     = false;
+    var simulating = false;
+    var frame    = document.getElementById('scanFrame');
+    var simBox   = document.getElementById('scanSim');
+    var simQr    = frame ? (frame.getAttribute('data-sim-qr') || '') : '';
 
     function setMsg(text, isError) {
         if (!msg) { return; }
@@ -46,8 +36,7 @@
         video.srcObject = null;
     }
 
-    /* QR terbaca -> kirim ke server (hanya sekali) */
-    function submitQr(value) {
+        function submitQr(value) {
         if (sent) { return; }
         sent = true;
         stopCamera();
@@ -60,7 +49,7 @@
         if (!scanning) { return; }
         if (video.readyState === video.HAVE_ENOUGH_DATA && video.videoWidth) {
             var vw = video.videoWidth, vh = video.videoHeight;
-            var k  = Math.min(1, 640 / Math.max(vw, vh));   // kecilkan supaya cepat
+            var k  = Math.min(1, 640 / Math.max(vw, vh));
             var w  = Math.round(vw * k), h = Math.round(vh * k);
             if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
             ctx.drawImage(video, 0, 0, w, h);
@@ -83,7 +72,7 @@
     }
 
     function startCamera() {
-        if (sent) { return; }
+        if (sent || simulating) { return; }
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
             setMsg('Kamera hanya bisa dipakai lewat HTTPS atau localhost. Pilih gambar QR dari galeri (ikon kanan atas).', true);
             return;
@@ -101,8 +90,7 @@
             .catch(cameraError);
     }
 
-    /* ---------- Pilih gambar QR dari galeri ---------- */
-    function decodeImageFile(file) {
+        function decodeImageFile(file) {
         var url = URL.createObjectURL(file);
         var img = new Image();
         img.onload = function () {
@@ -136,7 +124,6 @@
         });
     }
 
-    /* Matikan kamera saat halaman ditinggalkan / tab disembunyikan, nyalakan lagi saat kembali */
     window.addEventListener('pagehide', stopCamera);
     window.addEventListener('pageshow', function (e) { if (e.persisted && !stream) { startCamera(); } });
     document.addEventListener('visibilitychange', function () {
@@ -144,5 +131,72 @@
         else if (!stream && !sent) { startCamera(); }
     });
 
-    startCamera();
+    function startSimulation() {
+        simulating = true;
+        video.hidden = true;
+        var stage   = document.querySelector('.scan-stage');
+        var card    = document.getElementById('scanSimCard');
+        var status  = document.getElementById('scanSimStatus');
+        var info    = document.getElementById('scanSimInfo');
+        var timer   = document.getElementById('scanSimTimer');
+        var expired = document.getElementById('scanSimExpired');
+        if (stage) { stage.classList.add('is-sim'); }
+        if (galBtn) { galBtn.hidden = true; }
+        if (msg) { msg.hidden = true; }
+        if (card && window.qrcode) {
+            var q = window.qrcode(0, 'M');
+            q.addData(simQr);
+            q.make();
+            card.innerHTML = q.createSvgTag({ cellSize: 4, margin: 0, scalable: true });
+        }
+        if (simBox) { simBox.hidden = false; }
+        if (info) { info.hidden = false; }
+
+        var expAt = parseInt(simQr.split('|')[4], 10) * 1000;
+        var finished = false;
+        var armed = false;
+
+        function pad(n) { return (n < 10 ? '0' : '') + n; }
+        function show(s) { if (timer) { timer.textContent = pad(Math.floor(s / 60)) + ':' + pad(s % 60); } }
+        function expire() {
+            finished = true;
+            if (stage) { stage.classList.add('is-expired'); }
+            if (status) { status.textContent = 'Waktu habis'; }
+            if (expired) { expired.hidden = false; }
+        }
+        function scan() {
+            if (finished) { return; }
+            finished = true;
+            if (stage) { stage.classList.add('is-found'); }
+            if (status) { status.textContent = 'Kode QR terbaca ✓'; }
+            setTimeout(function () { submitQr(simQr); }, 700);
+        }
+        function tick() {
+            if (finished) { return; }
+            var left = Math.max(0, Math.ceil((expAt - Date.now()) / 1000));
+            show(left);
+            if (left <= 0) { expire(); }
+        }
+        function arm(ms) {
+            if (armed || finished) { return; }
+            armed = true;
+            setTimeout(scan, ms);
+        }
+
+        show(Math.max(0, Math.ceil((expAt - Date.now()) / 1000)));
+        setInterval(tick, 250);
+
+        document.addEventListener('spbu:tour-done', function (e) {
+            if (!e.detail || String(e.detail.key).indexOf('claim_scan') !== 0) { return; }
+            arm(e.detail.skipped ? 3000 : 4000);
+        });
+    }
+
+    function decide() {
+        var tour = window.OneFISTour;
+        if (simQr && tour && tour.isActive && tour.isActive()) { startSimulation(); return; }
+        startCamera();
+    }
+
+    if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', decide); } else { decide(); }
 })();
