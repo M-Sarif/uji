@@ -73,11 +73,11 @@ function spbu_init_session(): void
             'komunikasi'  => 0,
             'operasional' => 0,
             'layanan'     => 0,
+            'review'      => '',
         ];
         $_SESSION['ratings'] = [
             'amt_ok'  => $blank,
             'amt2_ok' => $blank,
-            'review'  => '',
         ];
     }
     if (!isset($_SESSION['rating_step'])) {

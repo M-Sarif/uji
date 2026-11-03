@@ -1,23 +1,8 @@
 <?php
-/**
- * Layar "Notifikasi".
- * Dibuka saat pengguna menekan langkah "Verifikasi Order" pada halaman
- * Detail Order (views/shipment.php).
- *
- * 5 detik setelah halaman ini terbuka, muncul pop up "Permintaan
- * Verifikasi Order" yang datanya diambil dari data verifikasi kedatangan
- * (ARRIVAL_SUBJECTS - nomor polisi mobil tangki & nama AMT) dan Daftar LO
- * (LO_LIST) supaya sama persis dengan yang sudah diisi pengguna di
- * tampilan Checklist. Menekan "Lihat Notifikasi" akan membawa pengguna
- * ke halaman "Permintaan Verifikasi" (views/qr_code.php).
- */
 
 $mt   = ARRIVAL_SUBJECTS['mt_ok'];
 $amt  = ARRIVAL_SUBJECTS['amt_ok'];
 
-// LO yang dicentang pengguna di Daftar LO. Kalau belum ada yang
-// dicentang (mis. langsung dibuka tanpa lewat checklist), tampilkan
-// semua LO supaya pop up tetap terisi data yang valid.
 $checked   = array_filter($_SESSION['lo_checked'] ?? []);
 $loIds     = !empty($checked) ? array_keys($checked) : array_keys(LO_LIST);
 ?>
@@ -32,12 +17,7 @@ $loIds     = !empty($checked) ? array_keys($checked) : array_keys(LO_LIST);
     <p class="notif-date"><?php echo h(date('l, d/m/Y')); ?></p>
 
     <?php
-    // Saat halaman baru dibuka, belum ada notifikasi Verifikasi Order: AMT
-    // belum meminta barcode/kode konfirmasi, jadi kartunya disembunyikan
-    // (halaman "polosan"). Kartu baru muncul ~5 detik kemudian (simulasi
-    // AMT mengirim permintaan) -- lihat script di bawah. Penanda tutorial
-    // (data-tour="notif-verifikasi") juga baru dipasang saat itu, supaya
-    // tutorial Langkah 8 tidak menyorot kartu yang belum ada.
+
     ?>
     <p class="notif-empty" id="notifKosong" hidden style="font-size:12px;color:#94a3b8;text-align:center;margin:1.5rem 0;">Belum ada notifikasi Verifikasi Order.</p>
 
@@ -78,46 +58,49 @@ $loIds     = !empty($checked) ? array_keys($checked) : array_keys(LO_LIST);
 
 </div>
 
-<!-- Pop up: Permintaan Verifikasi Order (muncul otomatis setelah 5 detik) -->
-<div class="modal-backdrop" id="verifOrderModal" hidden>
+<div class="modal-backdrop modal-center" id="verifOrderModal" hidden>
     <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="verifOrderJudul">
         <h2 id="verifOrderJudul">Permintaan Verifikasi Order</h2>
         <p>Anda mendapat permintaan verifikasi dari AMT. Buka halaman notifikasi untuk melihat kode konfirmasi.</p>
 
-        <div class="verif-modal-grid">
-            <div class="verif-modal-col">
-                <span class="label">AMT</span>
-                <span class="value"><?php echo h($amt['name']); ?></span>
+        <div class="verif-modal-box">
+            <div class="verif-modal-grid">
+                <div class="verif-modal-col">
+                    <span class="label">AMT</span>
+                    <span class="value"><?php echo h($amt['name']); ?></span>
+                </div>
+                <div class="verif-modal-col">
+                    <span class="label">Nomor Polisi MT</span>
+                    <span class="value"><?php echo h($mt['name']); ?></span>
+                </div>
             </div>
-            <div class="verif-modal-col">
-                <span class="label">Nomor Polisi MT</span>
-                <span class="value"><?php echo h($mt['name']); ?></span>
+
+            <div class="verif-modal-grid">
+                <div class="verif-modal-col">
+                    <span class="label">LO</span>
+                    <?php foreach ($loIds as $id): ?>
+                        <span class="value"><?php echo h($id); ?></span>
+                    <?php endforeach; ?>
+                </div>
+                <div class="verif-modal-col">
+                    <span class="label">Order</span>
+                    <?php foreach ($loIds as $id): ?>
+                        <span class="value"><?php echo h(LO_LIST[$id]['produk'] ?? LO_LIST[$id]['order']); ?></span>
+                    <?php endforeach; ?>
+                </div>
             </div>
         </div>
 
-        <div class="verif-modal-grid">
-            <div class="verif-modal-col">
-                <span class="label">LO</span>
-                <?php foreach ($loIds as $id): ?>
-                    <span class="value"><?php echo h($id); ?></span>
-                <?php endforeach; ?>
-            </div>
-            <div class="verif-modal-col">
-                <span class="label">Order</span>
-                <?php foreach ($loIds as $id): ?>
-                    <span class="value"><?php echo h(LO_LIST[$id]['produk'] ?? LO_LIST[$id]['order']); ?></span>
-                <?php endforeach; ?>
-            </div>
+        <div class="verif-modal-actions">
+            <button type="button" class="verif-modal-btn verif-modal-btn--ghost" id="btnTutupVerifOrder">Tutup</button>
+            <a href="index.php?screen=qr_code" class="verif-modal-btn verif-modal-btn--solid" id="btnLihatNotifikasi">Lihat Notifikasi</a>
         </div>
-
-        <button type="button" class="btn-outline modal-close" id="btnTutupVerifOrder">Tutup</button>
-        <a href="index.php?screen=qr_code" class="btn-primary" id="btnLihatNotifikasi">Lihat Notifikasi</a>
     </div>
 </div>
 
 <script>
 (function () {
-    /* Filter sederhana untuk tab Semua / Verifikasi Order / Claim Loss */
+
     var tabs = document.querySelectorAll('.pill-tab');
     var lists = document.querySelectorAll('.notif-list');
     var notifList  = document.getElementById('notifVerifikasi');
@@ -131,7 +114,7 @@ $loIds     = !empty($checked) ? array_keys($checked) : array_keys(LO_LIST);
             var show = currentFilter === 'semua' || list.getAttribute('data-type') === (currentFilter === 'verifikasi' ? 'verifikasi' : 'claim');
             list.style.display = show ? '' : 'none';
         });
-        // Tab "Verifikasi Order" masih kosong sebelum notifikasi dari AMT masuk.
+
         notifKosong.hidden = !(currentFilter === 'verifikasi' && !notifArrived);
     }
     tabs.forEach(function (tab) {
@@ -145,19 +128,12 @@ $loIds     = !empty($checked) ? array_keys($checked) : array_keys(LO_LIST);
 
     var modal = document.getElementById('verifOrderModal');
 
-    /* Tutorial menyorot pop up itu sendiri (lihat spbu_tour_notifikasi_steps()
-       di roles/spbu/includes/tour_data.php). Kalau pop up ditutup, tandai
-       data-dismissed supaya tutorial pindah menyorot kartu notifikasinya. */
     function tutupModal() {
         modal.hidden = true;
         modal.setAttribute('data-dismissed', '1');
         if (window.OneFISTour) { window.OneFISTour.rescan(); }
     }
 
-    /* Simulasi: ~5 detik setelah halaman dibuka, AMT mengirim permintaan
-       verifikasi -> kartu notifikasi "Aktif" muncul + pop up
-       "Permintaan Verifikasi Order" + tutorial. Sebelum itu halaman
-       kosong dan tutorial menunggu. */
     function munculkanPermintaan() {
         notifArrived = true;
         notifCard.setAttribute('data-tour', 'notif-verifikasi');
@@ -167,10 +143,6 @@ $loIds     = !empty($checked) ? array_keys($checked) : array_keys(LO_LIST);
         if (window.OneFISTour) { window.OneFISTour.rescan(); }
     }
 
-    /* Kartu tutorial "Tunggu pemberitahuan dari AMT" tampil 20 detik penuh (atau sampai
-       "Mengerti" diketuk). Pop up permintaan baru dimunculkan SETELAH kartu itu hilang,
-       paling cepat 5 detik setelah halaman dibuka. Bila tutorial tidak aktif, pop up
-       tetap muncul di detik ke-5. */
     function kartuTutorialTampil() {
         return !!document.querySelector('.sptt-panel.is-on');
     }
@@ -179,7 +151,7 @@ $loIds     = !empty($checked) ? array_keys($checked) : array_keys(LO_LIST);
         munculkanPermintaan();
     }
     setTimeout(function () {
-        // beri waktu mesin tutorial memasang kartunya dulu
+
         setTimeout(tungguTutorial, 1200);
     }, 3800);
 

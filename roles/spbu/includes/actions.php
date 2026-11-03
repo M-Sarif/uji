@@ -67,6 +67,7 @@ function spbu_handle_post(string $action): void
 
             $overall = (int) ($_POST['rating'][$subjectKey]['overall'] ?? 0);
             $_SESSION['ratings'][$subjectKey]['overall'] = $overall;
+            $_SESSION['ratings'][$subjectKey]['review']  = trim((string) ($_POST['review'] ?? ''));
             if ($overall < 1) {
                 $errors[] = 'Penilaian Keseluruhan ' . $subject['sub'];
             }
@@ -104,7 +105,7 @@ function spbu_handle_post(string $action): void
                     $errors2[] = $cat['title'];
                 }
             }
-            $_SESSION['ratings']['review'] = trim($_POST['review'] ?? '');
+            $_SESSION['ratings'][$subjectKey2]['review'] = trim((string) ($_POST['review'] ?? ''));
 
             if (!empty($errors2)) {
                 $_SESSION['rating_error'] = 'Mohon beri bintang untuk: ' . implode(', ', $errors2);

@@ -1,21 +1,8 @@
 <?php
-/**
- * Layar "Permintaan Verifikasi".
- * Tampil setelah pengguna menekan "Lihat Notifikasi" pada pop up
- * "Permintaan Verifikasi Order" di halaman Notifikasi (views/notifikasi.php).
- *
- * 5 detik setelah halaman ini terbuka, muncul pop up "Berhasil Melakukan
- * Verifikasi". Menekan "Beri Penilaian" akan membawa pengguna ke halaman
- * Rating AMT.
- */
 
 $checked = array_filter($_SESSION['lo_checked'] ?? []);
 $loIds   = !empty($checked) ? array_keys($checked) : array_keys(LO_LIST);
 
-// Verifikasi order dianggap sudah dilakukan begitu progres aktifitas SPBU
-// sampai ke langkah "Rating AMT" (activity_done >= 3, ditandai saat
-// pengguna mencapai layar rating lewat "Beri Penilaian"). Kalau begitu,
-// membuka layar ini lagi TIDAK menampilkan barcode/kode konfirmasi lagi.
 $sudahVerifikasi = (int) ($_SESSION['activity_done'] ?? 0) >= 3;
 
 if ($sudahVerifikasi): ?>
@@ -29,51 +16,43 @@ if ($sudahVerifikasi): ?>
 </div>
 <?php return; endif; ?>
 <?php
-// Kode konfirmasi + matriks pola QR (dipakai oleh SVG di bawah)
-$kodeKonfirmasi = $_SESSION['kode_konfirmasi'] ?? '131200';
-$qrSize         = 21;
-$qrMatrix       = generate_qr_matrix($kodeKonfirmasi, $qrSize);
+$qrTtl = 180;
+$now   = time();
+$qrNow = $_SESSION['verif_qr'] ?? null;
+if (!is_array($qrNow) || (int) ($qrNow['exp'] ?? 0) <= $now) {
+    $qrNow = ['token' => bin2hex(random_bytes(8)), 'exp' => $now + $qrTtl];
+    $_SESSION['verif_qr'] = $qrNow;
+}
+$remaining = max(0, (int) $qrNow['exp'] - $now);
+$payload   = 'ONEFIS-VERIF|' . implode(',', $loIds) . '|' . $qrNow['token'] . '|' . $qrNow['exp'];
 ?>
 <div class="content-pad verif-body">
 
-    <h2 class="section-title" style="text-align:center;margin-bottom:1rem;">LO yang di Serahkan</h2>
+    <h2 class="section-title verif-heading">LO yang di Serahkan</h2>
 
-    <div class="card verif-lo-card">
+    <div class="verif-lo-list">
         <?php foreach ($loIds as $id): ?>
             <div class="verif-lo-row">
                 <span class="verif-lo-id">LO : <?php echo h($id); ?></span>
-                <span class="chip chip-done"><?php echo h(LO_LIST[$id]['produk'] ?? ''); ?> (<?php echo h(str_replace(' ', '', LO_LIST[$id]['qty'] ?? '')); ?>)</span>
+                <span class="verif-lo-pill"><?php echo h(LO_LIST[$id]['produk'] ?? ''); ?> (<?php echo h(str_replace(' ', '', LO_LIST[$id]['qty'] ?? '')); ?>)</span>
             </div>
         <?php endforeach; ?>
     </div>
 
-    <div class="qr-box" style="margin-top:1.25rem;">
-        <h2>Kode Konfirmasi Untuk AMT</h2>
-        <p class="desc">Silakan berikan kode konfirmasi ini ke AMT untuk verifikasi order.</p>
+    <div class="qr-box">
+        <h2>Kode QR Kamu Sudah Dibuat</h2>
+        <p class="desc">Silahkan AMT Pindai Kode QR untuk verifikasi order</p>
 
-        <div class="qr-visual">
-            <svg viewBox="0 0 <?php echo (int) $qrSize; ?> <?php echo (int) $qrSize; ?>" xmlns="http://www.w3.org/2000/svg">
-                <rect x="0" y="0" width="<?php echo (int) $qrSize; ?>" height="<?php echo (int) $qrSize; ?>" fill="#ffffff"></rect>
-                <?php foreach ($qrMatrix as $y => $row): ?>
-                    <?php foreach ($row as $x => $filled): ?>
-                        <?php if ($filled): ?>
-                            <rect x="<?php echo (int) $x; ?>" y="<?php echo (int) $y; ?>" width="1" height="1" fill="#1e293b"></rect>
-                        <?php endif; ?>
-                    <?php endforeach; ?>
-                <?php endforeach; ?>
-            </svg>
-        </div>
+        <div class="qr-visual" id="verifQr" data-qr="<?php echo h($payload); ?>" role="img" aria-label="Kode QR verifikasi order untuk AMT"></div>
+        <p class="qr-expired" id="verifQrExpired" hidden>Kode QR sudah kedaluwarsa. <a href="index.php?screen=qr_code">Buat ulang</a></p>
 
-        <div class="qr-alt">
-            <p class="label">Atau gunakan kode</p>
-            <div class="qr-code-text"><?php echo h($kodeKonfirmasi); ?></div>
-        </div>
+        <p class="qr-note">Kode QR akan kadaluwarsa dalam waktu...</p>
+        <p class="qr-timer" id="verifTimer"><?php echo h(sprintf('%02d:%02d', intdiv($remaining, 60), $remaining % 60)); ?></p>
     </div>
 
 </div>
 
-<!-- Pop up: Berhasil Melakukan Verifikasi (muncul otomatis setelah 5 detik) -->
-<div class="modal-backdrop" id="verifBerhasilModal" hidden>
+<div class="modal-backdrop modal-center" id="verifBerhasilModal" hidden>
     <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="verifBerhasilJudul">
         <h2 id="verifBerhasilJudul">Berhasil Melakukan Verifikasi</h2>
         <p>Silakan berikan penilaian terhadap pelayanan dari AMT yang bertugas.</p>
@@ -81,11 +60,36 @@ $qrMatrix       = generate_qr_matrix($kodeKonfirmasi, $qrSize);
     </div>
 </div>
 
+<script src="<?php echo SPBU_URL; ?>/js/qrcode.js?v=<?php echo (int) @filemtime(SPBU_ASSET_DIR . '/js/qrcode.js'); ?>"></script>
 <script>
 (function () {
-    var modal = document.getElementById('verifBerhasilModal');
-    // Simulasi AMT memindai kode: pop up muncul 5 detik setelah halaman
-    // dibuka, lalu tutorial diminta pindah ke langkah "Beri Penilaian".
+    var qrEl    = document.getElementById('verifQr');
+    var expired = document.getElementById('verifQrExpired');
+    var timer   = document.getElementById('verifTimer');
+    var modal   = document.getElementById('verifBerhasilModal');
+    var end     = Date.now() + <?php echo (int) $remaining; ?> * 1000;
+
+    if (window.qrcode) {
+        var q = window.qrcode(0, 'M');
+        q.addData(qrEl.getAttribute('data-qr'));
+        q.make();
+        qrEl.innerHTML = q.createSvgTag({ cellSize: 4, margin: 0, scalable: true });
+    }
+
+    function pad(n) { return (n < 10 ? '0' : '') + n; }
+    function show(s) { timer.textContent = pad(Math.floor(s / 60)) + ':' + pad(s % 60); }
+    function tick() {
+        var left = Math.max(0, Math.ceil((end - Date.now()) / 1000));
+        show(left);
+        if (left > 0) { return false; }
+        qrEl.hidden = true;
+        expired.hidden = false;
+        return true;
+    }
+    if (!tick()) {
+        var iv = setInterval(function () { if (tick()) { clearInterval(iv); } }, 250);
+    }
+
     setTimeout(function () {
         modal.hidden = false;
         if (window.OneFISTour) { window.OneFISTour.rescan(); }

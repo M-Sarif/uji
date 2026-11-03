@@ -1,32 +1,13 @@
 <?php
-/**
- * Layar "Beri Penilaian".
- * Tampil setelah pop up "Berhasil Melakukan Verifikasi" di halaman
- * Permintaan Verifikasi (views/qr_code.php) -> tombol "Beri Penilaian".
- *
- * Ada 2 AMT yang bertugas (ARRIVAL_SUBJECTS: amt_ok = AMT 1, amt2_ok =
- * AMT 2) dan KEDUANYA wajib dinilai secara terpisah, SATU PER SATU:
- *  - Langkah 1 (?step=1): nilai AMT 1 -> tombol "Selanjutnya" (tunggal,
- *    nonaktif sampai lengkap) menyimpan lalu pindah ke langkah 2.
- *  - Langkah 2 (?step=2): nilai AMT 2 + kolom "Keterangan Lainnya"
- *    (opsional) -> tombol "Telah Kirim" menyimpan & memvalidasi kedua
- *    AMT, lalu lanjut ke halaman "done".
- *
- * Susunan kartu per langkah (persis video referensi):
- *  1. Kartu teratas: foto + nama AMT, bintang penilaian keseluruhan.
- *  2. Kartu per kategori (RATING_CATEGORIES): judul, pertanyaan, bintang.
- *     Begitu bintang dipilih, muncul teks apresiasi ("Luar Biasa!" dst).
- */
 
 $ratings = $_SESSION['ratings'];
 $error   = $_SESSION['rating_error'] ?? '';
 unset($_SESSION['rating_error']);
 
-// Kedua AMT yang dinilai (mt_ok = mobil tangki, tidak ikut dinilai di sini)
 $amtSubjects    = array_filter(ARRIVAL_SUBJECTS, function ($key) {
     return $key !== 'mt_ok';
 }, ARRAY_FILTER_USE_KEY);
-$amtKeysOrdered = array_keys($amtSubjects); // ['amt_ok', 'amt2_ok']
+$amtKeysOrdered = array_keys($amtSubjects);
 
 $step          = $_SESSION['rating_step'] ?? 1;
 $totalStep     = count($amtKeysOrdered);
@@ -34,7 +15,6 @@ $currentAmtKey = $amtKeysOrdered[$step - 1];
 $currentAmt    = $amtSubjects[$currentAmtKey];
 $isLastStep    = $step >= $totalStep;
 
-// Teks apresiasi berdasarkan jumlah bintang yang dipilih
 $starTitles = [
     1 => 'Sangat Kurang',
     2 => 'Kurang',
@@ -44,7 +24,8 @@ $starTitles = [
 ];
 $starBody = 'Terima kasih! Penilaian ini sangat berarti bagi kami.';
 
-/** Render 5 tombol bintang (radio) untuk satu AMT + satu kelompok penilaian */
+$reviewText = (string) ($ratings[$currentAmtKey]['review'] ?? '');
+
 function render_stars(string $amtKey, string $catKey, int $selected): void
 {
     $group = $amtKey . '_' . $catKey;
@@ -70,14 +51,16 @@ function render_stars(string $amtKey, string $catKey, int $selected): void
 
 <div class="content-pad" style="padding-bottom:1rem;">
 
-    <!-- Kartu penilaian keseluruhan -->
     <div class="card rating-card" data-rating-card="<?php echo h($currentAmtKey); ?>_overall">
-        <div class="person-row" style="justify-content:center;flex-direction:column;align-items:center;margin-bottom:0.75rem;">
-            <div class="avatar-circle" style="width:3.5rem;height:3.5rem;margin-bottom:0.5rem;">
+        <p class="rating-title">Bagaimana pelayanan kami?</p>
+        <p class="rating-desc">Beri penilaian untuk AMT ini</p>
+
+        <div class="rating-person">
+            <div class="avatar-circle rating-avatar">
                 <img src="<?php echo h($currentAmt['photo']); ?>" alt="<?php echo h($currentAmt['name']); ?>">
             </div>
-            <p class="person-name" style="text-align:center;"><?php echo h($currentAmt['name']); ?></p>
-            <p class="person-sub" style="text-align:center;"><?php echo h($currentAmt['sub']); ?></p>
+            <p class="person-name"><?php echo h($currentAmt['name']); ?></p>
+            <p class="person-sub"><?php echo h($currentAmt['sub']); ?></p>
         </div>
 
         <?php render_stars($currentAmtKey, 'overall', (int) ($ratings[$currentAmtKey]['overall'] ?? 0)); ?>
@@ -88,7 +71,6 @@ function render_stars(string $amtKey, string $catKey, int $selected): void
         </div>
     </div>
 
-    <!-- Kartu per kategori -->
     <?php foreach (RATING_CATEGORIES as $catKey => $cat): ?>
         <div class="card rating-card" data-rating-card="<?php echo h($currentAmtKey); ?>_<?php echo h($catKey); ?>">
             <p class="rating-title"><?php echo h($cat['title']); ?></p>
@@ -103,14 +85,11 @@ function render_stars(string $amtKey, string $catKey, int $selected): void
         </div>
     <?php endforeach; ?>
 
-    <?php if ($isLastStep): ?>
-    <!-- Keterangan lainnya (satu kolom, tampil di langkah terakhir) -->
-    <div class="card rating-card">
-        <p class="rating-title" style="margin-bottom:0.75rem;">Keterangan Lainnya (opsional)</p>
-        <p class="rating-desc" style="text-align:left;margin-bottom:0.625rem;">Kritik dan saran akan sangat berharga untuk pelayanan yang lebih baik lagi.</p>
-        <textarea class="review-box" name="review" rows="3" placeholder="Contoh: AMT sangat membantu dan tepat waktu."><?php echo h($ratings['review'] ?? ''); ?></textarea>
+    <div class="card rating-card rating-review">
+        <p class="rating-title">Keterangan Lainnya (opsional)</p>
+        <p class="rating-desc">Kritik dan saran akan sangat berharga untuk pelayanan yang lebih baik lagi.</p>
+        <textarea class="review-box" name="review" rows="3" maxlength="500" placeholder="Contoh: AMT sangat membantu dan tepat waktu." aria-label="Keterangan lainnya untuk <?php echo h($currentAmt['sub']); ?>"><?php echo h($reviewText); ?></textarea>
     </div>
-    <?php endif; ?>
 
     <?php if ($error): ?>
         <p class="error-text"><?php echo h($error); ?></p>
@@ -118,11 +97,6 @@ function render_stars(string $amtKey, string $catKey, int $selected): void
 
 </div>
 
-<!-- Navigasi bawah:
-     - AMT 1 (langkah 1): hanya SATU tombol "Selanjutnya" (nonaktif sampai
-       semua kategori dinilai, lalu aktif).
-     - AMT 2 (langkah 2): satu tombol "Kirim" nonaktif sampai lengkap, lalu
-       berganti menjadi "Sebelumnya" + "Kirim". -->
 <?php if ($isLastStep): ?>
 <div class="wizard-nav" id="ratingNavSingle">
     <span class="btn-wiz is-disabled" style="flex:1 1 0;">Kirim</span>
@@ -136,7 +110,7 @@ function render_stars(string $amtKey, string $catKey, int $selected): void
 </div>
 <?php else: ?>
 <div class="wizard-nav" id="ratingNavStep1">
-    <button type="submit" class="btn-primary" id="btnRatingLanjut" disabled>Selanjutnya</button>
+    <button type="submit" class="btn-wiz" id="btnRatingLanjut" disabled>Selanjutnya</button>
 </div>
 <?php endif; ?>
 </form>
@@ -149,8 +123,8 @@ function render_stars(string $amtKey, string $catKey, int $selected): void
     var groups     = catKeys.map(function (catKey) { return amtKey + '_' + catKey; });
     var titles     = <?php echo json_encode($starTitles); ?>;
     var body       = <?php echo json_encode($starBody); ?>;
-    var navSingle  = document.getElementById('ratingNavSingle'); // hanya ada di langkah terakhir
-    var navPair    = document.getElementById('ratingNavPair');   // hanya ada di langkah terakhir
+    var navSingle  = document.getElementById('ratingNavSingle');
+    var navPair    = document.getElementById('ratingNavPair');
     var btnLanjut  = document.getElementById('btnRatingLanjut');
 
     function checkComplete() {
@@ -158,16 +132,14 @@ function render_stars(string $amtKey, string $catKey, int $selected): void
             return form.querySelector('[data-group="' + group + '"]:checked') !== null;
         });
         if (navSingle && navPair) {
-            // AMT 2: tombol tunggal -> berganti jadi Sebelumnya + Kirim
+
             navSingle.hidden = complete;
             navPair.hidden   = !complete;
         } else if (btnLanjut) {
-            // AMT 1: tombol "Selanjutnya" tunggal, aktif jika sudah lengkap
+
             btnLanjut.disabled = !complete;
         }
 
-        // Penanda untuk tutorial: kartu yang sudah berbintang (.is-rated), jumlahnya (data-rated),
-        // dan data-complete="1" bila semuanya lengkap -> tutorial menyorot tombol lanjut/kirim.
         var rated = 0;
         groups.forEach(function (group) {
             var card  = form.querySelector('[data-rating-card="' + group + '"]');
@@ -179,8 +151,6 @@ function render_stars(string $amtKey, string $catKey, int $selected): void
         if (complete) { form.setAttribute('data-complete', '1'); }
         else { form.removeAttribute('data-complete'); }
 
-        // Kalau tutorial sedang menunggu tombol ini aktif/tampil, langsung
-        // coba tampilkan sekarang juga (tidak menunggu polling 400ms).
         if (window.OneFISTour) { window.OneFISTour.rescan(); }
     }
 

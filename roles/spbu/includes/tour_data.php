@@ -768,7 +768,7 @@ function spbu_tour_qr_steps(): array
             'label'  => 'Verifikasi Order',
             'target' => '.qr-box',
             'title'  => 'Minta AMT memindai kode',
-            'text'   => 'Minta AMT memindai (scan) Kode QR ini. Kalau tidak bisa dipindai, berikan Kode Konfirmasi di bawahnya kepada AMT. Kode ini punya waktu kadaluwarsa, jadi jangan ditunda.',
+            'text'   => 'Minta AMT memindai (scan) Kode QR ini. Kode ini punya waktu kadaluwarsa (hitung mundur di bawah kode), jadi jangan ditunda.',
             'hint'   => '⏳ Menunggu AMT memindai kode…',
             'done'   => '#verifBerhasilModal:not([hidden])',
             'ok'     => '✅ AMT sudah memverifikasi',
@@ -843,7 +843,7 @@ function spbu_tour_rating_steps(): array
                 'target' => '#btnRatingLanjut',
                 'when'   => '#ratingForm[data-complete="1"]',
                 'title'  => 'Ketuk “Kirim”',
-                'text'   => 'Semua penilaian AMT 1 dan AMT 2 sudah lengkap. Kolom “Keterangan Lainnya” boleh dikosongkan. Ketuk “Kirim” untuk mengirim rating dan menyelesaikan seluruh aktifitas di SPBU.',
+                'text'   => 'Semua penilaian AMT 1 dan AMT 2 sudah lengkap. Kolom “Keterangan Lainnya” di tiap AMT boleh dikosongkan. Ketuk “Kirim” untuk mengirim rating dan menyelesaikan seluruh aktifitas di SPBU.',
                 'hint'   => '👆 Ketuk tombol biru “Kirim”',
                 'done'   => null,
             ]
@@ -853,8 +853,8 @@ function spbu_tour_rating_steps(): array
                 'target' => '#btnRatingLanjut',
                 'when'   => '#ratingForm[data-complete="1"]',
                 'title'  => 'Ketuk “Selanjutnya”',
-                'text'   => 'Penilaian AMT 1 sudah lengkap, jadi tombol “Selanjutnya” menyala. Ketuk untuk menilai AMT 2.',
-                'hint'   => '👆 Ketuk tombol biru “Selanjutnya”',
+                'text'   => 'Penilaian AMT 1 sudah lengkap, jadi tombol “Selanjutnya” menyala. Kolom “Keterangan Lainnya” boleh dikosongkan. Ketuk “Selanjutnya” untuk menilai AMT 2.',
+                'hint'   => '👆 Ketuk tombol “Selanjutnya”',
                 'done'   => null,
             ],
     ]];
